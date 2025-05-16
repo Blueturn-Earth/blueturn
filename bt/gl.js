@@ -72,6 +72,19 @@ function createTextureFromURL(url) {
   return tex;
 }
 
+function createTextureFromBlob(blob) {
+  const tex = gl.createTexture();
+  const image = new Image();
+  image.src = URL.createObjectURL(blob);
+  image.onload = () => {
+    createTextureFromImage(image, tex);
+    URL.revokeObjectURL(image.src);
+  };
+  return tex;
+}
+
+
+
 function setActiveTexture(program, uniformName, tex, unit)
 {
   gl.activeTexture(gl.TEXTURE0 + unit);
@@ -89,15 +102,17 @@ function glLoadEpicTexture(program, epicImageData, epicStructUniformName)
     return;
   const epicTextureUniformName = epicStructUniformName + '.texture';
   const epicHasTextureUniformName = epicStructUniformName + '.hasTexture';
-  if (!epicImageData.imageBlob)
-  {
-    setActiveTexture(program, epicTextureUniformName, null, 0);
-    gl.uniform1i(gl.getUniformLocation(program, epicHasTextureUniformName), 0);
-    return;
-  }
   if (!epicImageData.texture)
   {
-    epicImageData.texture = createTextureFromURL(URL.createObjectURL(epicImageData.imageBlob));
+    if (!epicImageData.imageBlob)
+    {
+      setActiveTexture(program, epicTextureUniformName, null, 0);
+      gl.uniform1i(gl.getUniformLocation(program, epicHasTextureUniformName), 0);
+      return;
+    }
+    
+    epicImageData.texture = createTextureFromBlob(epicImageData.imageBlob);
+    epicImageData.imageBlob = null;
   }
 
   if (!epicTexUnit.get(epicTextureUniformName))
