@@ -1,4 +1,7 @@
 {
+    "command-runner.terminal.name": "runCommand",
+    "command-runner.terminal.autoClear": true,
+    "command-runner.terminal.autoFocus": true,
     "command-runner.commands": {
         "▶️ Start Live Server": "npx live-server",
         "⏹️ Stop Live Server": "pkill -f live-server || echo 'no live-server running'"

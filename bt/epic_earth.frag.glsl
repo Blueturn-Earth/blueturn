@@ -18,6 +18,7 @@ out vec4 fragColor;
 #define R1 1.0094	// Atmosphere radius (6420 km) 
 
 uniform vec2 pivotScreenCoord;
+uniform bool showPivotCircle;
 
 struct EPICImageInfo
 {
@@ -25,6 +26,7 @@ struct EPICImageInfo
     bool hasTexture; 
     float centroid_lat;
     float centroid_lon;
+    mat3 centroid_matrix;
     float earth_radius;
     vec3 lightDir;
     float time_sec;
@@ -41,25 +43,6 @@ vec2 fragCoordToUV(vec2 fragCoord)
    return (2.0 * fragCoord-iResolution.xy) / min(iResolution.x, iResolution.y)
     // top-down
     * vec2(1., -1.);
-}
-
-mat3 getLatLonNorthRotationMatrix(float latitudeDeg, float longitudeDeg) 
-{
-    float lat = radians(latitudeDeg);
-    float lon = radians(longitudeDeg);
-
-    vec3 z = vec3(
-        - cos(lat) * cos(lon),
-        - sin(lat),
-        cos(lat) * sin(lon)
-    );
-
-    vec3 tmpY = vec3(0.0, 1.0, 0.0);
-
-    vec3 x = normalize(cross(tmpY, z));
-    vec3 y = normalize(cross(z, x));
-
-    return transpose(mat3(x, y, z)); // columns: X (east), Y (north), Z (outward)
 }
 
 vec3 RenderSun(in vec2 uv)
@@ -84,40 +67,13 @@ vec3 RenderBlueMarble(in vec3 GroundNormal)
         texture(texEarthGround, earthMap_uv).rgb, 
         vec3(0.45));
 
-    /*
-    // Shading
-    vec3 Night = 
-        texture(texEarthLights, earthMap_uv).rgb;
-
-    LightDir *= transpose(GroundMatrix);
-    float Diffuse     = dot(GroundNormal, LightDir);
-    vec3 Color = mix(Night, GroundMap, smoothstep(-0.2, 0.2, Diffuse));// * Light
-    vec3 GroundReflection = reflect(vec3(0.0, 0.0, 1.0), GroundNormal);
-    float Specular    = max(0.0, dot(-GroundReflection, LightDir));
-    float Scatter     = 4.0*pow((sqrt(R1 - dot(uv, uv)) - Normal.z) / sqrt(R1-R0), 1.35);
-    float Extinct     = pow(1.0 - Diffuse, 4.0);
-    float Sea         = smoothstep(1.0, 0.0, 100.0*length(GroundMap - RGB(2,5,20)));
-
-    vec3 Light = mix(vec3(1.0), RGB(255, 150, 40), Extinct);
-
-    vec3 Color = GroundMap;
-    Color += 0.8*Sea*RGB(19,35,60);
-    Color *= Light*Diffuse;
-    Color += 2.0*Light*Diffuse*(0.3)*mix(0.03, 0.4, Sea)*pow(Specular, (0.8)*mix(9.0, 200.0, Sea));
-    Color += pow(max(0.0, dot(Normal, -LightDir)), 2.0)*Night;
-    Color *= mix(vec3(1.0), RGB(255-58,255-72,255-90), 1.0*Scatter);
-    Color += 4.0*Diffuse*(1.0 + Sea)*Scatter*RGB(58,72,90);
-    Color += Sun*RGB(255,250,230);
-    return Color;
-    */
     return GroundMap;
 }
 
 vec3 RenderEpicImage(vec3 GroundNormal, EPICImageInfo epicImage)
 {
     // Epic image rotation from ground
-    mat3 EpicMatrix0 = transpose(
-            getLatLonNorthRotationMatrix(epicImage.centroid_lat, epicImage.centroid_lon));
+    mat3 EpicMatrix0 = transpose(epicImage.centroid_matrix);
 
     // EPIC image Textures:
     vec3 EpicNormal0 = GroundNormal * EpicMatrix0;
@@ -133,7 +89,7 @@ vec3 Render(in vec2 fragCoord)
     float centroidLat = curr_epicImage.centroid_lat;
     float centroidLon = curr_epicImage.centroid_lon;
 
-    mat3 GroundMatrix = getLatLonNorthRotationMatrix(centroidLat, centroidLon);
+    mat3 GroundMatrix = curr_epicImage.centroid_matrix;
 
     vec4 pivot_circle_color = vec4(0.0, 0.0, 0.0, 0.0);
     float pivot_circle_radius = 200.0;
@@ -144,37 +100,40 @@ vec3 Render(in vec2 fragCoord)
         vec2 press_fragCoord = vec2(pivotScreenCoord.x, iResolution.y - pivotScreenCoord.y);
         vec2 press_uv = fragCoordToUV(press_fragCoord);
 
-        vec2 pivot_earth_uv = press_uv / pivot_epicImage.earth_radius;
-        vec3 pivot_Normal     = vec3(pivot_earth_uv, sqrt(1.0 - dot(pivot_earth_uv, pivot_earth_uv)));
-        mat3 pivot_GroundMatrix = getLatLonNorthRotationMatrix(
-            pivot_epicImage.centroid_lat, 
-            pivot_epicImage.centroid_lon);
+        vec2 pivot_uv = press_uv;
+
+        pivot_uv /= pivot_epicImage.earth_radius;
+        vec3 pivot_Normal     = vec3(pivot_uv, sqrt(1.0 - dot(pivot_uv, pivot_uv)));
+        mat3 pivot_GroundMatrix = pivot_epicImage.centroid_matrix;
         pivot_Normal *= pivot_GroundMatrix;
         pivot_Normal *= transpose(GroundMatrix);
         if (pivot_Normal.z >= 0.0)
         {
-            vec2 pivot_uv = pivot_Normal.xy * pivot_epicImage.earth_radius;
+            // overwrite pivot_uv with the rotated pivot_Normal
+            pivot_uv = pivot_Normal.xy * pivot_epicImage.earth_radius;
 
             uv -= press_uv;
             uv /= epicZoomFactor;
             uv += pivot_uv;
 
-            float pixelToUVFactor = 1.0 / min(iResolution.x, iResolution.y);
-
-            pivot_circle_radius *= 1.0 / (epicZoomFactor - 1.0); 
-            pivot_circle_descent *= 1.0 / (epicZoomFactor - 1.0); 
-            pivot_circle_color.a = 
-                smoothstep(
-                    pivot_circle_radius * pixelToUVFactor, 
-                    (pivot_circle_radius + pivot_circle_descent) * pixelToUVFactor,
-                    length(uv - pivot_uv)) * 0.9;
+            if (showPivotCircle)
+            {
+                float pixelToUVFactor = 1.0 / min(iResolution.x, iResolution.y);
+                pivot_circle_radius *= 1.0 / (epicZoomFactor - 1.0); 
+                pivot_circle_descent *= 1.0 / (epicZoomFactor - 1.0); 
+                pivot_circle_color.a = 
+                    smoothstep(
+                        pivot_circle_radius * pixelToUVFactor, 
+                        (pivot_circle_radius + pivot_circle_descent) * pixelToUVFactor,
+                        length(uv - pivot_uv)) * 0.9;
+            }
         }
     }
 
     // Normal from UV:
     float earth_radius = curr_epicImage.earth_radius;
-    vec3 Normal     = vec3(uv, sqrt(earth_radius * earth_radius - dot(uv, uv)));
-    Normal /= earth_radius;
+    vec2 pixel_uv = uv / earth_radius;
+    vec3 Normal     = vec3(pixel_uv, sqrt(1.0 - dot(pixel_uv, pixel_uv)));
 
     // Sphere hit:
     if(Normal.z < 0.0)
@@ -197,7 +156,10 @@ vec3 Render(in vec2 fragCoord)
         col = mix(GroundEpic0, GroundEpic1, vec3(curr_epicImage.mix01));
     }
 
-    col = mix(col, pivot_circle_color.rgb, pivot_circle_color.a);
+    if (showPivotCircle)
+    {
+        col = mix(col, pivot_circle_color.rgb, pivot_circle_color.a);
+    }
 
     return col;
 }
