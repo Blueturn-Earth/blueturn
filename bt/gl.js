@@ -3,7 +3,7 @@
 import { 
   gEpicTime, 
   gUpdateEpicTime, 
-  gPressScreenCoord,
+  gEpicZoomPivotScreenCoord,
   gEpicImageData, 
   gPivotEpicImageData,
   gEpicImageData0, 
@@ -185,8 +185,8 @@ Promise.all([
     gl.uniform1f(gl.getUniformLocation(program, 'curr_epicImage.mix01'), gEpicImageData.mix01 );
     gl.uniform1i(gl.getUniformLocation(program, 'epicZoom'), gEpicZoom);
     gl.uniform1f(gl.getUniformLocation(program, 'epicZoomFactor'), epicZoom);
-    if (gPressScreenCoord)
-      gl.uniform2f(gl.getUniformLocation(program, 'pressScreenCoord'), gPressScreenCoord.x, gPressScreenCoord.y);
+    if (gEpicZoomPivotScreenCoord)
+      gl.uniform2f(gl.getUniformLocation(program, 'pivotScreenCoord'), gEpicZoomPivotScreenCoord.x, gEpicZoomPivotScreenCoord.y);
   }
 
   function render(time) 

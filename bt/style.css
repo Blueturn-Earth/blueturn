@@ -8,6 +8,14 @@ body, html {
     background-color:black;
 }
 
+html, body, canvas {
+  touch-action: none;
+  overscroll-behavior: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+}
+
 #glcanvas {
     display: block;
     width: 100%;

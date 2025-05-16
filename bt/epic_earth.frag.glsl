@@ -17,7 +17,7 @@ out vec4 fragColor;
 #define R0 1.0000	// Nomralized Earth radius (6360 km)
 #define R1 1.0094	// Atmosphere radius (6420 km) 
 
-uniform vec2 pressScreenCoord;
+uniform vec2 pivotScreenCoord;
 
 struct EPICImageInfo
 {
@@ -141,7 +141,7 @@ vec3 Render(in vec2 fragCoord)
 
     if (epicZoom)
     {
-        vec2 press_fragCoord = vec2(pressScreenCoord.x, iResolution.y - pressScreenCoord.y);
+        vec2 press_fragCoord = vec2(pivotScreenCoord.x, iResolution.y - pivotScreenCoord.y);
         vec2 press_uv = fragCoordToUV(press_fragCoord);
 
         vec2 pivot_earth_uv = press_uv / pivot_epicImage.earth_radius;

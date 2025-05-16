@@ -55,13 +55,6 @@ class Screen
 
         let self = this;
         window.addEventListener("load", function(e) {
-            canvas.addEventListener("touchstart", (e) => {
-                if (e.touches.length > 0) {
-                    const touch = e.touches[0];
-                    self.#handleStart(touch.clientX, touch.clientY);
-                }
-            });
-
             // Mouse events
             canvas.addEventListener("mousemove", e => {
                 self.#handleMove(e.clientX, e.clientY, e);
@@ -142,6 +135,9 @@ class Screen
             gModifiersMask |= getModifierMask(e);
         }
 
+        if (!e)
+            e = {};
+
         e.movePos = getCanvasCoords(x, y);
         this.#lastMovePos = e.movePos;
         if (!(gModifiersMask & Modifiers.LeftBtn)) {
@@ -171,6 +167,8 @@ class Screen
     }
 
     #handleStart(x, y, e = undefined) {
+        if (!e)
+            e = {};
         e.startPos = getCanvasCoords(x, y);
         this.#startPos = this.#lastMovePos = e.startPos;
 
@@ -219,6 +217,7 @@ class Screen
             const eClick = {
                 clickPos: this.#lastMovePos
             };
+            this.callEvent("click", eClick);
             if (this.doubleClickTimeout)
             {
                 this.callEvent("double-click", eClick);
@@ -229,7 +228,6 @@ class Screen
             {
                 this.doubleClickTimeout = setTimeout(() => {
                     this.doubleClickTimeout = undefined;
-                    this.callEvent("click", eClick);
                 }, this.#DOUBLE_CLICK_TIME_MS);
             }
         }

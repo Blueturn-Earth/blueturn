@@ -2,9 +2,9 @@ import { gEpicImageDataMap, gEpicStartTimeSec, gEpicEndTimeSec} from './epic.js'
 import { gScreen} from './screen.js';
 
 export let gTimeScale = 3600;
-export let gEpicPlaying = false;
+export let gEpicPlaying = true;
 export let gEpicZoom = false;
-export let gPressScreenCoord = undefined;
+export let gEpicZoomPivotScreenCoord = undefined;
 export let gEpicTime = undefined;
 export let gEpicImageData0 = undefined; 
 export let gEpicImageData1 = undefined; 
@@ -20,17 +20,15 @@ let longPressing = false;
 gScreen.addEventListener("down", (e) => {
     if (gEpicTime)
     {
-        gPressScreenCoord = e.startPos;
         epicPressTime = gEpicTime;
         holding = true;
     }
 });
 
 gScreen.addEventListener("up", (e) => {
-    if (gEpicZoom)
-        gEpicZoom = false;
     if (longPressing)
     {
+        gEpicZoom = false;
         epicPressTime = undefined;
         gPivotEpicImageData = undefined;
         longPressing = false;
@@ -55,9 +53,10 @@ gScreen.addEventListener("drag", (e) => {
     }
 });
 
-function zoom()
+function zoom(pivotPos)
 {
     gEpicZoom = true;
+    gEpicZoomPivotScreenCoord = pivotPos;
 
     if (gEpicImageData)
     {
@@ -69,13 +68,17 @@ function zoom()
 
 gScreen.addEventListener("long-press", (e) => {
     longPressing = true;
-    zoom();
+    zoom(e.startPos);
 });
 
 gScreen.addEventListener("double-click", (e) => {
-    if (!gEpicPlaying)
+    if (!gEpicPlaying && !gEpicZoom)
     {
-        zoom();
+        zoom(e.clickPos);
+    }
+    else
+    {
+        gEpicZoom = false;
     }
 });
 
