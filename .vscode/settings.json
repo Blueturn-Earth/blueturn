@@ -1,0 +1,10 @@
+{
+    "command-runner.commands": {
+        "▶️ Start Live Server": "npx live-server",
+        "⏹️ Stop Live Server": "pkill -f live-server || echo 'no live-server running'"
+    },
+    "command-runner.statusbar": [
+        "▶️ Start Live Server",
+        "⏹️ Stop Live Server"
+    ]
+}
