@@ -17,8 +17,6 @@ import { gEpicEndTimeSec, gEpicStartTimeSec } from './epic.js';
 const canvas = document.getElementById('glcanvas');
 const gl = canvas.getContext('webgl2');
 
-export let gEpicZoomLatLon = undefined;
-
 let epicZoom = 1.0;
 let epicMaxZoom = 2.0;
 
@@ -285,18 +283,37 @@ function glUpdateUniforms()
     gl.uniform1f(gl.getUniformLocation(program, 'curr_epicImage.mix01'), gEpicImageData.mix01 );
     gl.uniform1i(gl.getUniformLocation(program, 'epicZoom'), gEpicZoom);
     gl.uniform1f(gl.getUniformLocation(program, 'epicZoomFactor'), epicZoom);
-    gEpicZoomLatLon = undefined;
+
     if (gEpicZoom &&
         gEpicZoomPivotScreenCoord)
     {
       if (gPivotEpicImageData.centroid_matrix)
       {
-        gEpicZoomLatLon = getLatLonFromScreenCoord(
-          gEpicZoomPivotScreenCoord,
-          gPivotEpicImageData.centroid_matrix,
-          gPivotEpicImageData.earthRadius / 2.0 * Math.min(canvas.width, canvas.height),
-          canvas.width, canvas.height
-        );
+        if (gPivotEpicImageData.pivot_coordinates == undefined)
+        {
+          gPivotEpicImageData.pivot_coordinates = getLatLonFromScreenCoord(
+            gEpicZoomPivotScreenCoord,
+            gPivotEpicImageData.centroid_matrix,
+            gPivotEpicImageData.earthRadius / 2.0 * Math.min(canvas.width, canvas.height),
+            canvas.width, canvas.height
+          );
+
+          const { lat, lon } = gPivotEpicImageData.pivot_coordinates;
+          const timestamp = Math.floor(Date.now() / 1000);
+          const apiKey = "AIzaSyA5G5wpnUkc_3cKFUVGfJVjtCATeTCEFF8";
+          console.log("Fetching timezone for lat:", lat, "lon:", lon);
+          fetch(`https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lon}&timestamp=${timestamp}&key=${apiKey}`)
+            .then(res => res.json())
+            .then(data => {
+              console.log("timezone:", data);
+              gPivotEpicImageData.pivot_timezone = data;
+              // You can use data.timeZoneId, data.timeZoneName, data.rawOffset, data.dstOffset, etc.
+              // Example: console.log(data.timeZoneId);
+            })
+            .catch(err => {
+              console.error("Timezone API error:", err);
+            });
+        }
       }
       gl.uniform2f(gl.getUniformLocation(program, 'pivotScreenCoord'), gEpicZoomPivotScreenCoord.x, gEpicZoomPivotScreenCoord.y);
     }

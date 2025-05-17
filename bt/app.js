@@ -1,6 +1,5 @@
 import { gEpicImageDataMap, gEpicStartTimeSec, gEpicEndTimeSec} from './epic.js';
 import { gScreen} from './screen.js';
-import {gEpicZoomLatLon} from './gl.js'
 
 export let gTimeScale = 3600;
 export let gEpicPlaying = true;
@@ -187,23 +186,45 @@ export function gUpdateEpicTime(time)
 
 export function gUpdateDateText(timeSec)
 {
-  const date = new Date(timeSec * 1000);
-  let dateStr = "";
-  if (gEpicZoomLatLon)
-  {
-    dateStr += "[" + gEpicZoomLatLon.lat.toFixed(2) + ", " + gEpicZoomLatLon.lon.toFixed(2) + "] \n";
-  }
-dateStr += date.toLocaleString("en-GB", {
-    timeZone: 'GMT',
-    timeZoneName: 'short',
-    hour12: false,
-    minute: '2-digit',
-    hour: '2-digit',
-    day: '2-digit',      // Include day
-    month: '2-digit',    // Include month
-    year: 'numeric'      // Include year
-  });
-  dateStr = dateStr.replace(/(.*\d{2}:\d{2})\s*(.*)$/, '$1 ($2)');
+    const date = new Date(timeSec * 1000);
+    let dateStr = "";
+    if (gPivotEpicImageData && gPivotEpicImageData.pivot_coordinates)
+    {
+        if (gPivotEpicImageData.pivot_timezone &&
+            gPivotEpicImageData.pivot_timezone.status != "ZERO_RESULTS")
+        {
+            dateStr += " (" + gPivotEpicImageData.pivot_timezone.timeZoneId + ")\n";
+        }
+        else
+        {
+            dateStr += "[" + 
+                gPivotEpicImageData.pivot_coordinates.lat.toFixed(2) + ", " + 
+                gPivotEpicImageData.pivot_coordinates.lon.toFixed(2) + "] \n";
+        }
+    }
 
-  document.getElementById("current-time-text").textContent = dateStr;
+    let options = {
+        timeZoneName: 'long',
+        hour12: false,
+        minute: '2-digit',
+        hour: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+    };
+    if (gPivotEpicImageData && 
+        gPivotEpicImageData.pivot_timezone && 
+        gPivotEpicImageData.pivot_timezone.timeZoneId) {
+        options.timeZone = gPivotEpicImageData.pivot_timezone.timeZoneId;
+        options.timeZoneName = "long";
+    }
+    else
+    {
+        options.timeZone = "GMT";
+        options.timeZoneName = "short";
+    }
+    dateStr += date.toLocaleString("en-GB", options);
+    dateStr = dateStr.replace(/(.*\d{2}:\d{2})\s*(.*)$/, '$1 ($2)');
+
+    document.getElementById("current-time-text").textContent = dateStr;
 }
