@@ -1,5 +1,6 @@
 import { gEpicImageDataMap, gEpicStartTimeSec, gEpicEndTimeSec} from './epic.js';
 import { gScreen} from './screen.js';
+import {gEpicZoomLatLon} from './gl.js'
 
 export let gTimeScale = 3600;
 export let gEpicPlaying = true;
@@ -187,7 +188,13 @@ export function gUpdateEpicTime(time)
 export function gUpdateDateText(timeSec)
 {
   const date = new Date(timeSec * 1000);
-  let dateStr = date.toLocaleString("en-GB", {
+  let dateStr = "";
+  if (gEpicZoomLatLon)
+  {
+    dateStr += "[" + gEpicZoomLatLon.lat.toFixed(2) + ", " + gEpicZoomLatLon.lon.toFixed(2) + "] \n";
+  }
+dateStr += date.toLocaleString("en-GB", {
+    timeZone: 'GMT',
     timeZoneName: 'short',
     hour12: false,
     minute: '2-digit',

@@ -17,6 +17,8 @@ import { gEpicEndTimeSec, gEpicStartTimeSec } from './epic.js';
 const canvas = document.getElementById('glcanvas');
 const gl = canvas.getContext('webgl2');
 
+export let gEpicZoomLatLon = undefined;
+
 let epicZoom = 1.0;
 let epicMaxZoom = 2.0;
 
@@ -219,17 +221,51 @@ function getLatLonNorthRotationMatrix(latitudeDeg, longitudeDeg) {
     return m;
 }
 
-// Call this at the beginning of glUpdateUniforms
-// Example:
-//function glUpdateUniforms() {
-    // ... your other code ...
+function getLatLonFromScreenCoord(screenCoord, centroidMatrix, earthRadiusPx, screenWidth, screenHeight) {
+  // Convert screen coordinates to normalized device coordinates (NDC)
+  const minSize = Math.min(screenWidth, screenHeight);
+  let uv = {
+    x: (2.0 * screenCoord.x - screenWidth) / minSize,
+    y: (2.0 * screenCoord.y - screenHeight) / minSize
+  };
 
-    // Example usage:
-    // let rotationMatrix = getLatLonNorthRotationMatrix(latitude, longitude);
-    // gl.uniformMatrix3fv(location, false, rotationMatrix);
+  // Project to sphere in view space
+  let earth_uv = {
+    x: uv.x / (earthRadiusPx / (minSize / 2.0)),
+    y: uv.y / (earthRadiusPx / (minSize / 2.0))
+  };
 
-    // ... rest of your code ...
-//}
+  let xySq = earth_uv.x * earth_uv.x + earth_uv.y * earth_uv.y;
+  if (xySq > 1.0) {
+    // Outside the sphere
+    return null;
+  }
+  let z = Math.sqrt(1.0 - xySq);
+
+  // Normal in view space
+  let normal = [earth_uv.x, earth_uv.y, z];
+
+  let transCentroidMatrix = mat3.create();
+  mat3.transpose(transCentroidMatrix, centroidMatrix);
+  // Transform normal to globe coordinates
+  let globeNormal = vec3.create();
+  vec3.transformMat3(globeNormal, normal, transCentroidMatrix);
+
+  const globeNormalLengthXZ = Math.sqrt(
+    globeNormal[0] * globeNormal[0] + 
+    globeNormal[2] * globeNormal[2]);
+  
+  let lat = Math.atan2(globeNormalLengthXZ, globeNormal[1]) / Math.PI * 180.0 - 90.0;
+  let lon = 180.0 - Math.atan2(globeNormal[2], globeNormal[0]) / Math.PI * 180.0;
+  if (lon >  180.0) lon -= 360.0;
+  if (lon < -180.0) lon += 360.0;
+  if (lat >  90.0 ) lat -= 180.0;
+  if (lat < -90.0 ) lat += 180.0;
+  return {
+    lat: lat,
+    lon: lon
+  };
+}
 
 function glUpdateUniforms()
   {
@@ -249,8 +285,21 @@ function glUpdateUniforms()
     gl.uniform1f(gl.getUniformLocation(program, 'curr_epicImage.mix01'), gEpicImageData.mix01 );
     gl.uniform1i(gl.getUniformLocation(program, 'epicZoom'), gEpicZoom);
     gl.uniform1f(gl.getUniformLocation(program, 'epicZoomFactor'), epicZoom);
-    if (gEpicZoomPivotScreenCoord)
+    gEpicZoomLatLon = undefined;
+    if (gEpicZoom &&
+        gEpicZoomPivotScreenCoord)
+    {
+      if (gPivotEpicImageData.centroid_matrix)
+      {
+        gEpicZoomLatLon = getLatLonFromScreenCoord(
+          gEpicZoomPivotScreenCoord,
+          gPivotEpicImageData.centroid_matrix,
+          gPivotEpicImageData.earthRadius / 2.0 * Math.min(canvas.width, canvas.height),
+          canvas.width, canvas.height
+        );
+      }
       gl.uniform2f(gl.getUniformLocation(program, 'pivotScreenCoord'), gEpicZoomPivotScreenCoord.x, gEpicZoomPivotScreenCoord.y);
+    }
   }
 
   function render(time) 
