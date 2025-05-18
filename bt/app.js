@@ -37,7 +37,7 @@ gScreen.addEventListener("up", (e) => {
 });
 
 gScreen.addEventListener("drag", (e) => {
-    const deltaEpicTime = (e.dragPos.x - e.startPos.x) / canvas.width * 3600 * 12;
+    const deltaEpicTime = (e.dragPos.x - e.startPos.x) / canvas.width * 3600 * 24;
     if (epicPressTime)
     {
         let newEpicTimeSec = epicPressTime + deltaEpicTime;
