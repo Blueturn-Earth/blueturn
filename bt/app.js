@@ -1,10 +1,11 @@
-import { gEpicImageDataMap, gEpicStartTimeSec, gEpicEndTimeSec} from './epic.js';
+import { vec3, mat3 } from 'https://esm.sh/gl-matrix';
+
+import { gEpicImageDataMap, gEpicStartTimeSec, gEpicEndTimeSec, getLatLonNorthRotationMatrix} from './epic.js';
 import { gScreen} from './screen.js';
 
 export let gTimeScale = 3600;
 export let gEpicPlaying = true;
 export let gEpicZoom = false;
-export let gEpicZoomPivotScreenCoord = undefined;
 export let gEpicTime = undefined;
 export let gEpicImageData0 = undefined; 
 export let gEpicImageData1 = undefined; 
@@ -40,6 +41,8 @@ gScreen.addEventListener("drag", (e) => {
     const deltaEpicTime = (e.dragPos.x - e.startPos.x) / canvas.width * 3600 * 24;
     if (epicPressTime)
     {
+        const prevEpicTimeSec = gEpicTime;
+
         let newEpicTimeSec = epicPressTime + deltaEpicTime;
         if (newEpicTimeSec > gEpicEndTimeSec)
         {
@@ -50,20 +53,139 @@ gScreen.addEventListener("drag", (e) => {
             newEpicTimeSec = gEpicStartTimeSec;
         }
         gEpicTime = newEpicTimeSec;
+
+        gUpdateEpicInterpolation();
+
+        if(gEpicZoom)
+        {
+            // Check that pivot's lat lon is facing the camera
+        }
     }
 });
 
+function getLatLonFromScreenCoord(screenCoord, centroidMatrix, earthRadiusPx, screenWidth, screenHeight) 
+{
+  // Convert screen coordinates to normalized device coordinates (NDC)
+  const minSize = Math.min(screenWidth, screenHeight);
+  let uv = {
+    x: (2.0 * screenCoord.x - screenWidth) / minSize,
+    y: (2.0 * screenCoord.y - screenHeight) / minSize
+  };
+
+  // Project to sphere in view space
+  let earth_uv = {
+    x: uv.x / (earthRadiusPx / (minSize / 2.0)),
+    y: uv.y / (earthRadiusPx / (minSize / 2.0))
+  };
+
+  let xySq = earth_uv.x * earth_uv.x + earth_uv.y * earth_uv.y;
+  if (xySq > 1.0) {
+    // Outside the sphere
+    return null;
+  }
+  let z = Math.sqrt(1.0 - xySq);
+
+  // Normal in view space
+  let normal = [earth_uv.x, earth_uv.y, z];
+
+  let transCentroidMatrix = mat3.create();
+  mat3.transpose(transCentroidMatrix, centroidMatrix);
+  // Transform normal to globe coordinates
+  let globeNormal = vec3.create();
+  vec3.transformMat3(globeNormal, normal, transCentroidMatrix);
+
+  const globeNormalLengthXZ = Math.sqrt(
+    globeNormal[0] * globeNormal[0] + 
+    globeNormal[2] * globeNormal[2]);
+  
+  let lat = Math.atan2(globeNormalLengthXZ, globeNormal[1]) / Math.PI * 180.0 - 90.0;
+  let lon = 180.0 - Math.atan2(globeNormal[2], globeNormal[0]) / Math.PI * 180.0;
+  if (lon >  180.0) lon -= 360.0;
+  if (lon < -180.0) lon += 360.0;
+  if (lat >  90.0 ) lat -= 180.0;
+  if (lat < -90.0 ) lat += 180.0;
+  return {
+    lat: lat,
+    lon: lon
+  };
+}
+
+function createPivotEpicImageData(epicImageData, pivotPos, alsoGetTimezone = true)
+{
+    // deep copy
+    let pivotEpicImageData = JSON.parse(JSON.stringify(epicImageData));
+
+    // fix object type
+    pivotEpicImageData.centroid_matrix = mat3.fromValues(
+        pivotEpicImageData.centroid_matrix[0], 
+        pivotEpicImageData.centroid_matrix[1], 
+        pivotEpicImageData.centroid_matrix[2],
+        pivotEpicImageData.centroid_matrix[3], 
+        pivotEpicImageData.centroid_matrix[4], 
+        pivotEpicImageData.centroid_matrix[5],
+        pivotEpicImageData.centroid_matrix[6], 
+        pivotEpicImageData.centroid_matrix[7], 
+        pivotEpicImageData.centroid_matrix[8]
+    );
+
+    pivotEpicImageData.pivot_coordinates = {
+        x: pivotPos.x,
+        y: pivotPos.y
+    };
+
+    const latlon = getLatLonFromScreenCoord(
+        pivotEpicImageData.pivot_coordinates,
+        pivotEpicImageData.centroid_matrix,
+        pivotEpicImageData.earthRadius / 2.0 * Math.min(canvas.width, canvas.height),
+        canvas.width, canvas.height
+    );
+
+    if (!latlon)
+    {
+        // we don't want it then
+        return;
+    }
+    pivotEpicImageData.pivot_coordinates.lat = latlon.lat;
+    pivotEpicImageData.pivot_coordinates.lon = latlon.lon;
+
+    if (!alsoGetTimezone)
+    {
+        return pivotEpicImageData;
+    }
+
+
+    const {lat, lon} = pivotEpicImageData.pivot_coordinates;
+    const timestamp = Math.floor(Date.now() / 1000);
+    const apiKey = "AIzaSyA5G5wpnUkc_3cKFUVGfJVjtCATeTCEFF8";
+    console.log("Fetching timezone for lat:", lat, "lon:", lon);
+    fetch(`https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lon}&timestamp=${timestamp}&key=${apiKey}`)
+    .then(res => res.json())
+    .then(data => {
+        console.log("timezone:", data);
+        pivotEpicImageData.pivot_timezone = data;
+        // You can use data.timeZoneId, data.timeZoneName, data.rawOffset, data.dstOffset, etc.
+        // Example: console.log(data.timeZoneId);
+    })
+    .catch(err => {
+        console.error("Timezone API error:", err);
+    });
+    
+    return pivotEpicImageData;
+}
 function zoom(pivotPos)
 {
-    gEpicZoom = true;
-    gEpicZoomPivotScreenCoord = pivotPos;
 
     if (gEpicImageData)
     {
-        // deep copy
-        gPivotEpicImageData = JSON.parse(JSON.stringify(gEpicImageData));
+        gEpicZoom = true;
+        gPivotEpicImageData = createPivotEpicImageData(
+            gEpicImageData, pivotPos);
+        if (!gPivotEpicImageData)
+        {
+            return false;
+        }
+        //console.log('gPivotEpicImageData: ' + JSON.stringify(gPivotEpicImageData) + ', gEpicImageData: ' + JSON.stringify(gEpicImageData));
     }
-    //console.log('gPivotEpicImageData: ' + JSON.stringify(gPivotEpicImageData) + ', gEpicImageData: ' + JSON.stringify(gEpicImageData));
 }
 
 gScreen.addEventListener("long-press", (e) => {
@@ -112,6 +234,11 @@ export function gUpdateEpicTime(time)
         }
     }
 
+    gUpdateEpicInterpolation();
+}
+
+export function gUpdateEpicInterpolation()
+{
     let epicImageDataSec0 = undefined;
     let epicImageDataSec1 = undefined;
     for (let [timeSec, epicImageData] of gEpicImageDataMap) {
@@ -161,16 +288,15 @@ export function gUpdateEpicTime(time)
     }
     //console.log("0: " + gEpicImageData0 .date + ", 1: " + gEpicImageData1.date);
 
-    if (!gEpicImageData)
-        gEpicImageData = {};
+    let epicImageData = {}
 
-    gEpicImageData.time_sec = gEpicTime;
-    gEpicImageData.mix01 = mixFactor;
+    epicImageData.time_sec = gEpicTime;
+    epicImageData.mix01 = mixFactor;
 
     // Interpolate Radius:
     let earthRadius0 = gEpicImageData0.earthRadius;
     let earthRadius1 = gEpicImageData1.earthRadius;
-    gEpicImageData.earthRadius = mix(earthRadius0, earthRadius1, gEpicImageData.mix01);
+    epicImageData.earthRadius = mix(earthRadius0, earthRadius1, epicImageData.mix01);
 
     // Interpolate lat, lon
     let epicCentroidLat0 = gEpicImageData0.centroid_coordinates.lat;
@@ -179,9 +305,16 @@ export function gUpdateEpicTime(time)
     let epicCentroidLon1 = gEpicImageData1.centroid_coordinates.lon;
     if (epicCentroidLon1 > epicCentroidLon0)
         epicCentroidLon0 += 360.0;
-    gEpicImageData.centroid_coordinates = {};
-    gEpicImageData.centroid_coordinates.lat = mix(epicCentroidLat0, epicCentroidLat1, gEpicImageData.mix01);
-    gEpicImageData.centroid_coordinates.lon = mix(epicCentroidLon0, epicCentroidLon1, gEpicImageData.mix01);
+    epicImageData.centroid_coordinates = {};
+    epicImageData.centroid_coordinates.lat = mix(epicCentroidLat0, epicCentroidLat1, epicImageData.mix01);
+    epicImageData.centroid_coordinates.lon = mix(epicCentroidLon0, epicCentroidLon1, epicImageData.mix01);
+
+    epicImageData.centroid_matrix = getLatLonNorthRotationMatrix(
+        epicImageData.centroid_coordinates.lat, 
+        epicImageData.centroid_coordinates.lon);
+
+    gEpicImageData = epicImageData;
+
 }
 
 export function gUpdateDateText(timeSec)

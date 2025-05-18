@@ -24,8 +24,6 @@ struct EPICImageInfo
 {
     sampler2D texture;
     bool hasTexture; 
-    float centroid_lat;
-    float centroid_lon;
     mat3 centroid_matrix;
     float earth_radius;
     vec3 lightDir;
@@ -86,9 +84,6 @@ vec3 Render(in vec2 fragCoord)
     vec2 uv = fragCoordToUV(fragCoord);
 
     // Common ground rotation from lat, lon
-    float centroidLat = curr_epicImage.centroid_lat;
-    float centroidLon = curr_epicImage.centroid_lon;
-
     mat3 GroundMatrix = curr_epicImage.centroid_matrix;
 
     vec4 pivot_circle_color = vec4(0.0, 0.0, 0.0, 0.0);

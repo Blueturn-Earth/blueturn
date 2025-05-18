@@ -1,13 +1,10 @@
-import { vec3, mat3 } from 'https://esm.sh/gl-matrix';
-
 import { 
   gEpicTime, 
   gUpdateEpicTime, 
-  gEpicZoomPivotScreenCoord,
   gEpicImageData, 
-  gPivotEpicImageData,
   gEpicImageData0, 
   gEpicImageData1, 
+  gPivotEpicImageData,
   gEpicZoom,
   gUpdateDateText
 } 
@@ -167,13 +164,17 @@ Promise.all([
 
   function glUpdateEPICImage(epicImageData, epicImageUniformName)
   {
-    if (epicImageData)
+    if (epicImageData &&
+        epicImageData.centroid_matrix)
     {
-      epicImageData.centroid_matrix = getLatLonNorthRotationMatrix(epicImageData.centroid_coordinates.lat, epicImageData.centroid_coordinates.lon);
-      gl.uniform1f(gl.getUniformLocation(program, epicImageUniformName + '.centroid_lat'), epicImageData.centroid_coordinates.lat);
-      gl.uniform1f(gl.getUniformLocation(program, epicImageUniformName + '.centroid_lon'), epicImageData.centroid_coordinates.lon);
-      gl.uniform1f(gl.getUniformLocation(program, epicImageUniformName + '.earth_radius'), epicImageData.earthRadius);
-      gl.uniformMatrix3fv(gl.getUniformLocation(program, epicImageUniformName + '.centroid_matrix'), false, epicImageData.centroid_matrix);
+      gl.uniform1f(
+        gl.getUniformLocation(program, epicImageUniformName + '.earth_radius'), 
+        epicImageData.earthRadius);
+      gl.uniformMatrix3fv(
+        gl.getUniformLocation(program, epicImageUniformName + '.centroid_matrix'),
+        false,
+        epicImageData.centroid_matrix
+      );
 
       if (epicImageData.lightDir)
       {
@@ -186,138 +187,30 @@ Promise.all([
     }  
   }
 
-function getLatLonNorthRotationMatrix(latitudeDeg, longitudeDeg) {
-    const lat = latitudeDeg * Math.PI / 180.0;
-    const lon = longitudeDeg * Math.PI / 180.0;
-
-    // z axis
-    const z = [
-        -Math.cos(lat) * Math.cos(lon),
-        -Math.sin(lat),
-        Math.cos(lat) * Math.sin(lon)
-    ];
-
-    const tmpY = [0.0, 1.0, 0.0];
-
-    // x axis
-    const x = [];
-    vec3.cross(x, tmpY, z);
-    vec3.normalize(x, x);
-
-    // y axis
-    const y = [];
-    vec3.cross(y, z, x);
-    vec3.normalize(y, y);
-
-    // mat3 in column-major order: [x, y, z]
-    const m = mat3.fromValues(
-        x[0], y[0], z[0],
-        x[1], y[1], z[1],
-        x[2], y[2], z[2]
-    );
-
-    return m;
-}
-
-function getLatLonFromScreenCoord(screenCoord, centroidMatrix, earthRadiusPx, screenWidth, screenHeight) {
-  // Convert screen coordinates to normalized device coordinates (NDC)
-  const minSize = Math.min(screenWidth, screenHeight);
-  let uv = {
-    x: (2.0 * screenCoord.x - screenWidth) / minSize,
-    y: (2.0 * screenCoord.y - screenHeight) / minSize
-  };
-
-  // Project to sphere in view space
-  let earth_uv = {
-    x: uv.x / (earthRadiusPx / (minSize / 2.0)),
-    y: uv.y / (earthRadiusPx / (minSize / 2.0))
-  };
-
-  let xySq = earth_uv.x * earth_uv.x + earth_uv.y * earth_uv.y;
-  if (xySq > 1.0) {
-    // Outside the sphere
-    return null;
-  }
-  let z = Math.sqrt(1.0 - xySq);
-
-  // Normal in view space
-  let normal = [earth_uv.x, earth_uv.y, z];
-
-  let transCentroidMatrix = mat3.create();
-  mat3.transpose(transCentroidMatrix, centroidMatrix);
-  // Transform normal to globe coordinates
-  let globeNormal = vec3.create();
-  vec3.transformMat3(globeNormal, normal, transCentroidMatrix);
-
-  const globeNormalLengthXZ = Math.sqrt(
-    globeNormal[0] * globeNormal[0] + 
-    globeNormal[2] * globeNormal[2]);
-  
-  let lat = Math.atan2(globeNormalLengthXZ, globeNormal[1]) / Math.PI * 180.0 - 90.0;
-  let lon = 180.0 - Math.atan2(globeNormal[2], globeNormal[0]) / Math.PI * 180.0;
-  if (lon >  180.0) lon -= 360.0;
-  if (lon < -180.0) lon += 360.0;
-  if (lat >  90.0 ) lat -= 180.0;
-  if (lat < -90.0 ) lat += 180.0;
-  return {
-    lat: lat,
-    lon: lon
-  };
-}
-
 function glUpdateUniforms()
   {
     glUpdateEPICImage(gEpicImageData0, 'epicImage[0]');
     glUpdateEPICImage(gEpicImageData1, 'epicImage[1]');
     glUpdateEPICImage(gEpicImageData, 'curr_epicImage');
-    if (gEpicZoom)
-    {
-      epicZoom += 0.03 * (epicMaxZoom - epicZoom); 
-      glUpdateEPICImage(gPivotEpicImageData, 'pivot_epicImage');
-    }
-    else
-    {
-      epicZoom += 0.03 * (1.0 - epicZoom); 
-    }
     gl.uniform1i(gl.getUniformLocation(program, 'showPivotCircle'), 1);
     gl.uniform1f(gl.getUniformLocation(program, 'curr_epicImage.mix01'), gEpicImageData.mix01 );
     gl.uniform1i(gl.getUniformLocation(program, 'epicZoom'), gEpicZoom);
     gl.uniform1f(gl.getUniformLocation(program, 'epicZoomFactor'), epicZoom);
 
     if (gEpicZoom &&
-        gEpicZoomPivotScreenCoord)
+        gPivotEpicImageData)
     {
-      if (gPivotEpicImageData.centroid_matrix)
-      {
-        if (gPivotEpicImageData.pivot_coordinates == undefined)
-        {
-          gPivotEpicImageData.pivot_coordinates = getLatLonFromScreenCoord(
-            gEpicZoomPivotScreenCoord,
-            gPivotEpicImageData.centroid_matrix,
-            gPivotEpicImageData.earthRadius / 2.0 * Math.min(canvas.width, canvas.height),
-            canvas.width, canvas.height
-          );
-
-          const { lat, lon } = gPivotEpicImageData.pivot_coordinates;
-          const timestamp = Math.floor(Date.now() / 1000);
-          const apiKey = "AIzaSyA5G5wpnUkc_3cKFUVGfJVjtCATeTCEFF8";
-          console.log("Fetching timezone for lat:", lat, "lon:", lon);
-          fetch(`https://maps.googleapis.com/maps/api/timezone/json?location=${lat},${lon}&timestamp=${timestamp}&key=${apiKey}`)
-            .then(res => res.json())
-            .then(data => {
-              console.log("timezone:", data);
-              gPivotEpicImageData.pivot_timezone = data;
-              // You can use data.timeZoneId, data.timeZoneName, data.rawOffset, data.dstOffset, etc.
-              // Example: console.log(data.timeZoneId);
-            })
-            .catch(err => {
-              console.error("Timezone API error:", err);
-            });
-        }
-      }
-      gl.uniform2f(gl.getUniformLocation(program, 'pivotScreenCoord'), gEpicZoomPivotScreenCoord.x, gEpicZoomPivotScreenCoord.y);
+      epicZoom += 0.03 * (epicMaxZoom - epicZoom); 
+      glUpdateEPICImage(gPivotEpicImageData, 'pivot_epicImage');
+      gl.uniform2f(gl.getUniformLocation(program, 'pivotScreenCoord'), 
+        gPivotEpicImageData.pivot_coordinates.x, 
+        gPivotEpicImageData.pivot_coordinates.y);
     }
-  }
+      else
+    {
+      epicZoom += 0.03 * (1.0 - epicZoom); 
+    }
+}
 
   function render(time) 
   {
