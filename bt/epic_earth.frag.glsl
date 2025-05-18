@@ -26,7 +26,6 @@ struct EPICImageInfo
     bool hasTexture; 
     mat3 centroid_matrix;
     float earth_radius;
-    vec3 lightDir;
     float time_sec;
     float mix01;
 };
@@ -41,19 +40,6 @@ vec2 fragCoordToUV(vec2 fragCoord)
    return (2.0 * fragCoord-iResolution.xy) / min(iResolution.x, iResolution.y)
     // top-down
     * vec2(1., -1.);
-}
-
-vec3 RenderSun(in vec2 uv)
-{
-    // Sun:
-    vec3 LightDir = vec3(0.0, 0.0, 1.0);
-    //vec3 LightDir = epicImage.lightDir;
-    vec2 SunC = -5.0*LightDir.xy/LightDir.z - uv;
-    float Halo = max(0.0, dot(LightDir, normalize(vec3(uv.x, uv.y, -5.0))));
-    float Sun = 0.05*pow(Halo, 1000.0)*smoothstep(0.85, 1.3, length(SunC+uv));
-
-    Sun += 1.5*pow(Halo, 10000.0);
-    return Sun*RGB(255,250,230);
 }
 
 vec3 RenderBlueMarble(in vec3 GroundNormal)
@@ -130,12 +116,6 @@ vec3 Render(in vec2 fragCoord)
     vec2 pixel_uv = uv / earth_radius;
     vec3 Normal     = vec3(pixel_uv, sqrt(1.0 - dot(pixel_uv, pixel_uv)));
 
-    // Sphere hit:
-    if(Normal.z < 0.0)
-    {
-        return RenderSun(uv);
-    }
-    	
     vec3 GroundNormal = Normal * GroundMatrix;
 
     vec3 col;
@@ -150,6 +130,9 @@ vec3 Render(in vec2 fragCoord)
         vec3 GroundEpic1 = RenderEpicImage(GroundNormal, epicImage[1]);
         col = mix(GroundEpic0, GroundEpic1, vec3(curr_epicImage.mix01));
     }
+
+    // Sphere hit:
+    col *= step(0.0, Normal.z);
 
     if (showPivotCircle)
     {

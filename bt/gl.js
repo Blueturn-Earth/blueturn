@@ -175,14 +175,6 @@ Promise.all([
         false,
         epicImageData.centroid_matrix
       );
-
-      if (epicImageData.lightDir)
-      {
-        gl.uniform3f(gl.getUniformLocation(program, epicImageUniformName + '.lightDir'), 
-          epicImageData.lightDir.x,
-          epicImageData.lightDir.y,
-          epicImageData.lightDir.z);
-      }
       glLoadEpicTexture(program, epicImageData, epicImageUniformName);
     }  
   }

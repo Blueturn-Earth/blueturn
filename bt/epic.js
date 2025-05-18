@@ -121,17 +121,6 @@ function addEpicMetadata(epicImageData)
     const dz = epicImageData.dscovr_j2000_position.z;
     const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
     epicImageData.earthRadius = earthRadius(distance);
-
-    const sx = epicImageData.sun_j2000_position.x;
-    const sy = epicImageData.sun_j2000_position.y;
-    const sz = epicImageData.sun_j2000_position.z;
-    const sunDistance = Math.sqrt(sx*sx + sy*sy + sz*sz);
-    epicImageData.lightDir = {
-        x: -sx / sunDistance,
-        y: -sy / sunDistance,
-        z: -sz / sunDistance
-    };
-
     epicImageData.centroid_matrix = getLatLonNorthRotationMatrix(
         epicImageData.centroid_coordinates.lat, 
         epicImageData.centroid_coordinates.lon);
