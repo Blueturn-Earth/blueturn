@@ -37,6 +37,20 @@ gScreen.addEventListener("up", (e) => {
     holding = false;
 });
 
+function isPivotPointingToCamera(pivotCoord, pivotEpicImageData, currentEpicImageData)
+{
+    let normal = getNormalFromScreenCoord(
+        pivotCoord,
+        pivotEpicImageData.earthRadius / 2.0 * Math.min(canvas.width, canvas.height),
+        canvas.width, canvas.height
+    );
+    let pivot2currentMatrix = mat3.create();
+    mat3.transpose(pivot2currentMatrix, pivotEpicImageData.centroid_matrix);
+    mat3.multiply(pivot2currentMatrix, pivot2currentMatrix, currentEpicImageData.centroid_matrix);
+    mat3.multiply(normal, pivot2currentMatrix, normal);
+    return (normal[2] >= 0.0);
+}
+
 gScreen.addEventListener("drag", (e) => {
     const deltaEpicTime = (e.dragPos.x - e.startPos.x) / canvas.width * 3600 * 24;
     if (epicPressTime)
@@ -58,12 +72,17 @@ gScreen.addEventListener("drag", (e) => {
 
         if(gEpicZoom)
         {
-            // Check that pivot's lat lon is facing the camera
+            // Check that pivot's lat lon is facing the 
+            if (!isPivotPointingToCamera(e.startPos, gPivotEpicImageData, gEpicImageData))
+            {
+                gEpicTime = prevEpicTimeSec;
+                gUpdateEpicInterpolation();
+            }
         }
     }
 });
 
-function getLatLonFromScreenCoord(screenCoord, centroidMatrix, earthRadiusPx, screenWidth, screenHeight) 
+function getNormalFromScreenCoord(screenCoord, earthRadiusPx, screenWidth, screenHeight) 
 {
   // Convert screen coordinates to normalized device coordinates (NDC)
   const minSize = Math.min(screenWidth, screenHeight);
@@ -79,14 +98,19 @@ function getLatLonFromScreenCoord(screenCoord, centroidMatrix, earthRadiusPx, sc
   };
 
   let xySq = earth_uv.x * earth_uv.x + earth_uv.y * earth_uv.y;
-  if (xySq > 1.0) {
-    // Outside the sphere
-    return null;
-  }
   let z = Math.sqrt(1.0 - xySq);
-
   // Normal in view space
   let normal = [earth_uv.x, earth_uv.y, z];
+  return normal;
+}
+
+function getLatLonFromScreenCoord(screenCoord, centroidMatrix, earthRadiusPx, screenWidth, screenHeight) 
+{
+  let normal = getNormalFromScreenCoord(screenCoord, earthRadiusPx, screenWidth, screenHeight);
+  if (normal.z < 0.0) {
+    // Normal is pointing away from the sphere
+    return null;
+  }
 
   let transCentroidMatrix = mat3.create();
   mat3.transpose(transCentroidMatrix, centroidMatrix);
