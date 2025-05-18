@@ -96,7 +96,8 @@ class Screen
         });
     }
 
-    #CLICK_THRESHOLD = canvas.width / 100;
+    #CLICK_THRESHOLD = canvas.width / 50;
+    #DOUBLECLICK_THRESHOLD = canvas.width / 30;
     #LONG_PRESS_TIME_MS = 500;
     #DOUBLE_CLICK_TIME_MS = 200;
 
@@ -210,8 +211,8 @@ class Screen
         this.callEvent("up", eUp);
 
         if (!this.clickCancelled &&
-            Math.abs(this.#lastMovePos.x - this.#startPos.x) < this.#CLICK_THRESHOLD &&
-            Math.abs(this.#lastMovePos.y - this.#startPos.y) < this.#CLICK_THRESHOLD)
+            Math.abs(this.#lastMovePos.x - this.#startPos.x) < this.#DOUBLECLICK_THRESHOLD &&
+            Math.abs(this.#lastMovePos.y - this.#startPos.y) < this.#DOUBLECLICK_THRESHOLD)
         {
             const clickTimeMs = (new Date()).getTime();
             const eClick = {
