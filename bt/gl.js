@@ -178,7 +178,7 @@ Promise.all([
     }  
   }
 
-function glUpdateUniforms()
+  function glUpdateUniforms()
   {
     glUpdateEPICImage(gEpicImageData0, 'epicImage[0]');
     glUpdateEPICImage(gEpicImageData1, 'epicImage[1]');
@@ -197,7 +197,7 @@ function glUpdateUniforms()
     }
     gl.uniform1i(gl.getUniformLocation(program, 'epicZoomEnabled'), true);
     gl.uniform1f(gl.getUniformLocation(program, 'epicZoomFactor'), epicZoomFactor);
-}
+  }
 
   function render(time) 
   {

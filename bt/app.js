@@ -1,7 +1,8 @@
 import { vec3, mat3 } from 'https://esm.sh/gl-matrix';
 
-import { gEpicImageDataMap, gEpicStartTimeSec, gEpicEndTimeSec, getLatLonNorthRotationMatrix} from './epic.js';
+import { gEpicImageDataMap, gEpicStartTimeSec, gEpicEndTimeSec} from './epic.js';
 import { gScreen} from './screen.js';
+import { gCalcLatLonNorthRotationMatrix, gCalcNormalFromScreenCoord, gCalcLatLonFromScreenCoord} from './utils.js';
 
 export let gTimeSpeed = 3600;
 export let gEpicPlaying = true;
@@ -40,7 +41,7 @@ gScreen.addEventListener("up", (e) => {
 
 function getPivotNormal(pivotCoord, pivotEpicImageData, currentEpicImageData)
 {
-    let normal = getNormalFromScreenCoord(
+    let normal = gCalcNormalFromScreenCoord(
         pivotCoord,
         pivotEpicImageData.earthRadius / 2.0 * Math.min(canvas.width, canvas.height),
         canvas.width, canvas.height
@@ -65,7 +66,7 @@ function setEpicTimeSec(timeSec)
         // Check that pivot's lat lon is facing the 
         const pivotNormal = getPivotNormal(pivotStartPos, gPivotEpicImageData, gEpicImageData);
         //console.log("pivotStartPos: " + JSON.stringify(pivotStartPos) + ", pivotNormal: " + JSON.stringify(pivotNormal));
-        if (pivotNormal[2] < 0.0)
+        if (pivotNormal[2] < 0.2)
         {
             gEpicTimeSec = timeSec = prevEpicTimeSec;
             gUpdateEpicInterpolation();
@@ -102,58 +103,6 @@ gScreen.addEventListener("drag", (e) => {
     }
 });
 
-function getNormalFromScreenCoord(screenCoord, earthRadiusPx, screenWidth, screenHeight) 
-{
-  // Convert screen coordinates to normalized device coordinates (NDC)
-  const minSize = Math.min(screenWidth, screenHeight);
-  let uv = {
-    x: (2.0 * screenCoord.x - screenWidth) / minSize,
-    y: (2.0 * screenCoord.y - screenHeight) / minSize
-  };
-
-  // Project to sphere in view space
-  let earth_uv = {
-    x: uv.x / (earthRadiusPx / (minSize / 2.0)),
-    y: uv.y / (earthRadiusPx / (minSize / 2.0))
-  };
-
-  let xySq = earth_uv.x * earth_uv.x + earth_uv.y * earth_uv.y;
-  let z = Math.sqrt(1.0 - xySq);
-  // Normal in view space
-  let normal = [earth_uv.x, earth_uv.y, z];
-  return normal;
-}
-
-function getLatLonFromScreenCoord(screenCoord, centroidMatrix, earthRadiusPx, screenWidth, screenHeight) 
-{
-  let normal = getNormalFromScreenCoord(screenCoord, earthRadiusPx, screenWidth, screenHeight);
-  if (normal.z < 0.0) {
-    // Normal is pointing away from the sphere
-    return null;
-  }
-
-  let transCentroidMatrix = mat3.create();
-  mat3.transpose(transCentroidMatrix, centroidMatrix);
-  // Transform normal to globe coordinates
-  let globeNormal = vec3.create();
-  vec3.transformMat3(globeNormal, normal, transCentroidMatrix);
-
-  const globeNormalLengthXZ = Math.sqrt(
-    globeNormal[0] * globeNormal[0] + 
-    globeNormal[2] * globeNormal[2]);
-  
-  let lat = Math.atan2(globeNormalLengthXZ, globeNormal[1]) / Math.PI * 180.0 - 90.0;
-  let lon = 180.0 - Math.atan2(globeNormal[2], globeNormal[0]) / Math.PI * 180.0;
-  if (lon >  180.0) lon -= 360.0;
-  if (lon < -180.0) lon += 360.0;
-  if (lat >  90.0 ) lat -= 180.0;
-  if (lat < -90.0 ) lat += 180.0;
-  return {
-    lat: lat,
-    lon: lon
-  };
-}
-
 function createPivotEpicImageData(epicImageData, pivotPos, alsoGetTimezone = true)
 {
     // deep copy
@@ -177,7 +126,7 @@ function createPivotEpicImageData(epicImageData, pivotPos, alsoGetTimezone = tru
         y: pivotPos.y
     };
 
-    const latlon = getLatLonFromScreenCoord(
+    const latlon = gCalcLatLonFromScreenCoord(
         pivotEpicImageData.pivot_coordinates,
         pivotEpicImageData.centroid_matrix,
         pivotEpicImageData.earthRadius / 2.0 * Math.min(canvas.width, canvas.height),
@@ -217,6 +166,7 @@ function createPivotEpicImageData(epicImageData, pivotPos, alsoGetTimezone = tru
     
     return pivotEpicImageData;
 }
+
 function setZoom(on, pivotPos)
 {
     if (on)
@@ -379,7 +329,7 @@ export function gUpdateEpicInterpolation()
     epicImageData.centroid_coordinates.lat = mix(epicCentroidLat0, epicCentroidLat1, epicImageData.mix01);
     epicImageData.centroid_coordinates.lon = mix(epicCentroidLon0, epicCentroidLon1, epicImageData.mix01);
 
-    epicImageData.centroid_matrix = getLatLonNorthRotationMatrix(
+    epicImageData.centroid_matrix = gCalcLatLonNorthRotationMatrix(
         epicImageData.centroid_coordinates.lat, 
         epicImageData.centroid_coordinates.lon);
 

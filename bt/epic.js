@@ -1,4 +1,4 @@
-import { vec3, mat3 } from 'https://esm.sh/gl-matrix';
+import { gCalcLatLonNorthRotationMatrix} from './utils.js';
 
 export let gEpicImageDataMap = new Map(); 
 export let gEpicStartTimeSec = undefined;
@@ -81,39 +81,6 @@ function earthRadius(distance)
     return ((1024-158) / 1024) * (1386540) / distance;
 }
 
-export function getLatLonNorthRotationMatrix(latitudeDeg, longitudeDeg) {
-    const lat = latitudeDeg * Math.PI / 180.0;
-    const lon = longitudeDeg * Math.PI / 180.0;
-
-    // z axis
-    const z = [
-        -Math.cos(lat) * Math.cos(lon),
-        -Math.sin(lat),
-        Math.cos(lat) * Math.sin(lon)
-    ];
-
-    const tmpY = [0.0, 1.0, 0.0];
-
-    // x axis
-    const x = [];
-    vec3.cross(x, tmpY, z);
-    vec3.normalize(x, x);
-
-    // y axis
-    const y = [];
-    vec3.cross(y, z, x);
-    vec3.normalize(y, y);
-
-    // mat3 in column-major order: [x, y, z]
-    const m = mat3.fromValues(
-        x[0], y[0], z[0],
-        x[1], y[1], z[1],
-        x[2], y[2], z[2]
-    );
-
-    return m;
-}
-
 function addEpicMetadata(epicImageData)
 {
     const dx = epicImageData.dscovr_j2000_position.x;
@@ -121,7 +88,7 @@ function addEpicMetadata(epicImageData)
     const dz = epicImageData.dscovr_j2000_position.z;
     const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
     epicImageData.earthRadius = earthRadius(distance);
-    epicImageData.centroid_matrix = getLatLonNorthRotationMatrix(
+    epicImageData.centroid_matrix = gCalcLatLonNorthRotationMatrix(
         epicImageData.centroid_coordinates.lat, 
         epicImageData.centroid_coordinates.lon);
 }
