@@ -31,7 +31,7 @@ gScreen.addEventListener("down", (e) => {
 gScreen.addEventListener("up", (e) => {
     if (longPressing)
     {
-        gEpicZoom = false;
+        setZoom(false, e.upPos);
         epicPressTime = undefined;
         longPressing = false;
     }
@@ -219,17 +219,20 @@ function createPivotEpicImageData(epicImageData, pivotPos, alsoGetTimezone = tru
 }
 function setZoom(on, pivotPos)
 {
-    if (on && gEpicImageData)
+    if (on)
     {
-        gPivotEpicImageData = createPivotEpicImageData(
-            gEpicImageData, pivotPos);
-        if (!gPivotEpicImageData)
+        if (gEpicImageData)
         {
-            return false;
+            gPivotEpicImageData = createPivotEpicImageData(
+                gEpicImageData, pivotPos);
+            if (!gPivotEpicImageData)
+            {
+                return false;
+            }
+            pivotStartPos = pivotPos;
+            gEpicZoom = true;
+            //console.log('pivotStartPos: ' + JSON.stringify(pivotStartPos));
         }
-        pivotStartPos = pivotPos;
-        gEpicZoom = true;
-        //console.log('pivotStartPos: ' + JSON.stringify(pivotStartPos));
     }
     else
     {
@@ -374,7 +377,9 @@ function updateDateText(timeSec)
 {
     const date = new Date(timeSec * 1000);
     let dateStr = "";
-    if (gPivotEpicImageData && gPivotEpicImageData.pivot_coordinates)
+    if (gEpicZoom &&
+        gPivotEpicImageData && 
+        gPivotEpicImageData.pivot_coordinates)
     {
         if (gPivotEpicImageData.pivot_timezone &&
             gPivotEpicImageData.pivot_timezone.status != "ZERO_RESULTS")
@@ -398,7 +403,8 @@ function updateDateText(timeSec)
         month: '2-digit',
         year: 'numeric'
     };
-    if (gPivotEpicImageData && 
+    if (gEpicZoom &&
+        gPivotEpicImageData && 
         gPivotEpicImageData.pivot_timezone && 
         gPivotEpicImageData.pivot_timezone.timeZoneId) {
         options.timeZone = gPivotEpicImageData.pivot_timezone.timeZoneId;
