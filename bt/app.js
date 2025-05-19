@@ -217,7 +217,7 @@ function createPivotEpicImageData(epicImageData, pivotPos, alsoGetTimezone = tru
 }
 function setZoom(on, pivotPos)
 {
-    if (gEpicImageData)
+    if (on && gEpicImageData)
     {
         gPivotEpicImageData = createPivotEpicImageData(
             gEpicImageData, pivotPos);
@@ -229,6 +229,12 @@ function setZoom(on, pivotPos)
         gEpicZoom = true;
         //console.log('pivotStartPos: ' + JSON.stringify(pivotStartPos));
     }
+    else
+    {
+        gEpicZoom = false;
+        gPivotEpicImageData = undefined;
+        pivotStartPos = undefined;
+    }
 }
 
 gScreen.addEventListener("long-press", (e) => {
@@ -237,7 +243,10 @@ gScreen.addEventListener("long-press", (e) => {
 });
 
 gScreen.addEventListener("double-click", (e) => {
-    setZoom(!gEpicPlaying && !gEpicZoom, e.clickPos);
+    if (!gEpicPlaying)
+        setZoom(!gEpicZoom, e.clickPos);
+    else if (gEpicZoom)
+        setZoom(false, e.clickPos);
 });
 
 gScreen.addEventListener("click", (e) => {
