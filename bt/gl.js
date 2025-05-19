@@ -194,9 +194,15 @@ Promise.all([
       gl.uniform2f(gl.getUniformLocation(program, 'pivotScreenCoord'), 
         gPivotEpicImageData.pivot_coordinates.x, 
         gPivotEpicImageData.pivot_coordinates.y);
+      gl.uniform1i(gl.getUniformLocation(program, 'epicZoomEnabled'), true);
+      gl.uniform1f(gl.getUniformLocation(program, 'epicZoomFactor'), epicZoomFactor);
     }
-    gl.uniform1i(gl.getUniformLocation(program, 'epicZoomEnabled'), true);
-    gl.uniform1f(gl.getUniformLocation(program, 'epicZoomFactor'), epicZoomFactor);
+    else
+    {
+      epicZoomFactor = 1.0;
+      gl.uniform1i(gl.getUniformLocation(program, 'epicZoomEnabled'), false);
+      gl.uniform1f(gl.getUniformLocation(program, 'epicZoomFactor'), epicZoomFactor);
+    }
   }
 
   function render(time) 

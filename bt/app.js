@@ -66,7 +66,7 @@ function setEpicTimeSec(timeSec)
         // Check that pivot's lat lon is facing the 
         const pivotNormal = getPivotNormal(pivotStartPos, gPivotEpicImageData, gEpicImageData);
         //console.log("pivotStartPos: " + JSON.stringify(pivotStartPos) + ", pivotNormal: " + JSON.stringify(pivotNormal));
-        if (pivotNormal[2] < 0.2)
+        if (pivotNormal[2] < 0.0)
         {
             gEpicTimeSec = timeSec = prevEpicTimeSec;
             gUpdateEpicInterpolation();
@@ -90,6 +90,23 @@ function setEpicTimeSec(timeSec)
     updateDateText(gEpicTimeSec);
 }
 
+gScreen.addEventListener("long-press", (e) => {
+    longPressing = true;
+    setZoom(true, e.startPos);
+});
+
+gScreen.addEventListener("double-click", (e) => {
+    if (!gEpicPlaying)
+        setZoom(!gEpicZoom, e.clickPos);
+    else if (gEpicZoom)
+        setZoom(false, e.clickPos);
+});
+
+gScreen.addEventListener("click", (e) => {
+    gEpicPlaying = !gEpicPlaying;
+    holding = false;
+});
+
 gScreen.addEventListener("drag", (e) => {
     const deltaEpicTime = (e.deltaPos.x) / canvas.width * 3600 * 24;
     if (epicPressTime)
@@ -101,6 +118,20 @@ gScreen.addEventListener("drag", (e) => {
         currentTimeSpeed = (gEpicTimeSec - prevEpicTimeSec) / e.deltaTime;
         //console.log("gEpicTimeSec: " + gEpicTimeSec + ", deltaEpicTime: " + deltaEpicTime + ", currentTimeSpeed: " + currentTimeSpeed);
     }
+});
+
+gScreen.addEventListener("mousewheel", (e) => {
+    if (!gEpicZoom && e.wheelDelta > 0)
+        setZoom(true, e.wheelPos);
+    if (gEpicZoom && e.wheelDelta < 0)
+        setZoom(false, e.wheelPos);
+});
+
+gScreen.addEventListener("pinch", (e) => {
+    if (!gEpicZoom && e.pinchDelta > 0)
+        setZoom(true, e.pinchCenterPos);
+    if (gEpicZoom && e.pinchDelta < 0)
+        setZoom(false, e.pinchCenterPos);
 });
 
 function createPivotEpicImageData(epicImageData, pivotPos, alsoGetTimezone = true)
@@ -191,37 +222,6 @@ function setZoom(on, pivotPos)
 
     updateDateText(gEpicTimeSec);
 }
-
-gScreen.addEventListener("long-press", (e) => {
-    longPressing = true;
-    setZoom(true, e.startPos);
-});
-
-gScreen.addEventListener("double-click", (e) => {
-    if (!gEpicPlaying)
-        setZoom(!gEpicZoom, e.clickPos);
-    else if (gEpicZoom)
-        setZoom(false, e.clickPos);
-});
-
-gScreen.addEventListener("click", (e) => {
-    gEpicPlaying = !gEpicPlaying;
-    holding = false;
-});
-
-gScreen.addEventListener("mousewheel", (e) => {
-    if (!gEpicZoom && e.wheelDelta > 0)
-        setZoom(true, e.wheelPos);
-    if (gEpicZoom && e.wheelDelta < 0)
-        setZoom(false, e.wheelPos);
-});
-
-gScreen.addEventListener("pinch", (e) => {
-    if (!gEpicZoom && e.pinchDelta > 0)
-        setZoom(true, e.pinchCenterPos);
-    if (gEpicZoom && e.pinchDelta < 0)
-        setZoom(false, e.pinchCenterPos);
-});
 
 function mix(x, y, a) {
     return x * (1 - a) + y * a;

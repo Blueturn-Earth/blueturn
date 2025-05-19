@@ -90,7 +90,7 @@ vec3 Render(in vec2 fragCoord)
         mat3 pivot_GroundMatrix = pivot_epicImage.centroid_matrix;
         pivot_Normal *= pivot_GroundMatrix;
         pivot_Normal *= transpose(GroundMatrix);
-        if (pivot_Normal.z >= 0.0)
+        //if (pivot_Normal.z >= 0.0)
         {
             // overwrite pivot_uv with the rotated pivot_Normal
             pivot_uv = pivot_Normal.xy * pivot_epicImage.earth_radius;
@@ -100,7 +100,7 @@ vec3 Render(in vec2 fragCoord)
             uv += pivot_uv;
 
             uv = mix(nozoom_uv, uv, epicZoomFactor - 1.0);
-            
+
             if (showPivotCircle)
             {
                 float pixelToUVFactor = 1.0 / min(iResolution.x, iResolution.y);
