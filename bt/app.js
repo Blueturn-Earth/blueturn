@@ -52,7 +52,7 @@ function getPivotNormal(pivotCoord, pivotEpicImageData, currentEpicImageData)
     return normal;
 }
 
-function setEpicTime(timeSec)
+function setEpicTimeSec(timeSec)
 {
     const prevEpicTimeSec = gEpicTimeSec;
 
@@ -85,6 +85,8 @@ function setEpicTime(timeSec)
 
     gEpicTimeSec = timeSec;
     gUpdateEpicInterpolation();
+
+    updateDateText(gEpicTimeSec);
 }
 
 gScreen.addEventListener("drag", (e) => {
@@ -93,7 +95,7 @@ gScreen.addEventListener("drag", (e) => {
     {
         const prevEpicTimeSec = gEpicTimeSec;
 
-        setEpicTime(gEpicTimeSec + deltaEpicTime, e.startPos);
+        setEpicTimeSec(gEpicTimeSec + deltaEpicTime, e.startPos);
 
         currentTimeSpeed = (gEpicTimeSec - prevEpicTimeSec) / e.deltaTime;
         //console.log("gEpicTimeSec: " + gEpicTimeSec + ", deltaEpicTime: " + deltaEpicTime + ", currentTimeSpeed: " + currentTimeSpeed);
@@ -207,6 +209,7 @@ function createPivotEpicImageData(epicImageData, pivotPos, alsoGetTimezone = tru
         pivotEpicImageData.pivot_timezone = data;
         // You can use data.timeZoneId, data.timeZoneName, data.rawOffset, data.dstOffset, etc.
         // Example: console.log(data.timeZoneId);
+        updateDateText(gEpicTimeSec);
     })
     .catch(err => {
         console.error("Timezone API error:", err);
@@ -232,6 +235,8 @@ function setZoom(on, pivotPos)
     {
         gEpicZoom = false;
     }
+
+    updateDateText(gEpicTimeSec);
 }
 
 gScreen.addEventListener("long-press", (e) => {
@@ -280,7 +285,7 @@ export function gUpdateEpicTime(time)
         {
             const deltaTime = (time - lastUpdateTime) / 1000.0;
             currentTimeSpeed = lerp(currentTimeSpeed, targetSpeed, 0.1);
-            setEpicTime(gEpicTimeSec + deltaTime * currentTimeSpeed);
+            setEpicTimeSec(gEpicTimeSec + deltaTime * currentTimeSpeed);
             //console.log("gEpicTimeSec: " + gEpicTimeSec + ", deltaTime: " + deltaTime + ", currentTimeSpeed: " + currentTimeSpeed);
         }
     }
@@ -365,7 +370,7 @@ export function gUpdateEpicInterpolation()
 
 }
 
-export function gUpdateDateText(timeSec)
+function updateDateText(timeSec)
 {
     const date = new Date(timeSec * 1000);
     let dateStr = "";

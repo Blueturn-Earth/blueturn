@@ -5,8 +5,7 @@ import {
   gEpicImageData0, 
   gEpicImageData1, 
   gPivotEpicImageData,
-  gEpicZoom,
-  gUpdateDateText
+  gEpicZoom
 } 
 from './app.js';
 import { gEpicEndTimeSec, gEpicStartTimeSec } from './epic.js';
@@ -213,8 +212,6 @@ function glUpdateUniforms()
 
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-      gUpdateDateText(gEpicTimeSec);
     }    
     requestAnimationFrame(render);
   }
