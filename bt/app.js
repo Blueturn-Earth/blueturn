@@ -266,6 +266,13 @@ gScreen.addEventListener("mousewheel", (e) => {
         setZoom(false, e.wheelPos);
 });
 
+gScreen.addEventListener("pinch", (e) => {
+    if (!gEpicZoom && e.pinchDelta > 0)
+        setZoom(true, e.pinchCenterPos);
+    if (gEpicZoom && e.pinchDelta < 0)
+        setZoom(false, e.pinchCenterPos);
+});
+
 function mix(x, y, a) {
     return x * (1 - a) + y * a;
 }

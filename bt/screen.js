@@ -37,6 +37,7 @@ class Screen
     #startPos = undefined;
     #lastMovePos = undefined;
     #lastMoveTime = undefined;
+    #lastMove2Vector = undefined;
 
     get startPos() {
         return this.#startPos;
@@ -54,6 +55,7 @@ class Screen
         this.#events.set("double-click", []);
         this.#events.set("out", []);
         this.#events.set("mousewheel", []);
+        this.#events.set("pinch", []);
 
         let self = this;
         window.addEventListener("load", function(e) {
@@ -80,9 +82,16 @@ class Screen
             }, { passive: false });
 
             canvas.addEventListener("touchmove", e => {
-                if (e.touches.length > 0) {
+                switch(e.touches.length) {
+                case 1:
                     const t = e.touches[0];
                     self.#handleMove(t.clientX, t.clientY);
+                    break;
+                case 2:
+                    const t1 = e.touches[0];
+                    const t2 = e.touches[0];
+                    self.#handleMove2(t2.clientX - t1.clientX, t2.clientY - t2.clientY);
+                    break;
                 }
                 e.preventDefault();
             }, { passive: false });
@@ -106,6 +115,8 @@ class Screen
     #DOUBLECLICK_THRESHOLD = canvas.width / 30;
     #LONG_PRESS_TIME_MS = 500;
     #DOUBLE_CLICK_TIME_MS = 200;
+    #MOVE_2_CROSS_THRESHOLD = 0.1;
+    #PINCH_STEP = canvas.width / 50;
 
     addEventListener(eventStr, cb)
     {
@@ -187,6 +198,31 @@ class Screen
         }
     }
 
+    #handleMove2(vectorX, vectorY) {
+        const move2Vector = {
+            x: vectorX,
+            y: vectorY
+        };
+        this.#lastMove2Vector = {x: vectorX, y: vectorY};
+        // cross-product
+        const cross = this.#lastMove2Vector.x * move2Vector.y - this.#lastMove2Vector.y * move2Vector.x;
+        // length of each vector
+        const len1 = Math.sqrt(this.#lastMove2Vector.x * this.#lastMove2Vector.x + this.#lastMove2Vector.y * this.#lastMove2Vector.y);
+        const len2 = Math.sqrt(move2Vector.x * move2Vector.x + move2Vector.y * move2Vector.y);
+
+        if (Math.abs(cross) <= this.#MOVE_2_CROSS_THRESHOLD &&
+            Math.abs(len2 - len1) > this.#PINCH_STEP)
+        {
+            const ePinch = {
+                pinchDelta: len2 - len1,
+                pinchCenterPos: {
+                    x: (this.#lastMovePos.x + this.#startPos.x) / 2,
+                    y: (this.#lastMovePos.y + this.#startPos.y) / 2
+                }
+            };
+            this.callEvent("pinch", ePinch);
+        }
+    }
     #handleStart(x, y, e = undefined) {
         if (!e)
             e = {};
@@ -295,6 +331,8 @@ function logEvent(e)
 // gScreen.addEventListener("click", logEvent);
 // gScreen.addEventListener("long-press", logEvent);
 // gScreen.addEventListener("double-click", logEvent);
+// gScreen.addEventListener("mousewheel", logEvent);
+// gScreen.addEventListener("pinch", logEvent);
 //
 
 function resize()
