@@ -90,7 +90,7 @@ class Screen
                 case 2:
                     const t1 = e.touches[0];
                     const t2 = e.touches[0];
-                    self.#handleMove2(t2.clientX - t1.clientX, t2.clientY - t2.clientY);
+                    self.#handleMove2(t1.clientX, t1.clientY, t2.clientX, t2.clientY);
                     break;
                 }
                 e.preventDefault();
@@ -198,12 +198,16 @@ class Screen
         }
     }
 
-    #handleMove2(vectorX, vectorY) {
+    #handleMove2(x1, y1, x2, y2) {
         const move2Vector = {
-            x: vectorX,
-            y: vectorY
+            x: x2 - x1,
+            y: y2 - y1
         };
-        this.#lastMove2Vector = {x: vectorX, y: vectorY};
+        if(!this.#lastMove2Vector)
+        {
+            this.#lastMove2Vector = move2Vector;
+            return;
+        }
         // cross-product
         const cross = this.#lastMove2Vector.x * move2Vector.y - this.#lastMove2Vector.y * move2Vector.x;
         // length of each vector
@@ -216,12 +220,13 @@ class Screen
             const ePinch = {
                 pinchDelta: len2 - len1,
                 pinchCenterPos: {
-                    x: (this.#lastMovePos.x + this.#startPos.x) / 2,
-                    y: (this.#lastMovePos.y + this.#startPos.y) / 2
+                    x: (x1 + x2) / 2,
+                    y: (y1 + y2) / 2
                 }
             };
             this.callEvent("pinch", ePinch);
         }
+        this.#lastMove2Vector = {x: vectorX, y: vectorY};
     }
     #handleStart(x, y, e = undefined) {
         if (!e)
