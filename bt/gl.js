@@ -1,5 +1,5 @@
 import { 
-  gEpicTime, 
+  gEpicTimeSec, 
   gUpdateEpicTime, 
   gEpicImageData, 
   gEpicImageData0, 
@@ -218,7 +218,7 @@ function glUpdateUniforms()
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-      gUpdateDateText(gEpicTime);
+      gUpdateDateText(gEpicTimeSec);
     }    
     requestAnimationFrame(render);
   }

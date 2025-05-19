@@ -36,6 +36,7 @@ class Screen
     #events = new Map();
     #startPos = undefined;
     #lastMovePos = undefined;
+    #lastMoveTime = undefined;
 
     get startPos() {
         return this.#startPos;
@@ -140,7 +141,21 @@ class Screen
             e = {};
 
         e.movePos = getCanvasCoords(x, y);
+        if (this.#lastMoveTime && this.#lastMovePos)
+        {
+            e.deltaPos = {
+                x: e.movePos.x - this.#lastMovePos.x,
+                y: e.movePos.y - this.#lastMovePos.y
+            };
+            e.deltaTime = ((new Date()).getTime() - this.#lastMoveTime) / 1000.0;
+            e.posSpeed = {
+                x: e.deltaPos.x / e.deltaTime,
+                y: e.deltaPos.y / e.deltaTime
+            }
+            //console.log("deltaPos: " + JSON.stringify(e.deltaPos) + ", deltaTime: " + e.deltaTime + ", posSpeed: " + JSON.stringify(e.posSpeed));
+        }
         this.#lastMovePos = e.movePos;
+        this.#lastMoveTime = (new Date()).getTime();
         if (!(gModifiersMask & Modifiers.LeftBtn)) {
             e.startPos = undefined;
         }

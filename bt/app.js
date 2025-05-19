@@ -3,10 +3,10 @@ import { vec3, mat3 } from 'https://esm.sh/gl-matrix';
 import { gEpicImageDataMap, gEpicStartTimeSec, gEpicEndTimeSec, getLatLonNorthRotationMatrix} from './epic.js';
 import { gScreen} from './screen.js';
 
-export let gTimeScale = 3600;
+export let gTimeSpeed = 3600;
 export let gEpicPlaying = true;
 export let gEpicZoom = false;
-export let gEpicTime = undefined;
+export let gEpicTimeSec = undefined;
 export let gEpicImageData0 = undefined; 
 export let gEpicImageData1 = undefined; 
 export let gEpicImageData = undefined;
@@ -17,11 +17,13 @@ const canvas = document.getElementById('glcanvas');
 let epicPressTime = undefined;
 let holding = false;
 let longPressing = false;
+let currentTimeSpeed = 0.0;
+let pivotStartPos = undefined;
 
 gScreen.addEventListener("down", (e) => {
-    if (gEpicTime)
+    if (gEpicTimeSec)
     {
-        epicPressTime = gEpicTime;
+        epicPressTime = gEpicTimeSec;
         holding = true;
     }
 });
@@ -37,7 +39,7 @@ gScreen.addEventListener("up", (e) => {
     holding = false;
 });
 
-function isPivotPointingToCamera(pivotCoord, pivotEpicImageData, currentEpicImageData)
+function getPivotNormal(pivotCoord, pivotEpicImageData, currentEpicImageData)
 {
     let normal = getNormalFromScreenCoord(
         pivotCoord,
@@ -48,37 +50,54 @@ function isPivotPointingToCamera(pivotCoord, pivotEpicImageData, currentEpicImag
     mat3.transpose(pivot2currentMatrix, pivotEpicImageData.centroid_matrix);
     mat3.multiply(pivot2currentMatrix, pivot2currentMatrix, currentEpicImageData.centroid_matrix);
     mat3.multiply(normal, pivot2currentMatrix, normal);
-    return (normal[2] >= 0.0);
+    return normal;
+}
+
+function setEpicTime(timeSec)
+{
+    const prevEpicTimeSec = gEpicTimeSec;
+
+    gEpicTimeSec = timeSec;
+
+    if(gEpicZoom)
+    {
+        gUpdateEpicInterpolation();
+
+        // Check that pivot's lat lon is facing the 
+        const pivotNormal = getPivotNormal(pivotStartPos, gPivotEpicImageData, gEpicImageData);
+        //console.log("pivotStartPos: " + JSON.stringify(pivotStartPos) + ", pivotNormal: " + JSON.stringify(pivotNormal));
+        if (pivotNormal[2] < 0.0)
+        {
+            gEpicTimeSec = timeSec = prevEpicTimeSec;
+            gUpdateEpicInterpolation();
+        }
+        if (timeSec > gEpicEndTimeSec)
+            timeSec = gEpicEndTimeSec;
+        if (timeSec < gEpicStartTimeSec)
+            timeSec = gEpicStartTimeSec;
+    }
+    else
+    {
+        if (timeSec > gEpicEndTimeSec)
+            timeSec = gEpicStartTimeSec;
+        if (timeSec < gEpicStartTimeSec)
+            timeSec = gEpicEndTimeSec;
+    }
+
+    gEpicTimeSec = timeSec;
+    gUpdateEpicInterpolation();
 }
 
 gScreen.addEventListener("drag", (e) => {
-    const deltaEpicTime = (e.dragPos.x - e.startPos.x) / canvas.width * 3600 * 24;
+    const deltaEpicTime = (e.deltaPos.x) / canvas.width * 3600 * 24;
     if (epicPressTime)
     {
-        const prevEpicTimeSec = gEpicTime;
+        const prevEpicTimeSec = gEpicTimeSec;
 
-        let newEpicTimeSec = epicPressTime + deltaEpicTime;
-        if (newEpicTimeSec > gEpicEndTimeSec)
-        {
-            newEpicTimeSec = gEpicEndTimeSec;
-        }
-        if (newEpicTimeSec < gEpicStartTimeSec)
-        {
-            newEpicTimeSec = gEpicStartTimeSec;
-        }
-        gEpicTime = newEpicTimeSec;
+        setEpicTime(gEpicTimeSec + deltaEpicTime, e.startPos);
 
-        gUpdateEpicInterpolation();
-
-        if(gEpicZoom)
-        {
-            // Check that pivot's lat lon is facing the 
-            if (!isPivotPointingToCamera(e.startPos, gPivotEpicImageData, gEpicImageData))
-            {
-                gEpicTime = prevEpicTimeSec;
-                gUpdateEpicInterpolation();
-            }
-        }
+        currentTimeSpeed = (gEpicTimeSec - prevEpicTimeSec) / e.deltaTime;
+        //console.log("gEpicTimeSec: " + gEpicTimeSec + ", deltaEpicTime: " + deltaEpicTime + ", currentTimeSpeed: " + currentTimeSpeed);
     }
 });
 
@@ -196,36 +215,29 @@ function createPivotEpicImageData(epicImageData, pivotPos, alsoGetTimezone = tru
     
     return pivotEpicImageData;
 }
-function zoom(pivotPos)
+function setZoom(on, pivotPos)
 {
-
     if (gEpicImageData)
     {
-        gEpicZoom = true;
         gPivotEpicImageData = createPivotEpicImageData(
             gEpicImageData, pivotPos);
         if (!gPivotEpicImageData)
         {
             return false;
         }
-        //console.log('gPivotEpicImageData: ' + JSON.stringify(gPivotEpicImageData) + ', gEpicImageData: ' + JSON.stringify(gEpicImageData));
+        pivotStartPos = pivotPos;
+        gEpicZoom = true;
+        //console.log('pivotStartPos: ' + JSON.stringify(pivotStartPos));
     }
 }
 
 gScreen.addEventListener("long-press", (e) => {
     longPressing = true;
-    zoom(e.startPos);
+    setZoom(true, e.startPos);
 });
 
 gScreen.addEventListener("double-click", (e) => {
-    if (!gEpicPlaying && !gEpicZoom)
-    {
-        zoom(e.clickPos);
-    }
-    else
-    {
-        gEpicZoom = false;
-    }
+    setZoom(!gEpicPlaying && !gEpicZoom, e.clickPos);
 });
 
 gScreen.addEventListener("click", (e) => {
@@ -237,6 +249,12 @@ function mix(x, y, a) {
     return x * (1 - a) + y * a;
 }
 
+let lastUpdateTime = undefined;
+
+function lerp( a, b, alpha ) {
+    return a + alpha * ( b - a );
+}
+
 export function gUpdateEpicTime(time)
 {
     if (!gEpicStartTimeSec || !gEpicEndTimeSec)
@@ -244,19 +262,23 @@ export function gUpdateEpicTime(time)
         return;
     }
 
-    if (!gEpicTime)
+    if (!gEpicTimeSec)
     {
-        gEpicTime = gEpicStartTimeSec;
+        gEpicTimeSec = gEpicStartTimeSec;
     }
 
-    if (gEpicPlaying && !holding)
+    const targetSpeed = gEpicPlaying ? gTimeSpeed : 0.0;
+    if (!holding)
     {
-        gEpicTime += 1.0 / 60 * gTimeScale;
-        if (gEpicTime > gEpicEndTimeSec)
+        if (lastUpdateTime)
         {
-            gEpicTime = gEpicStartTimeSec;
+            const deltaTime = (time - lastUpdateTime) / 1000.0;
+            currentTimeSpeed = lerp(currentTimeSpeed, targetSpeed, 0.1);
+            setEpicTime(gEpicTimeSec + deltaTime * currentTimeSpeed);
+            //console.log("gEpicTimeSec: " + gEpicTimeSec + ", deltaTime: " + deltaTime + ", currentTimeSpeed: " + currentTimeSpeed);
         }
     }
+    lastUpdateTime = time;
 
     gUpdateEpicInterpolation();
 }
@@ -266,12 +288,12 @@ export function gUpdateEpicInterpolation()
     let epicImageDataSec0 = undefined;
     let epicImageDataSec1 = undefined;
     for (let [timeSec, epicImageData] of gEpicImageDataMap) {
-        if (timeSec <= gEpicTime && (epicImageDataSec0 == undefined || epicImageDataSec0 < timeSec))
+        if (timeSec <= gEpicTimeSec && (epicImageDataSec0 == undefined || epicImageDataSec0 < timeSec))
         {
             epicImageDataSec0 = epicImageData.timeSec = timeSec;
             gEpicImageData0  = epicImageData;
         }
-        if (timeSec > gEpicTime && (epicImageDataSec1 == undefined || epicImageDataSec1 > timeSec))
+        if (timeSec > gEpicTimeSec && (epicImageDataSec1 == undefined || epicImageDataSec1 > timeSec))
         {
             epicImageDataSec1 = epicImageData.timeSec = timeSec;
             gEpicImageData1 = epicImageData;
@@ -288,18 +310,14 @@ export function gUpdateEpicInterpolation()
 
     if (epicImageDataSec0 == undefined)
     {
-        epicImageDat0 = gEpicImageData1;
+        gEpicImageData0 = gEpicImageData1;
         epicImageDataSec0 = epicImageDataSec1;
-
-        gEpicTime = gEpicStartTimeSec;
         mixFactor = 1.0;
     }
     else if (epicImageDataSec1 == undefined)
     {
         gEpicImageData1 = gEpicImageData0 ;
         epicImageDataSec1 = epicImageDataSec0;
-
-        gEpicTime = gEpicStartTimeSec;
         mixFactor = 0.0;
     }
     // else if (epicImageDataSec1 - epicImageDataSec0 > MAX_EPIC_GAP_SEC)
@@ -308,13 +326,13 @@ export function gUpdateEpicInterpolation()
     // } 
     else
     {
-        mixFactor  = (gEpicTime - epicImageDataSec0) / (epicImageDataSec1 - epicImageDataSec0);
+        mixFactor  = (gEpicTimeSec - epicImageDataSec0) / (epicImageDataSec1 - epicImageDataSec0);
     }
     //console.log("0: " + gEpicImageData0 .date + ", 1: " + gEpicImageData1.date);
 
     let epicImageData = {}
 
-    epicImageData.time_sec = gEpicTime;
+    epicImageData.time_sec = gEpicTimeSec;
     epicImageData.mix01 = mixFactor;
 
     // Interpolate Radius:
