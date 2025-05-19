@@ -53,6 +53,7 @@ class Screen
         this.#events.set("click", []);
         this.#events.set("double-click", []);
         this.#events.set("out", []);
+        this.#events.set("mousewheel", []);
 
         let self = this;
         window.addEventListener("load", function(e) {
@@ -93,6 +94,10 @@ class Screen
 
             document.addEventListener("mouseout", function(e) {
                 self.#handleOut(e);
+            });
+
+            document.addEventListener("wheel", function(e) {
+                self.#handleWheel(e);
             });
         });
     }
@@ -260,6 +265,17 @@ class Screen
             }
             this.callEvent("out", eOut);
         }
+    }
+
+    #handleWheel(e)
+    {
+        const eWheel = {
+            wheelPos: this.#lastMovePos,
+            wheelDelta: e.wheelDelta,
+            wheelDeltaMode: e.deltaMode
+        };
+        this.callEvent("mousewheel", eWheel);
+
     }
 }
 
