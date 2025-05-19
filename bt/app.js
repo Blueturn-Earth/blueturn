@@ -33,7 +33,6 @@ gScreen.addEventListener("up", (e) => {
     {
         gEpicZoom = false;
         epicPressTime = undefined;
-        gPivotEpicImageData = undefined;
         longPressing = false;
     }
     holding = false;
@@ -232,8 +231,6 @@ function setZoom(on, pivotPos)
     else
     {
         gEpicZoom = false;
-        gPivotEpicImageData = undefined;
-        pivotStartPos = undefined;
     }
 }
 

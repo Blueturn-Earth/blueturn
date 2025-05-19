@@ -14,7 +14,7 @@ import { gEpicEndTimeSec, gEpicStartTimeSec } from './epic.js';
 const canvas = document.getElementById('glcanvas');
 const gl = canvas.getContext('webgl2');
 
-let epicZoom = 1.0;
+let epicZoomFactor = 1.0;
 let epicMaxZoom = 2.0;
 
 // Load shader from file
@@ -186,22 +186,18 @@ function glUpdateUniforms()
     glUpdateEPICImage(gEpicImageData, 'curr_epicImage');
     gl.uniform1i(gl.getUniformLocation(program, 'showPivotCircle'), 1);
     gl.uniform1f(gl.getUniformLocation(program, 'curr_epicImage.mix01'), gEpicImageData.mix01 );
-    gl.uniform1i(gl.getUniformLocation(program, 'epicZoom'), gEpicZoom);
-    gl.uniform1f(gl.getUniformLocation(program, 'epicZoomFactor'), epicZoom);
 
-    if (gEpicZoom &&
-        gPivotEpicImageData)
+    let epicTargetZoomFactor = gEpicZoom ? epicMaxZoom : 1.0;
+    if (gPivotEpicImageData)
     {
-      epicZoom += 0.03 * (epicMaxZoom - epicZoom); 
+      epicZoomFactor += 0.03 * (epicTargetZoomFactor - epicZoomFactor); 
       glUpdateEPICImage(gPivotEpicImageData, 'pivot_epicImage');
       gl.uniform2f(gl.getUniformLocation(program, 'pivotScreenCoord'), 
         gPivotEpicImageData.pivot_coordinates.x, 
         gPivotEpicImageData.pivot_coordinates.y);
     }
-      else
-    {
-      epicZoom += 0.03 * (1.0 - epicZoom); 
-    }
+    gl.uniform1i(gl.getUniformLocation(program, 'epicZoomEnabled'), true);
+    gl.uniform1f(gl.getUniformLocation(program, 'epicZoomFactor'), epicZoomFactor);
 }
 
   function render(time) 

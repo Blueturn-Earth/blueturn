@@ -31,7 +31,7 @@ struct EPICImageInfo
 };
 uniform EPICImageInfo epicImage[2];
 uniform EPICImageInfo curr_epicImage;
-uniform bool epicZoom;
+uniform bool epicZoomEnabled;
 uniform float epicZoomFactor;
 uniform EPICImageInfo pivot_epicImage;
 
@@ -76,7 +76,9 @@ vec3 Render(in vec2 fragCoord)
     float pivot_circle_radius = 200.0;
     float pivot_circle_descent = 200.0;
 
-    if (epicZoom)
+    vec2 nozoom_uv = uv;
+
+    if (epicZoomEnabled)
     {
         vec2 press_fragCoord = vec2(pivotScreenCoord.x, iResolution.y - pivotScreenCoord.y);
         vec2 press_uv = fragCoordToUV(press_fragCoord);
@@ -97,6 +99,8 @@ vec3 Render(in vec2 fragCoord)
             uv /= epicZoomFactor;
             uv += pivot_uv;
 
+            uv = mix(nozoom_uv, uv, epicZoomFactor - 1.0);
+            
             if (showPivotCircle)
             {
                 float pixelToUVFactor = 1.0 / min(iResolution.x, iResolution.y);
