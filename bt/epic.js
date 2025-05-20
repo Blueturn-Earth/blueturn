@@ -98,7 +98,7 @@ document.getElementById("loading-text").textContent =
     "Loading...";
 
 let all_days;
-let dayEpicImageDataArray;
+let epicImageDataArray;
 const latestDayIndex = 0;
 
 nasa_api_json("all")
@@ -108,15 +108,26 @@ nasa_api_json("all")
     return nasa_load_epic_day(date);
 })
 
+function getEndOfDayMidnight(date = new Date()) {
+  const nextDay = new Date(date);
+  nextDay.setUTCHours(0, 0, 0, 0); // reset to start of current day
+  nextDay.setDate(nextDay.getDate() + 1); // move to start of next day
+  return nextDay;
+}
+
+function getStartOfDayMidnight(date = new Date()) {
+  const startOfDay = new Date(date);
+  startOfDay.setUTCHours(0, 0, 0, 0);
+  return startOfDay;
+}
+
 function nasa_load_epic_day(date)
 {
     document.getElementById("loading-text").textContent = 
-        "Loading latest data from " + date;
+        "Loading data from " + date;
     nasa_api_json('date/' + date)
     .then((dayEpicImageDataArray1) => {
-        dayEpicImageDataArray = dayEpicImageDataArray1;
-        document.getElementById("loading-text").textContent = 
-            "Loading... 10%";
+        epicImageDataArray = dayEpicImageDataArray1;
         // load the previous day string after date string
         // Find the previous date string from the current date string
         const dateIndex = all_days.findIndex(day => day.date === date);
@@ -124,37 +135,61 @@ function nasa_load_epic_day(date)
             ? all_days[dateIndex + 1].date
             : null;
         if (prevDate) {
+            document.getElementById("loading-text").textContent = 
+                "Loading data from " + prevDate;
             return nasa_api_json('date/' + prevDate);
-        } else {
-            return null;
+        }
+        else {
+            console.log("No previous date found.");
+            return Promise.resolve(null);
         }
     })
-    .then((prevDayEpicImageDataArray1) => {
-        const twoDaysEpicImageDataArray = prevDayEpicImageDataArray1 ?
-            prevDayEpicImageDataArray1.concat(dayEpicImageDataArray) :
-            dayEpicImageDataArray
+    .then((prevDayEpicImageDataArray) => {
+        epicImageDataArray = prevDayEpicImageDataArray ?
+            prevDayEpicImageDataArray.concat(epicImageDataArray) :
+            epicImageDataArray
+        // load the next day string after date string
+        // Find the next date string from the current date string
+        const dateIndex = all_days.findIndex(day => day.date === date);
+        const nextDate = dateIndex >= 1
+            ? all_days[dateIndex - 1].date
+            : null;
+        if (nextDate) {
+            document.getElementById("loading-text").textContent = 
+                "Loading data from " + nextDate;
+            return nasa_api_json('date/' + nextDate);
+        }
+        else {
+            console.log("No previous date found.");
+            return Promise.resolve(null);
+        }
+    })
+    .then((nextDayEpicImageDataArray) => {
+        epicImageDataArray = nextDayEpicImageDataArray ?
+            epicImageDataArray.concat(nextDayEpicImageDataArray) :
+            epicImageDataArray
 
-        const end_date = new Date(twoDaysEpicImageDataArray[twoDaysEpicImageDataArray.length - 1].date + "Z");
+        const curr_date = new Date(date);
+        const start_date = getStartOfDayMidnight(curr_date);
+        const end_date = getEndOfDayMidnight(curr_date);
+        gEpicStartTimeSec = start_date.getTime() / 1000;
         gEpicEndTimeSec = end_date.getTime() / 1000;
-        let start_date = new Date();
-        start_date.setTime(end_date.getTime() - 24 * 60 * 60 * 1000);
         let i = 0;
-        for(; i <= twoDaysEpicImageDataArray.length; i++)
+        for(; i <= epicImageDataArray.length; i++)
         {
-            if (start_date <= new Date(twoDaysEpicImageDataArray[i].date + "Z"))
+            if (start_date <= new Date(epicImageDataArray[i].date))
                 break;
             // 
         }
         i--;
-        gEpicStartTimeSec = start_date.getTime() / 1000;
 
         let numLoadedImages = 0;
-        let totalImagesToLoad = twoDaysEpicImageDataArray.length - i;
-        for(; i < twoDaysEpicImageDataArray.length; i++)
+        let totalImagesToLoad = epicImageDataArray.length - i;
+        for(;; i++)
         {
-            let epicImageData = twoDaysEpicImageDataArray[i];
+            let epicImageData = epicImageDataArray[i];
             gEpicImageDataMap.set(
-                (new Date(epicImageData.date + "Z")).getTime() / 1000,
+                (new Date(epicImageData.date)).getTime() / 1000,
                 epicImageData);
             addEpicMetadata(epicImageData);
             // load image
@@ -174,6 +209,11 @@ function nasa_load_epic_day(date)
                     document.getElementById("loading-text").textContent = "";
                 }
             });
+            const epicImageDataDate = new Date(epicImageData.date);
+            if (epicImageDataDate >= end_date)
+            {
+                break;
+            }
         }
     });
 }
