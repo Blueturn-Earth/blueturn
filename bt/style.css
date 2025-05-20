@@ -51,5 +51,4 @@ html, body, canvas {
     height: auto;
     opacity: 0.3;         /* semi-transparent */
     z-index: 10;        /* make sure it's on top */
-    pointer-events: none; /* don't block clicks behind it */
 }
