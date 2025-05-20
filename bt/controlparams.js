@@ -1,3 +1,5 @@
+import {gLoadEpicImagesForDate} from './epic.js';
+
 export let gControlState = {
     timeSpeed: 3600,
     playing: true,
@@ -7,7 +9,7 @@ export let gControlState = {
 let controlMap = new Map();
 controlMap.set('timespeed', (v) => {gControlState.timeSpeed = parseInt(v);});
 controlMap.set('play', (v) => {gControlState.playing = parseInt(v);});
-controlMap.set('date', (v) => {gControlState.date = v;});
+controlMap.set('date', (v) => {gControlState.date = v; gLoadEpicImagesForDate(gControlState.date)});
 
 const urlParams = new URLSearchParams(window.location.search);
 

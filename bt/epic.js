@@ -1,5 +1,6 @@
 import { gCalcLatLonNorthRotationMatrix} from './utils.js';
 import { gControlState } from './controlparams.js';
+import { gEpicTimeSec, gSetEpicTimeSec } from './app.js';
 
 export let gEpicImageDataMap = new Map(); 
 export let gEpicStartTimeSec = undefined;
@@ -104,9 +105,13 @@ const latestDayIndex = 0;
 nasa_api_json("all")
 .then((all_days1) => {
     all_days = all_days1;
-    const date = gControlState.date ? gControlState.date : all_days[latestDayIndex].date;
+    return gLoadEpicImagesForDate(gControlState.date ? gControlState.date : all_days[latestDayIndex].date);
+});
+
+export async function gLoadEpicImagesForDate(date)
+{
     return nasa_load_epic_day(date);
-})
+}
 
 function getEndOfDayMidnight(date = new Date()) {
   const nextDay = new Date(date);
@@ -119,6 +124,16 @@ function getStartOfDayMidnight(date = new Date()) {
   const startOfDay = new Date(date);
   startOfDay.setUTCHours(0, 0, 0, 0);
   return startOfDay;
+}
+
+function getCurrentTimeAtDay(date = new Date()) {
+    // set the current hour within the current day
+    const currTime = new Date();
+    const currHour = currTime.getUTCHours();
+    const currMinute = currTime.getUTCMinutes();
+    const currSecond = currTime.getUTCSeconds();
+    date.setUTCHours(currHour, currMinute, currSecond, 0);
+    return date;
 }
 
 function nasa_load_epic_day(date)
@@ -169,11 +184,19 @@ function nasa_load_epic_day(date)
             epicImageDataArray.concat(nextDayEpicImageDataArray) :
             epicImageDataArray
 
-        const curr_date = new Date(date);
+        let curr_date = new Date(date);
         const start_date = getStartOfDayMidnight(curr_date);
         const end_date = getEndOfDayMidnight(curr_date);
         gEpicStartTimeSec = start_date.getTime() / 1000;
         gEpicEndTimeSec = end_date.getTime() / 1000;
+
+        if (!gEpicTimeSec || gEpicTimeSec < gEpicStartTimeSec || gEpicTimeSec > gEpicEndTimeSec)
+        {
+            // set the current hour within the current day
+            curr_date = getCurrentTimeAtDay(curr_date);
+            gSetEpicTimeSec(curr_date.getTime() / 1000);
+        }
+
         let start_i = 0;
         for(; start_i <= epicImageDataArray.length; start_i++)
         {

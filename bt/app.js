@@ -52,7 +52,7 @@ function getPivotNormal(pivotCoord, pivotEpicImageData, currentEpicImageData)
     return normal;
 }
 
-function setEpicTimeSec(timeSec)
+export function gSetEpicTimeSec(timeSec)
 {
     const prevEpicTimeSec = gEpicTimeSec;
 
@@ -112,7 +112,7 @@ gScreen.addEventListener("drag", (e) => {
     {
         const prevEpicTimeSec = gEpicTimeSec;
 
-        setEpicTimeSec(gEpicTimeSec + deltaEpicTime, e.startPos);
+        gSetEpicTimeSec(gEpicTimeSec + deltaEpicTime, e.startPos);
 
         currentTimeSpeed = (gEpicTimeSec - prevEpicTimeSec) / e.deltaTime;
         //console.log("gEpicTimeSec: " + gEpicTimeSec + ", deltaEpicTime: " + deltaEpicTime + ", currentTimeSpeed: " + currentTimeSpeed);
@@ -234,14 +234,9 @@ function lerp( a, b, alpha ) {
 
 export function gUpdateEpicTime(time)
 {
-    if (!gEpicStartTimeSec || !gEpicEndTimeSec)
+    if (!gEpicStartTimeSec || !gEpicEndTimeSec || !gEpicTimeSec)
     {
         return;
-    }
-
-    if (!gEpicTimeSec)
-    {
-        gEpicTimeSec = gEpicStartTimeSec;
     }
 
     const targetSpeed = gControlState.playing ? gControlState.timeSpeed : 0.0;
@@ -251,7 +246,7 @@ export function gUpdateEpicTime(time)
         {
             const deltaTime = (time - lastUpdateTime) / 1000.0;
             currentTimeSpeed = lerp(currentTimeSpeed, targetSpeed, 0.1);
-            setEpicTimeSec(gEpicTimeSec + deltaTime * currentTimeSpeed);
+            gSetEpicTimeSec(gEpicTimeSec + deltaTime * currentTimeSpeed);
             //console.log("gEpicTimeSec: " + gEpicTimeSec + ", deltaTime: " + deltaTime + ", currentTimeSpeed: " + currentTimeSpeed);
         }
     }
