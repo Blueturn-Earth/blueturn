@@ -4,8 +4,25 @@
   <title>Blueturn in IFrame</title>
 </head>
 <body>
-  <iframe src="https://app.blueturn.earth?timespeed=3600&play=1&date=2024-12-21" width="800" height="600" frameborder="2" allowfullscreen></iframe>
-  <div></div>
-  <iframe src="https://app.blueturn.earth?timespeed=3600&play=1&date=2024-06-21" width="800" height="600" frameborder="2" allowfullscreen></iframe>
+  <iframe id="bt1" src="https://app.blueturn.earth?timespeed=3600&play=1&date=2024-12-21" width="800" height="600" frameborder="2" allowfullscreen></iframe>
+  <button id="playToggle">Pause</button>
+  <iframe id="bt2" src="https://app.blueturn.earth?timespeed=3600&play=1&date=2024-06-21" width="800" height="600" frameborder="2" allowfullscreen></iframe>
+  <script>
+    const playToggle = document.getElementById('playToggle');
+    let isPlaying = true;
+    playToggle.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      // send message to both iframes to toggle play/pause
+      document.getElementById("bt1").contentWindow.postMessage({
+        type: "play",
+        value: isPlaying
+      }, '*');
+      document.getElementById("bt2").contentWindow.postMessage({
+        type: "play",
+        value: isPlaying
+      }, '*');
+      playToggle.textContent = isPlaying ? 'Pause' : 'Play';
+    });
+  </script>
 </body>
 </html>
