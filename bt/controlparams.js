@@ -17,12 +17,21 @@ controlMap.forEach((cb, param) => {
 });
 
 window.addEventListener("message", (event) => {
-    //if (event.origin !== "https://app.blueturn.earth") return; // security check
-    console.log("Received message: ", event.data);
-    controlMap.forEach((cb, param) => {
-        if (event.data.type === param) {
-            console.log("Handling message: ", event.data);
-            cb(event.data.value);
-        }
-    });
+    // Uncomment and set the correct origin for security in production
+    // if (event.origin !== "https://app.blueturn.earth") return; // security check
+
+    // Log the origin and data for debugging
+    console.log("Received message from origin:", event.origin, "data:", event.data);
+
+    // Ensure event.data is an object and has a 'type' property
+    if (typeof event.data === "object" && event.data !== null && "type" in event.data) {
+        controlMap.forEach((cb, param) => {
+            if (event.data.type === param) {
+                console.log("Handling message: ", event.data);
+                cb(event.data.value);
+            }
+        });
+    } else {
+        console.warn("Message received with unexpected format:", event.data);
+    }
 });
