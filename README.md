@@ -1,6 +1,6 @@
 # Blueturn Web App
 
-[Live Demo](http://app.blueturn.earth)
+[Live Web App](http://app.blueturn.earth)
 
 Blueturn is a web application that produces an interactive video of the Earth using data from NASA’s EPIC API. 
 Built with HTML5, Vanilla JavaScript, WebGL, and GLSL.
@@ -27,5 +27,16 @@ Built with HTML5, Vanilla JavaScript, WebGL, and GLSL.
 ---
 
 ## License
-[Creative Commons CC BY-NC-SA 4.0
+This project is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0) license.
+You are free to:
+- Share — copy and redistribute the material in any medium or format
+- Adapt — remix, transform, and build upon the material
+
+...as long as you follow these terms:
+
+- Attribution — You must give appropriate credit to "Michael Boccara and the Blueturn Project", and include a link to the project repository or website.
+- NonCommercial — You may not use the material for commercial purposes.
+- ShareAlike — If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
+
+Full license text: [CC BY-NC-SA 4.0
 ](https://creativecommons.org/licenses/by-nc-sa/4.0/)
