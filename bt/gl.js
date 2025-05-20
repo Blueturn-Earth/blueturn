@@ -1,3 +1,7 @@
+// © 2025 Blueturn - Michael Boccara. 
+// Licensed under CC BY-NC-SA 4.0.
+// See https://creativecommons.org/licenses/by-nc-sa/4.0/
+
 import { 
   gEpicTimeSec, 
   gUpdateEpicTime, 
