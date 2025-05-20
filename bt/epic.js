@@ -1,4 +1,5 @@
 import { gCalcLatLonNorthRotationMatrix} from './utils.js';
+import { gDate } from './controlparams.js';
 
 export let gEpicImageDataMap = new Map(); 
 export let gEpicStartTimeSec = undefined;
@@ -104,7 +105,7 @@ const latestDayIndex = 0;
 nasa_api_json("all")
 .then((all_days1) => {
     all_days = all_days1;
-    const date = all_days[latestDayIndex].date;
+    const date = gDate ? gDate : all_days[latestDayIndex].date;
     return nasa_load_epic_day(date);
 })
 

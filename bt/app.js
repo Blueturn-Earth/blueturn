@@ -1,11 +1,10 @@
 import { vec3, mat3 } from 'https://esm.sh/gl-matrix';
+import { gTimeSpeed, gPlaying } from './controlparams.js';
 
 import { gEpicImageDataMap, gEpicStartTimeSec, gEpicEndTimeSec} from './epic.js';
 import { gScreen} from './screen.js';
 import { gCalcLatLonNorthRotationMatrix, gCalcNormalFromScreenCoord, gCalcLatLonFromScreenCoord} from './utils.js';
 
-export let gTimeSpeed = 3600;
-export let gEpicPlaying = true;
 export let gEpicZoom = false;
 export let gEpicTimeSec = undefined;
 export let gEpicImageData0 = undefined; 
@@ -15,6 +14,7 @@ export let gPivotEpicImageData = undefined;
 
 const canvas = document.getElementById('glcanvas');
 
+let epicPlaying = gPlaying;
 let epicPressTime = undefined;
 let holding = false;
 let longPressing = false;
@@ -96,14 +96,14 @@ gScreen.addEventListener("long-press", (e) => {
 });
 
 gScreen.addEventListener("double-click", (e) => {
-    if (!gEpicPlaying)
+    if (!epicPlaying)
         setZoom(!gEpicZoom, e.clickPos);
     else if (gEpicZoom)
         setZoom(false, e.clickPos);
 });
 
 gScreen.addEventListener("click", (e) => {
-    gEpicPlaying = !gEpicPlaying;
+    epicPlaying = !epicPlaying;
     holding = false;
 });
 
@@ -245,7 +245,7 @@ export function gUpdateEpicTime(time)
         gEpicTimeSec = gEpicStartTimeSec;
     }
 
-    const targetSpeed = gEpicPlaying ? gTimeSpeed : 0.0;
+    const targetSpeed = epicPlaying ? gTimeSpeed : 0.0;
     if (!holding)
     {
         if (lastUpdateTime)
