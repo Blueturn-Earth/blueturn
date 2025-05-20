@@ -1,5 +1,5 @@
 import { vec3, mat3 } from 'https://esm.sh/gl-matrix';
-import { gTimeSpeed, gPlaying } from './controlparams.js';
+import { gControlState } from './controlparams.js';
 
 import { gEpicImageDataMap, gEpicStartTimeSec, gEpicEndTimeSec} from './epic.js';
 import { gScreen} from './screen.js';
@@ -14,7 +14,6 @@ export let gPivotEpicImageData = undefined;
 
 const canvas = document.getElementById('glcanvas');
 
-let epicPlaying = gPlaying;
 let epicPressTime = undefined;
 let holding = false;
 let longPressing = false;
@@ -96,14 +95,14 @@ gScreen.addEventListener("long-press", (e) => {
 });
 
 gScreen.addEventListener("double-click", (e) => {
-    if (!epicPlaying)
+    if (!gControlState.playing)
         setZoom(!gEpicZoom, e.clickPos);
     else if (gEpicZoom)
         setZoom(false, e.clickPos);
 });
 
 gScreen.addEventListener("click", (e) => {
-    epicPlaying = !epicPlaying;
+    gControlState.playing = !gControlState.playing;
     holding = false;
 });
 
@@ -245,7 +244,7 @@ export function gUpdateEpicTime(time)
         gEpicTimeSec = gEpicStartTimeSec;
     }
 
-    const targetSpeed = epicPlaying ? gTimeSpeed : 0.0;
+    const targetSpeed = gControlState.playing ? gControlState.timeSpeed : 0.0;
     if (!holding)
     {
         if (lastUpdateTime)
