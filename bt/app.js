@@ -337,6 +337,8 @@ export function gUpdateEpicInterpolation()
 
 function updateDateText(timeSec)
 {
+    if (!gControlState.showText)
+        return;
     const date = new Date(timeSec * 1000);
     let dateStr = "";
     if (gEpicZoom &&

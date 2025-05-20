@@ -99,8 +99,14 @@ function addEpicMetadata(epicImageData)
         epicImageData.centroid_coordinates.lon);
 }
 
-document.getElementById("loading-text").textContent = 
-    "Loading...";
+function updateLoadingText(loadingText)
+{
+    if (!gControlState || !gControlState.showText)
+        loadingText = "";
+    document.getElementById("loading-text").textContent = loadingText;
+}   
+
+document.getElementById("loading-text").textContent = "Loading...";
 
 let all_days;
 let epicImageDataArray;
@@ -142,8 +148,7 @@ function getCurrentTimeAtDay(date = new Date()) {
 
 function nasa_load_epic_day(date)
 {
-    document.getElementById("loading-text").textContent = 
-        "Loading data from " + date;
+    updateLoadingText("Loading data from " + date);
     nasa_api_json('date/' + date)
     .then((dayEpicImageDataArray1) => {
         epicImageDataArray = dayEpicImageDataArray1;
@@ -154,8 +159,7 @@ function nasa_load_epic_day(date)
             ? all_days[dateIndex + 1].date
             : null;
         if (prevDate) {
-            document.getElementById("loading-text").textContent = 
-                "Loading data from " + prevDate;
+            updateLoadingText("Loading data from " + prevDate);
             return nasa_api_json('date/' + prevDate);
         }
         else {
@@ -174,12 +178,11 @@ function nasa_load_epic_day(date)
             ? all_days[dateIndex - 1].date
             : null;
         if (nextDate) {
-            document.getElementById("loading-text").textContent = 
-                "Loading data from " + nextDate;
+            updateLoadingText("Loading data from " + nextDate);
             return nasa_api_json('date/' + nextDate);
         }
         else {
-            console.log("No previous date found.");
+            console.log("No next date found.");
             return Promise.resolve(null);
         }
     })
@@ -191,7 +194,15 @@ function nasa_load_epic_day(date)
         let curr_date = new Date(date);
         const end_date = getEndOfDayMidnight(curr_date);
         gEpicEndTimeSec = end_date.getTime() / 1000;
-        const lastAvailableTimeSec = (new Date(epicImageDataArray[epicImageDataArray.length - 1].date)).getTime() / 1000;
+        let lastAvailableTimeSec;
+        for (let i = 0; i < epicImageDataArray.length; i++)
+        {
+            if (epicImageDataArray[epicImageDataArray.length - 1 - i])
+            {
+                lastAvailableTimeSec = (new Date(epicImageDataArray[epicImageDataArray.length - 1].date)).getTime() / 1000;
+                break;
+            }
+        }
         if (gEpicEndTimeSec > lastAvailableTimeSec)
             gEpicEndTimeSec = lastAvailableTimeSec;
         // subtract 24 hours from the end time to get the start time
@@ -208,7 +219,8 @@ function nasa_load_epic_day(date)
         let start_i = 0;
         for(; start_i <= epicImageDataArray.length; start_i++)
         {
-            if (start_date <= new Date(epicImageDataArray[start_i].date))
+            if (epicImageDataArray[start_i] &&
+                start_date <= new Date(epicImageDataArray[start_i].date))
                 break;
             // 
         }
@@ -228,7 +240,7 @@ function nasa_load_epic_day(date)
             let epicImageData = epicImageDataArray[i];
             if (!epicImageData)
             {
-                document.getElementById("loading-text").textContent = "";
+                updateLoadingText("");
                 break;
             }
             gEpicImageDataMap.set(
@@ -242,20 +254,20 @@ function nasa_load_epic_day(date)
                 numLoadedImages++;
                 if (numLoadedImages < totalImagesToLoad)
                 {
-                    document.getElementById("loading-text").textContent = 
+                    updateLoadingText(
                         "Loading... "
                         + Math.round(10 + (numLoadedImages * 90) / totalImagesToLoad) 
-                        + "%";
+                        + "%");
                 }
                 else
                 {
-                    document.getElementById("loading-text").textContent = "";
+                    updateLoadingText("");
                 }
             });
             const epicImageDataDate = new Date(epicImageData.date);
             if (epicImageDataDate >= end_date)
             {
-                document.getElementById("loading-text").textContent = "";
+                updateLoadingText("");
                 break;
             }
         }

@@ -12,6 +12,7 @@ import {
   gEpicZoom
 } 
 from './app.js';
+import { gControlState } from './controlparams.js';
 import { gEpicEndTimeSec, gEpicStartTimeSec } from './epic.js';
 
 const canvas = document.getElementById('glcanvas');
@@ -187,7 +188,7 @@ Promise.all([
     glUpdateEPICImage(gEpicImageData0, 'epicImage[0]');
     glUpdateEPICImage(gEpicImageData1, 'epicImage[1]');
     glUpdateEPICImage(gEpicImageData, 'curr_epicImage');
-    gl.uniform1i(gl.getUniformLocation(program, 'showPivotCircle'), 1);
+    gl.uniform1i(gl.getUniformLocation(program, 'showPivotCircle'), gControlState.showZoomCircle);
     gl.uniform1f(gl.getUniformLocation(program, 'curr_epicImage.mix01'), gEpicImageData.mix01 );
 
     let epicTargetZoomFactor = gEpicZoom ? epicMaxZoom : 1.0;
@@ -198,7 +199,7 @@ Promise.all([
       gl.uniform2f(gl.getUniformLocation(program, 'pivotScreenCoord'), 
         gPivotEpicImageData.pivot_coordinates.x, 
         gPivotEpicImageData.pivot_coordinates.y);
-      gl.uniform1i(gl.getUniformLocation(program, 'epicZoomEnabled'), true);
+      gl.uniform1i(gl.getUniformLocation(program, 'epicZoomEnabled'), gControlState.zoomEnabled);
       gl.uniform1f(gl.getUniformLocation(program, 'epicZoomFactor'), epicZoomFactor);
     }
     else
