@@ -98,8 +98,7 @@ document.getElementById("loading-text").textContent =
     "Loading...";
 
 let all_days;
-let latestDayEpicImageDataArray;
-let prevDayEpicImageDataArray;
+let dayEpicImageDataArray;
 const latestDayIndex = 0;
 
 nasa_api_json("all")
@@ -114,15 +113,26 @@ function nasa_load_epic_day(date)
     document.getElementById("loading-text").textContent = 
         "Loading latest data from " + date;
     nasa_api_json('date/' + date)
-    .then((latestDayEpicImageDataArray1) => {
-        latestDayEpicImageDataArray = latestDayEpicImageDataArray1;
+    .then((dayEpicImageDataArray1) => {
+        dayEpicImageDataArray = dayEpicImageDataArray1;
         document.getElementById("loading-text").textContent = 
             "Loading... 10%";
-        return nasa_api_json('date/' + all_days[latestDayIndex+1].date);
+        // load the previous day string after date string
+        // Find the previous date string from the current date string
+        const dateIndex = all_days.findIndex(day => day.date === date);
+        const prevDate = (dateIndex !== -1 && dateIndex + 1 < all_days.length)
+            ? all_days[dateIndex + 1].date
+            : null;
+        if (prevDate) {
+            return nasa_api_json('date/' + prevDate);
+        } else {
+            return null;
+        }
     })
     .then((prevDayEpicImageDataArray1) => {
-        prevDayEpicImageDataArray = prevDayEpicImageDataArray1;
-        const twoDaysEpicImageDataArray = prevDayEpicImageDataArray.concat(latestDayEpicImageDataArray);
+        const twoDaysEpicImageDataArray = prevDayEpicImageDataArray1 ?
+            prevDayEpicImageDataArray1.concat(dayEpicImageDataArray) :
+            dayEpicImageDataArray
 
         const end_date = new Date(twoDaysEpicImageDataArray[twoDaysEpicImageDataArray.length - 1].date + "Z");
         gEpicEndTimeSec = end_date.getTime() / 1000;
