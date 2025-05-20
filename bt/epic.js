@@ -174,23 +174,30 @@ function nasa_load_epic_day(date)
         const end_date = getEndOfDayMidnight(curr_date);
         gEpicStartTimeSec = start_date.getTime() / 1000;
         gEpicEndTimeSec = end_date.getTime() / 1000;
-        let i = 0;
-        for(; i <= epicImageDataArray.length; i++)
+        let start_i = 0;
+        for(; start_i <= epicImageDataArray.length; start_i++)
         {
-            if (start_date <= new Date(epicImageDataArray[i].date))
+            if (start_date <= new Date(epicImageDataArray[start_i].date))
                 break;
             // 
         }
-        i--;
+        start_i--;
+        let end_i = 0;
+        for(; end_i < epicImageDataArray.length; end_i++)
+        {
+            if (end_date <= new Date(epicImageDataArray[end_i].date))
+                break;
+            // 
+        }
 
         let numLoadedImages = 0;
-        let totalImagesToLoad = epicImageDataArray.length - i;
-        for(;; i++)
+        let totalImagesToLoad = end_i - start_i;
+        for(let i = start_i; i <= end_i; i++)
         {
             let epicImageData = epicImageDataArray[i];
             if (!epicImageData)
             {
-                console.warn("Null epicImageData at index " + i);
+                document.getElementById("loading-text").textContent = "";
                 break;
             }
             gEpicImageDataMap.set(
@@ -217,6 +224,7 @@ function nasa_load_epic_day(date)
             const epicImageDataDate = new Date(epicImageData.date);
             if (epicImageDataDate >= end_date)
             {
+                document.getElementById("loading-text").textContent = "";
                 break;
             }
         }
