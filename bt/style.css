@@ -43,12 +43,32 @@ html, body, canvas {
     z-index: 10;  /* Ensure text stays on top */
 }
 
-#cornerLogo {
+#btLogo {
     position: fixed;
     top: 10px;
     right: 10px;
-    width: 10vmin;
+    width: 5vmin;
     height: auto;
-    opacity: 0.3;         /* semi-transparent */
-    z-index: 10;        /* make sure it's on top */
+    z-index: 10;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+#btLogo:hover {
+    opacity: 1;
+}
+
+#nasaLogo {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    width: 5vmin;
+    height: auto;
+    z-index: 10;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+#nasaLogo:hover {
+    opacity: 1;
 }
