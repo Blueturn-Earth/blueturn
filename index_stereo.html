@@ -4,11 +4,43 @@
   <title>Blueturn in IFrame</title>
 </head>
 <body>
-  <button id="playToggle">Play</button>
-  Time speed: <input type="range" id="timespeedSlider" name="Time speed" min="0" max="11" /><output id="timespeedValue"></output>
-  Date: <input type="date" id="dateInput" name="date" min="2015-06-15", onchange="onDateInputChange()"/><br>
-  <iframe id="bt1" src="https://app.blueturn.earth?timespeed=3600" width="800" height="600" frameborder="2" allowfullscreen></iframe>
-  <iframe id="bt2" src="https://app.blueturn.earth?timespeed=3600" width="800" height="600" frameborder="2" allowfullscreen></iframe>
+  <iframe id="bt1" src="https://app.blueturn.earth?timespeed=3600" class="half"  frameborder="2" allowfullscreen></iframe>
+  <iframe id="bt2" src="https://app.blueturn.earth?timespeed=3600" class="half"  frameborder="2" allowfullscreen></iframe>
+  <div id="uiOverlay">
+    <button id="playToggle">Play</button>
+    Time speed: <input type="range" id="timespeedSlider" name="Time speed" min="0" max="11" /><output id="timespeedValue"></output>
+    Date: <input type="date" id="dateInput" name="date" min="2015-06-15", onchange="onDateInputChange()"/><br>
+  </div>div>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    /* UI overlay on top */
+    #uiOverlay {
+      position: relative;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 20px;
+      font-size: 24px;
+    }
+
+    .half {
+      position: fixed;
+      top: 0;
+      width: 50vw;
+      height: 100vh;
+      border: none;
+    }
+
+    #bt1 {
+      left: 0;
+    }
+
+    #bt2 {
+      left: 50vw;
+    }
+  </style>
   <script>
     function postMessage(msg) {
       const iframes = [document.getElementById("bt1"), document.getElementById("bt2")];
