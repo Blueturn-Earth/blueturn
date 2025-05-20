@@ -189,10 +189,14 @@ function nasa_load_epic_day(date)
             epicImageDataArray
 
         let curr_date = new Date(date);
-        const start_date = getStartOfDayMidnight(curr_date);
         const end_date = getEndOfDayMidnight(curr_date);
-        gEpicStartTimeSec = start_date.getTime() / 1000;
         gEpicEndTimeSec = end_date.getTime() / 1000;
+        const lastAvailableTimeSec = (new Date(epicImageDataArray[epicImageDataArray.length - 1].date)).getTime() / 1000;
+        if (gEpicEndTimeSec > lastAvailableTimeSec)
+            gEpicEndTimeSec = lastAvailableTimeSec;
+        // subtract 24 hours from the end time to get the start time
+        gEpicStartTimeSec = gEpicEndTimeSec - 24 * 60 * 60;
+        const start_date = new Date(gEpicStartTimeSec * 1000);
 
         if (!gEpicTimeSec || gEpicTimeSec < gEpicStartTimeSec || gEpicTimeSec > gEpicEndTimeSec)
         {
