@@ -7,13 +7,13 @@
   <iframe id="bt1" src="https://app.blueturn.earth?timespeed=3600&play=1&date=2024-12-21" width="800" height="600" frameborder="2" allowfullscreen
     sandbox="allow-scripts allow-same-origin"
   ></iframe>
-  <button id="playToggle">Pause</button>
+  <button id="playToggle">Play</button>
   <iframe id="bt2" src="https://app.blueturn.earth?timespeed=3600&play=1&date=2024-06-21" width="800" height="600" frameborder="2" allowfullscreen
     sandbox="allow-scripts allow-same-origin"
   ></iframe>
   <script>
     const playToggle = document.getElementById('playToggle');
-    let isPlaying = true;
+    let isPlaying = false;
 
     function postMessage(msg) {
       const iframes = [document.getElementById("bt1"), document.getElementById("bt2")];
