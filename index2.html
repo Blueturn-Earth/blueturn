@@ -4,13 +4,11 @@
   <title>Blueturn in IFrame</title>
 </head>
 <body>
+  <button id="playToggle">Play</button><br>
+  Time speed: <input type="range" id="timespeedSlider" name="Time speed" min="0" max="11" /><output id="timespeedValue"></output><br>
   <iframe id="bt1" src="https://app.blueturn.earth?timespeed=3600&play=1&date=2024-12-21" width="800" height="600" frameborder="2" allowfullscreen></iframe>
-  <button id="playToggle">Play</button>
   <iframe id="bt2" src="https://app.blueturn.earth?timespeed=3600&play=1&date=2024-06-21" width="800" height="600" frameborder="2" allowfullscreen></iframe>
   <script>
-    const playToggle = document.getElementById('playToggle');
-    let isPlaying = false;
-
     function postMessage(msg) {
       const iframes = [document.getElementById("bt1"), document.getElementById("bt2")];
       iframes.forEach(iframe => {
@@ -20,6 +18,8 @@
       });
     }
 
+    const playToggle = document.getElementById('playToggle');
+    let isPlaying = false;
     playToggle.addEventListener('click', () => {
       isPlaying = !isPlaying;
       let msg = {
@@ -28,6 +28,29 @@
       }
       postMessage(msg);
       playToggle.textContent = isPlaying ? 'Pause' : 'Play';
+    });
+
+    const timespeedSlider = document.getElementById('timespeedSlider');
+    const timespeedValue = document.querySelector("#timespeedValue");
+    timespeedSlider.addEventListener("input", (event) => {
+      const speedIndex = event.target.value;
+      const speeds = [0, 1, 60, 300, 600, 1200, 3600, 7200, 14400, 28800, 43200, 86400];
+      const speed = speeds[speedIndex];
+      timespeedValue.textContent = "";
+      if (speed < 60) {
+        timespeedValue.textContent = speed + "s/s";
+      } else if (speed < 3600) {
+        timespeedValue.textContent = speed / 60 + "min/s";
+      } else if (speed < 86400) {
+        timespeedValue.textContent = speed / 3600 + "h/s";
+      } else {
+        timespeedValue.textContent = speed / 86400 + "d/s";
+      }
+      const msg = {
+        type: "timespeed",
+        value: speed
+      }
+      postMessage(msg);
     });
   </script>
 </body>
