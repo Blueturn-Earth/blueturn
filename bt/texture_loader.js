@@ -7,11 +7,11 @@ class TextureLoader {
     this.totalMemory = 0;
   }
 
-  load(url, { forceReload = false, onSuccess, onError, onAbort } = {}) {
+  loadTexture(url, { forceReload = false, onSuccess, onError, onAbort, onEvict } = {}) {
     if (!forceReload && this.textureCache.has(url)) {
       const entry = this.textureCache.get(url);
       entry.lastUsed = performance.now();
-      onSuccess?.(entry.texture);
+      onSuccess?.(url, entry.texture);
       return;
     }
 
@@ -33,14 +33,14 @@ class TextureLoader {
         this._insertIntoCache(url, texture, size);
         bitmap.close();
         this.pendingLoads.delete(url);
-        onSuccess?.(texture);
+        onSuccess?.(url, texture);
       })
       .catch(err => {
         this.pendingLoads.delete(url);
         if (err.name === 'AbortError') {
-          onAbort?.(err);
+          onAbort?.(url, err);
         } else {
-          onError?.(err);
+          onError?.(url, err);
         }
       });
   }
@@ -88,6 +88,7 @@ class TextureLoader {
         this.gl.deleteTexture(entry.texture);
         this.totalMemory -= entry.size;
         this.textureCache.delete(oldestUrl);
+        onEvict?.(oldestUrl, entry.texture);
       } else {
         break;
       }
@@ -126,10 +127,11 @@ const loader = new TextureLoader(gl, {
   maxGPUMemoryBytes: 32 * 1024 * 1024 // 32MB
 });
 
-loader.load(EPIC_IMAGE_URL, {
-  onSuccess: tex => { console.log('Using texture: ' + JSON.stringify(tex)); },
-  onError: err => console.error(err),
-  onAbort: () => console.log('Aborted'),
+loader.loadTexture(EPIC_IMAGE_URL, {
+  onSuccess: (url, tex) => { console.log('Loaded texture for url ' + url + ': ' + JSON.stringify(tex)); },
+  onError: (url, err) => console.error('Error for url ' + url + ': ' + err),
+  onAbort: (url, err) => console.log('Aborted loading url ' + url + ': ' + err),
+  onEvict: (url, tex) => console.log('Evicted texture for url ' + url + ': ' + JSON.stringify(tex))
 });
 
 // Later, you can mark texture as used again (for LRU priority)
