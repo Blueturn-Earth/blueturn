@@ -1,4 +1,4 @@
-class TextureLoader {
+export class TextureLoader {
   constructor(gl, { maxGPUMemoryBytes = 64 * 1024 * 1024 } = {}) {
     this.gl = gl;
     this.maxMemory = maxGPUMemoryBytes;
@@ -20,18 +20,18 @@ class TextureLoader {
     const controller = new AbortController();
     const signal = controller.signal;
     this.pendingLoads.set(url, { controller });
-
+    
     fetch(url, { mode: 'cors', cache: 'force-cache', signal })
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.blob();
       })
-      .then(blob => createImageBitmap(blob))
-      .then(bitmap => {
-        const texture = this._createTextureFromBitmap(bitmap);
-        const size = bitmap.width * bitmap.height * 4; // estimate in bytes
-        this._insertIntoCache(url, texture, size);
-        bitmap.close();
+      .then(blob => {
+        return this._createTextureFromBlob(blob);
+      })
+      .then(([texture, width, height]) => {
+        const size = width * height * 4; // estimate in bytes
+        this._insertIntoCache(url, texture, size, onEvict);
         this.pendingLoads.delete(url);
         onSuccess?.(url, texture);
       })
@@ -45,21 +45,40 @@ class TextureLoader {
       });
   }
 
-  _createTextureFromBitmap(bitmap) {
+  _createTextureFromImage(image) {
     const gl = this.gl;
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+    gl.generateMipmap(gl.TEXTURE_2D);
     return tex;
   }
 
-  _insertIntoCache(url, texture, size) {
-    this._evictIfNeeded(size);
+
+  async _createTextureFromBlob(blob) {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => {
+        try {
+          const tex = this._createTextureFromImage(image);
+          const width = image.naturalWidth;
+          const height = image.naturalHeight;
+          URL.revokeObjectURL(image.src);
+          resolve([tex, width, height]);
+        } catch (err) {
+          reject(err);
+        }
+      };
+      image.onerror = () => {
+        URL.revokeObjectURL(image.src);
+        reject(new Error("Failed to load image from blob"));
+      };
+      image.src = URL.createObjectURL(blob);
+    });
+  }
+
+  _insertIntoCache(url, texture, size, onEvict) {
+    this._evictIfNeeded(size, onEvict);
 
     this.textureCache.set(url, {
       texture,
@@ -69,7 +88,7 @@ class TextureLoader {
     this.totalMemory += size;
   }
 
-  _evictIfNeeded(incomingSize) {
+  _evictIfNeeded(incomingSize, onEvict) {
     while (this.totalMemory + incomingSize > this.maxMemory && this.textureCache.size > 0) {
       // Find LRU entry
       let oldestUrl = null;
@@ -116,22 +135,3 @@ class TextureLoader {
     this.totalMemory = 0;
   }
 }
-
-const EPIC_IMAGE_URL="https://api.nasa.gov/EPIC/archive/natural/2025/05/17/jpg/epic_1b_20250517092934.jpg?api_key=mkFSJvkb5TdUAEUtdWpAwPDEJxicFOCmuKuht0q4";
-
-const canvas = document.getElementById('glcanvas');
-const gl = canvas.getContext('webgl2');
-
-const loader = new TextureLoader(gl, {
-  maxGPUMemoryBytes: 32 * 1024 * 1024 // 32MB
-});
-
-loader.loadTexture(EPIC_IMAGE_URL, {
-  onSuccess: (url, tex) => { console.log('TextureLoader: Loaded texture ' + JSON.stringify(tex)); },
-  onError: (url, err) => console.error('TextureLoader: Error ' + err),
-  onAbort: (url, err) => console.log('TextureLoader: Aborted: ' + err),
-  onEvict: (url, tex) => console.log('TextureLoader: Evicted texture ' + JSON.stringify(tex))
-});
-
-// Later, you can mark texture as used again (for LRU priority)
-loader.markUsed(EPIC_IMAGE_URL);

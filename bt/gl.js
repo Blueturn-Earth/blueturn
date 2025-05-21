@@ -13,7 +13,7 @@ import {
 } 
 from './app.js';
 import { gControlState } from './controlparams.js';
-import { gEpicEndTimeSec, gEpicStartTimeSec } from './epic.js';
+import { gEpicEndTimeSec, gEpicStartTimeSec, gEpicTextureLoader } from './epic.js';
 
 const canvas = document.getElementById('glcanvas');
 const gl = canvas.getContext('webgl2');
@@ -73,19 +73,6 @@ function createTextureFromURL(url) {
   return tex;
 }
 
-function createTextureFromBlob(blob) {
-  const tex = gl.createTexture();
-  const image = new Image();
-  image.src = URL.createObjectURL(blob);
-  image.onload = () => {
-    createTextureFromImage(image, tex);
-    URL.revokeObjectURL(image.src);
-  };
-  return tex;
-}
-
-
-
 function setActiveTexture(program, uniformName, tex, unit)
 {
   gl.activeTexture(gl.TEXTURE0 + unit);
@@ -97,7 +84,7 @@ function setActiveTexture(program, uniformName, tex, unit)
 let nextTextureUnit = 1;
 let epicTexUnit = new Map();
 
-function glLoadEpicTexture(program, epicImageData, epicStructUniformName)
+function glUseEpicTexture(program, epicImageData, epicStructUniformName)
 {
   if (!epicImageData.image)
     return;
@@ -105,15 +92,9 @@ function glLoadEpicTexture(program, epicImageData, epicStructUniformName)
   const epicHasTextureUniformName = epicStructUniformName + '.hasTexture';
   if (!epicImageData.texture)
   {
-    if (!epicImageData.imageBlob)
-    {
-      setActiveTexture(program, epicTextureUniformName, null, 0);
-      gl.uniform1i(gl.getUniformLocation(program, epicHasTextureUniformName), 0);
-      return;
-    }
-    
-    epicImageData.texture = createTextureFromBlob(epicImageData.imageBlob);
-    epicImageData.imageBlob = null;
+    setActiveTexture(program, epicTextureUniformName, null, 0);
+    gl.uniform1i(gl.getUniformLocation(program, epicHasTextureUniformName), 0);
+    return;
   }
 
   if (!epicTexUnit.get(epicTextureUniformName))
@@ -123,6 +104,7 @@ function glLoadEpicTexture(program, epicImageData, epicStructUniformName)
   }
   setActiveTexture(program, epicTextureUniformName, epicImageData.texture, epicTexUnit.get(epicTextureUniformName));
   gl.uniform1i(gl.getUniformLocation(program, epicHasTextureUniformName), 1);
+  gEpicTextureLoader.markUsed(epicImageData.imageURL);
 }
 
 function loadTextureFromURL(program, path, uniformName)
@@ -179,7 +161,7 @@ Promise.all([
         false,
         epicImageData.centroid_matrix
       );
-      glLoadEpicTexture(program, epicImageData, epicImageUniformName);
+      glUseEpicTexture(program, epicImageData, epicImageUniformName);
     }  
   }
 

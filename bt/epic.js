@@ -5,6 +5,7 @@
 import { gCalcLatLonNorthRotationMatrix} from './utils.js';
 import { gControlState } from './controlparams.js';
 import { gEpicTimeSec, gSetEpicTimeSec } from './app.js';
+import { TextureLoader} from './texture_loader.js';
 
 export let gEpicImageDataMap = new Map(); 
 export let gEpicStartTimeSec = undefined;
@@ -60,7 +61,13 @@ async function nasa_api_json(call)
     }
 }
 
-async function nasa_api_image(imageData) 
+const canvas = document.getElementById('glcanvas');
+const gl = canvas.getContext('webgl2');
+export const gEpicTextureLoader = new TextureLoader(gl, {
+  maxGPUMemoryBytes: 100 * 2048 * 2048 * 4 // 1.6GB
+});
+
+function nasa_api_image(imageData, { onLoaded, onEvict }) 
 {
     let dateStr = imageData.date;
     dateStr = dateStr
@@ -70,16 +77,17 @@ async function nasa_api_image(imageData)
 
     const imageName = imageData.image;
     
-    try {
-        const formatStr = "jpg";
-        const url = EPIC_IMAGE_URL + dateStr + "/" + formatStr + "/" + imageName + "." + formatStr + GetAPIKey() + GetNoiseKey();
-        //console.log("Loading image URL: " + url);
-        const response = await fetch(url);
-        const imageBlob = await response.blob();
-        imageData.imageBlob = imageBlob;
-    } catch (error) {
-        console.error('Error loading image:', error);
-    }
+    const formatStr = "jpg";
+    const url = EPIC_IMAGE_URL + dateStr + "/" + formatStr + "/" + imageName + "." + formatStr + GetAPIKey() + GetNoiseKey();
+    //console.log("Loading image URL: " + url);
+    imageData.imageURL = url;
+    gEpicTextureLoader.loadTexture(url, {
+        forceReload: false,
+        onSuccess: (url, tex) => {onLoaded?.(tex);},
+        onError: (url, err) => {console.error('Error loading texture for image ' + imageName + ', ' + err);},
+        onAbort: (url, err) => {console.error('Aborted loading texture for image ' + imageName + ', ' + err);},
+        onEvict: (url, tex) => {onEvict?.();}
+    });
 }
 
 function earthRadius(distance)
@@ -243,33 +251,40 @@ function nasa_load_epic_day(date)
                 updateLoadingText("");
                 break;
             }
-            gEpicImageDataMap.set(
-                (new Date(epicImageData.date)).getTime() / 1000,
-                epicImageData);
-            addEpicMetadata(epicImageData);
-            // load image
-            nasa_api_image(epicImageData)
-            .then(() => {
-                console.log("Loaded image: " + epicImageData.image + ", for date " + epicImageData.date);
-                numLoadedImages++;
-                if (numLoadedImages < totalImagesToLoad)
-                {
-                    updateLoadingText(
-                        "Loading... "
-                        + Math.round(10 + (numLoadedImages * 90) / totalImagesToLoad) 
-                        + "%");
-                }
-                else
-                {
-                    updateLoadingText("");
-                }
-            });
             const epicImageDataDate = new Date(epicImageData.date);
             if (epicImageDataDate >= end_date)
             {
                 updateLoadingText("");
                 break;
             }
+            gEpicImageDataMap.set(
+                (new Date(epicImageData.date)).getTime() / 1000,
+                epicImageData);
+            addEpicMetadata(epicImageData);
+            // load image
+            nasa_api_image(epicImageData, {
+                onLoaded: (tex) => {
+                    epicImageData.texture = tex;
+                    console.log("Loaded image: " + epicImageData.image + ", for date " + epicImageData.date);
+                    numLoadedImages++;
+                    if (numLoadedImages < totalImagesToLoad)
+                    {
+                        updateLoadingText(
+                            "Loading... "
+                            + Math.round(10 + (numLoadedImages * 90) / totalImagesToLoad) 
+                            + "%");
+                    }
+                    else
+                    {
+                        updateLoadingText("");
+                    }
+                },
+                onEvict: () => {
+                    console.warn("Evicted image: " + epicImageData.image + ", for date " + epicImageData.date);
+                    epicImageData.texture = null;
+                    numLoadedImages--;
+                }
+            });
         }
     });
 }
