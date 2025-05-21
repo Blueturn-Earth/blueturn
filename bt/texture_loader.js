@@ -49,7 +49,6 @@ class TextureLoader {
     const gl = this.gl;
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -128,10 +127,10 @@ const loader = new TextureLoader(gl, {
 });
 
 loader.loadTexture(EPIC_IMAGE_URL, {
-  onSuccess: (url, tex) => { console.log('Loaded texture for url ' + url + ': ' + JSON.stringify(tex)); },
-  onError: (url, err) => console.error('Error for url ' + url + ': ' + err),
-  onAbort: (url, err) => console.log('Aborted loading url ' + url + ': ' + err),
-  onEvict: (url, tex) => console.log('Evicted texture for url ' + url + ': ' + JSON.stringify(tex))
+  onSuccess: (url, tex) => { console.log('TextureLoader: Loaded texture ' + JSON.stringify(tex)); },
+  onError: (url, err) => console.error('TextureLoader: Error ' + err),
+  onAbort: (url, err) => console.log('TextureLoader: Aborted: ' + err),
+  onEvict: (url, tex) => console.log('TextureLoader: Evicted texture ' + JSON.stringify(tex))
 });
 
 // Later, you can mark texture as used again (for LRU priority)
