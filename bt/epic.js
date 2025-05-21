@@ -14,7 +14,7 @@ const NASA_API_KEY="mkFSJvkb5TdUAEUtdWpAwPDEJxicFOCmuKuht0q4";
 //const NASA_API_KEY="DEMO_KEY";
 const CACHE_DATE="";
 const EPIC_JSON_URL="https://api.nasa.gov/EPIC/api/natural/";
-const EPIC_IMAGE_URL="https://api.nasa.gov/EPIC/archive/natural/"
+const EPIC_IMAGE_URL="https://api.nasa.gov/EPIC/archive/natural/";
 const today = new Date().toISOString().slice(0, 10); // e.g., "2025-04-13"
 const NO_CACHE=false;
 
