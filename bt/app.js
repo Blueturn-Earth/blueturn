@@ -5,7 +5,8 @@
 import { vec3, mat3 } from 'https://esm.sh/gl-matrix';
 import { gControlState } from './controlparams.js';
 
-import { gEpicImageDataMap, gEpicStartTimeSec, gEpicEndTimeSec} from './epic.js';
+import { gEpicStartTimeSec, gEpicEndTimeSec} from './epic.js';
+import { gEpicImageLoader} from './epic_image_loader.js';
 import { gScreen} from './screen.js';
 import { gCalcLatLonNorthRotationMatrix, gCalcNormalFromScreenCoord, gCalcLatLonFromScreenCoord} from './utils.js';
 
@@ -263,7 +264,7 @@ export function gUpdateEpicInterpolation()
 {
     let epicImageDataSec0 = undefined;
     let epicImageDataSec1 = undefined;
-    for (let [timeSec, epicImageData] of gEpicImageDataMap) {
+    for (let [timeSec, epicImageData] of gEpicImageLoader.epicImageDataMap) {
         if (timeSec <= gEpicTimeSec && (epicImageDataSec0 == undefined || epicImageDataSec0 < timeSec))
         {
             epicImageDataSec0 = epicImageData.timeSec = timeSec;

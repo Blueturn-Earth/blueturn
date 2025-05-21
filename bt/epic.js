@@ -5,9 +5,8 @@
 import { gCalcLatLonNorthRotationMatrix} from './utils.js';
 import { gControlState } from './controlparams.js';
 import { gEpicTimeSec, gSetEpicTimeSec } from './app.js';
-import { TextureLoader} from './texture_loader.js';
+import { gEpicImageLoader} from './epic_image_loader.js';
 
-export let gEpicImageDataMap = new Map(); 
 export let gEpicStartTimeSec = undefined;
 export let gEpicEndTimeSec = undefined;
 
@@ -59,52 +58,6 @@ async function nasa_api_json(call)
         console.error('Error loading JSON:', error);
         return null;
     }
-}
-
-const canvas = document.getElementById('glcanvas');
-const gl = canvas.getContext('webgl2');
-export const gEpicTextureLoader = new TextureLoader(gl, {
-  maxGPUMemoryBytes: 100 * 2048 * 2048 * 4 // 1.6GB
-});
-
-function nasa_api_image(imageData, { onLoaded, onEvict }) 
-{
-    let dateStr = imageData.date;
-    dateStr = dateStr
-        .replaceAll("-", "/")
-        .split(" ")
-        [0];
-
-    const imageName = imageData.image;
-    
-    const formatStr = "jpg";
-    const url = EPIC_IMAGE_URL + dateStr + "/" + formatStr + "/" + imageName + "." + formatStr + GetAPIKey() + GetNoiseKey();
-    //console.log("Loading image URL: " + url);
-    imageData.imageURL = url;
-    gEpicTextureLoader.loadTexture(url, {
-        forceReload: false,
-        onSuccess: (url, tex) => {onLoaded?.(tex);},
-        onError: (url, err) => {console.error('Error loading texture for image ' + imageName + ', ' + err);},
-        onAbort: (url, err) => {console.error('Aborted loading texture for image ' + imageName + ', ' + err);},
-        onEvict: (url, tex) => {onEvict?.();}
-    });
-}
-
-function earthRadius(distance)
-{
-    return ((1024-158) / 1024) * (1386540) / distance;
-}
-
-function addEpicMetadata(epicImageData)
-{
-    const dx = epicImageData.dscovr_j2000_position.x;
-    const dy = epicImageData.dscovr_j2000_position.y;
-    const dz = epicImageData.dscovr_j2000_position.z;
-    const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
-    epicImageData.earthRadius = earthRadius(distance);
-    epicImageData.centroid_matrix = gCalcLatLonNorthRotationMatrix(
-        epicImageData.centroid_coordinates.lat, 
-        epicImageData.centroid_coordinates.lon);
 }
 
 function updateLoadingText(loadingText)
@@ -257,15 +210,10 @@ function nasa_load_epic_day(date)
                 updateLoadingText("");
                 break;
             }
-            gEpicImageDataMap.set(
-                (new Date(epicImageData.date)).getTime() / 1000,
-                epicImageData);
-            addEpicMetadata(epicImageData);
+
             // load image
-            nasa_api_image(epicImageData, {
-                onLoaded: (tex) => {
-                    epicImageData.texture = tex;
-                    console.log("Loaded image: " + epicImageData.image + ", for date " + epicImageData.date);
+            gEpicImageLoader.loadImage(epicImageData, {
+                onLoaded: () => {
                     numLoadedImages++;
                     if (numLoadedImages < totalImagesToLoad)
                     {
@@ -280,8 +228,6 @@ function nasa_load_epic_day(date)
                     }
                 },
                 onEvict: () => {
-                    console.warn("Evicted image: " + epicImageData.image + ", for date " + epicImageData.date);
-                    epicImageData.texture = null;
                     numLoadedImages--;
                 }
             });
