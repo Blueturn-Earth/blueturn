@@ -47,7 +47,7 @@ html, body, canvas {
     position: fixed;
     top: 10px;
     right: 10px;
-    width: 5vmin;
+    width: 10vmin;
     height: auto;
     z-index: 10;
     opacity: 0.3;
@@ -62,7 +62,7 @@ html, body, canvas {
     position: fixed;
     bottom: 10px;
     left: 10px;
-    width: 5vmin;
+    width: 10vmin;
     height: auto;
     z-index: 10;
     opacity: 0.3;
