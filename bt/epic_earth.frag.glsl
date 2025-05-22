@@ -141,7 +141,7 @@ vec3 Render(in vec2 fragCoord)
     }
 
     // Sphere hit:
-    //col *= step(0.0, Normal.z);
+    col = col * step(0.0, Normal.z);
 
     if (showPivotCircle)
     {
