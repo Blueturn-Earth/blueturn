@@ -134,7 +134,8 @@ gScreen.addEventListener("click", (e) => {
     gControlState.playing = !gControlState.playing;
     gtag('event', 'play', {
         'playing': gControlState.playing,
-        'trigger-event': 'click'
+        'trigger-event': 'click',
+        'zoom': gEpicZoom
     });
     holding = false;
 });
