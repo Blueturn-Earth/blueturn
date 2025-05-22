@@ -17,6 +17,12 @@ export let gEpicImageData1 = undefined;
 export let gEpicImageData = undefined;
 export let gPivotEpicImageData = undefined;
 
+document.getElementById('btLogo').addEventListener('click', function() {
+  gtag('event', 'button_click', {
+    'button_id': 'btLogo'
+  });
+});
+
 const canvas = document.getElementById('glcanvas');
 
 let epicPressTime = undefined;
@@ -94,9 +100,25 @@ export function gSetEpicTimeSec(timeSec)
     updateDateText(gEpicTimeSec);
 }
 
+function gTagZoomEvent(triggerEvent)
+{
+    const gtagEventInfo = {
+        'zoom': gEpicZoom,
+        'trigger-event': triggerEvent,
+        'playing': gControlState.playing,
+        'time': gEpicTimeSec,
+        'lat': gPivotEpicImageData ? gPivotEpicImageData.pivot_coordinates.lat : undefined,
+        'lon': gPivotEpicImageData ? gPivotEpicImageData.pivot_coordinates.lon : undefined
+    };
+    console.log("Zoom event: " + JSON.stringify(gtagEventInfo));
+    gtag('event', 'zoom', gtagEventInfo);
+}
+
 gScreen.addEventListener("long-press", (e) => {
     longPressing = true;
     setZoom(true, e.startPos);
+
+    gTagZoomEvent('long-press');
 });
 
 gScreen.addEventListener("double-click", (e) => {
@@ -104,10 +126,16 @@ gScreen.addEventListener("double-click", (e) => {
         setZoom(!gEpicZoom, e.clickPos);
     else if (gEpicZoom)
         setZoom(false, e.clickPos);
+
+    gTagZoomEvent("double-click");
 });
 
 gScreen.addEventListener("click", (e) => {
     gControlState.playing = !gControlState.playing;
+    gtag('event', 'play', {
+        'playing': gControlState.playing,
+        'trigger-event': 'click'
+    });
     holding = false;
 });
 
@@ -125,17 +153,23 @@ gScreen.addEventListener("drag", (e) => {
 });
 
 gScreen.addEventListener("mousewheel", (e) => {
+    const wasZoom = gEpicZoom;
     if (!gEpicZoom && e.wheelDelta > 0)
         setZoom(true, e.wheelPos);
     if (gEpicZoom && e.wheelDelta < 0)
         setZoom(false, e.wheelPos);
+    if (wasZoom != gEpicZoom)
+        gTagZoomEvent('mousewheel');
 });
 
 gScreen.addEventListener("pinch", (e) => {
+    const wasZoom = gEpicZoom;
     if (!gEpicZoom && e.pinchDelta > 0)
         setZoom(true, e.pinchCenterPos);
     if (gEpicZoom && e.pinchDelta < 0)
         setZoom(false, e.pinchCenterPos);
+    if (wasZoom != gEpicZoom)
+        gTagZoomEvent('pinch');
 });
 
 function createPivotEpicImageData(epicImageData, pivotPos, alsoGetTimezone = true)
@@ -336,12 +370,16 @@ export function gUpdateEpicInterpolation()
 
 }
 
+let lastTimeZoneEvent = undefined;
+let wasTimezoneFound = undefined;
+
 function updateDateText(timeSec)
 {
     if (!gControlState.showText)
         return;
     const date = new Date(timeSec * 1000);
     let dateStr = "";
+    let timezoneFound = undefined;
     if (gEpicZoom &&
         gPivotEpicImageData && 
         gPivotEpicImageData.pivot_coordinates)
@@ -374,14 +412,39 @@ function updateDateText(timeSec)
         gPivotEpicImageData.pivot_timezone.timeZoneId) {
         options.timeZone = gPivotEpicImageData.pivot_timezone.timeZoneId;
         options.timeZoneName = "long";
+        timezoneFound = true;
     }
     else
     {
         options.timeZone = "GMT";
         options.timeZoneName = "short";
+        timezoneFound = false;
     }
     dateStr += date.toLocaleString("en-GB", options);
     dateStr = dateStr.replace(/(.*\d{2}:\d{2})\s*(.*)$/, '$1 ($2)');
 
     document.getElementById("current-time-text").textContent = dateStr;
+
+    const timeZoneEventTimeMs = (new Date()).getTime();
+    let timezoneEvent = undefined;
+    if (timezoneFound && !wasTimezoneFound)
+    {
+        timezoneEvent = {
+            timeZoneId: gPivotEpicImageData && gPivotEpicImageData.pivot_timezone ? gPivotEpicImageData.pivot_timezone.timeZoneId : undefined,
+            timeZoneName: gPivotEpicImageData && gPivotEpicImageData.pivot_timezone ? gPivotEpicImageData.pivot_timezone.timeZoneName : undefined,
+            timeZoneEventTimeMs: timeZoneEventTimeMs
+        };
+    };
+    if (!timezoneFound && lastTimeZoneEvent)
+    {
+        const timeZoneDuration = timeZoneEventTimeMs - lastTimeZoneEvent.timeZoneEventTimeMs;
+        console.log("Shown Timezone for " + timeZoneDuration + "ms: " + JSON.stringify(lastTimeZoneEvent));
+        gtag('event', 'shown-local-time', {
+            'timezoneId': lastTimeZoneEvent.timeZoneId,
+            'timezoneName': lastTimeZoneEvent.timeZoneName,
+            'showDuration': timeZoneDuration
+        });
+    }
+    lastTimeZoneEvent = timezoneEvent;
+    wasTimezoneFound = timezoneFound;
 }
