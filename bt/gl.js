@@ -18,6 +18,7 @@ import { gEpicImageLoader } from './epic_image_loader.js';
 
 const canvas = document.getElementById('glcanvas');
 const gl = canvas.getContext('webgl2');
+const pageLoadTime = Date.now();
 
 let epicZoomFactor = 1.0;
 let epicMaxZoom = 2.0;
@@ -88,14 +89,16 @@ let epicTexUnit = new Map();
 function glUseEpicTexture(program, epicImageData, epicStructUniformName)
 {
   if (!epicImageData.image)
-    return;
+  {
+    return true;
+  }
   const epicTextureUniformName = epicStructUniformName + '.texture';
   const epicHasTextureUniformName = epicStructUniformName + '.hasTexture';
-  if (!epicImageData.texture)
+  if (!epicImageData || !epicImageData.texture)
   {
     setActiveTexture(program, epicTextureUniformName, null, 0);
     gl.uniform1i(gl.getUniformLocation(program, epicHasTextureUniformName), 0);
-    return;
+    return false;
   }
 
   if (!epicTexUnit.get(epicTextureUniformName))
@@ -106,6 +109,8 @@ function glUseEpicTexture(program, epicImageData, epicStructUniformName)
   setActiveTexture(program, epicTextureUniformName, epicImageData.texture, epicTexUnit.get(epicTextureUniformName));
   gl.uniform1i(gl.getUniformLocation(program, epicHasTextureUniformName), 1);
   gEpicImageLoader.markUsed(epicImageData);
+
+  return true;
 }
 
 function loadTextureFromURL(program, path, uniformName)
@@ -151,9 +156,12 @@ Promise.all([
 
   function glUpdateEPICImage(epicImageData, epicImageUniformName)
   {
+    let hasEpicTexture = false;
+    let hasEpicData = false;
     if (epicImageData &&
         epicImageData.centroid_matrix)
     {
+      hasEpicData = true;
       gl.uniform1f(
         gl.getUniformLocation(program, epicImageUniformName + '.earth_radius'), 
         epicImageData.earthRadius);
@@ -162,15 +170,68 @@ Promise.all([
         false,
         epicImageData.centroid_matrix
       );
-      glUseEpicTexture(program, epicImageData, epicImageUniformName);
-    }  
+      hasEpicTexture = glUseEpicTexture(program, epicImageData, epicImageUniformName);
+    }
+    else
+    {
+      glUseEpicTexture(program, null, epicImageUniformName);
+    }
+
+    return [hasEpicData, hasEpicTexture];
   }
+
+  class LoadEventTracker {
+    #never = true;
+    #was = undefined;
+    #lostTime = undefined;
+    #eventName = undefined;
+
+    constructor(eventName) {
+      this.#never = true;
+      this.#was = undefined;
+      this.#lostTime = undefined;
+      this.#eventName = eventName;
+    }
+
+    sendEvent(has)
+    {
+      if (has && this.#never)
+      {
+        const elapsedTimeMs = Date.now() - pageLoadTime;
+        const firstEventName = 'first-' + this.#eventName;
+        console.log(firstEventName + ": " + elapsedTimeMs + "ms after page load");
+        gtag(firstEventName, {
+          timeSincePageLoadMs: elapsedTimeMs
+        });
+        this.#never = false;
+      }
+      if (!has && this.#was)
+      {
+        this.#lostTime = Date.now();
+      }
+      if (has && !this.#was && this.#lostTime != undefined)
+      {
+        const elapsedTimeMs = Date.now() - this.#lostTime;
+        const lostEventName = 'lost-' + this.#eventName;
+        console.log(lostEventName + " for " + elapsedTimeMs + "ms");
+        gtag(lostEventName, {
+          lossTime: elapsedTimeMs
+        });
+        this.#lostTime = undefined;
+      }
+      this.#was = has;
+    }
+  }
+
+  const renderTracker = new LoadEventTracker('render');
+  const epicImageTracker = new LoadEventTracker('epic-image');
+  const epicDataTracker = new LoadEventTracker('bluemarble-image');
 
   function glUpdateUniforms()
   {
-    glUpdateEPICImage(gEpicImageData0, 'epicImage[0]');
-    glUpdateEPICImage(gEpicImageData1, 'epicImage[1]');
-    glUpdateEPICImage(gEpicImageData, 'curr_epicImage');
+    const [hasEpicData0, hasEpicTexture0] = glUpdateEPICImage(gEpicImageData0, 'epicImage[0]');
+    const [hasEpicData1, hasEpicTexture1] = glUpdateEPICImage(gEpicImageData1, 'epicImage[1]');
+    const [hasEpicData, hasEpicTexture] = glUpdateEPICImage(gEpicImageData, 'curr_epicImage');
     gl.uniform1i(gl.getUniformLocation(program, 'showPivotCircle'), gControlState.showZoomCircle);
     gl.uniform1f(gl.getUniformLocation(program, 'curr_epicImage.mix01'), gEpicImageData.mix01 );
 
@@ -191,6 +252,9 @@ Promise.all([
       gl.uniform1i(gl.getUniformLocation(program, 'epicZoomEnabled'), false);
       gl.uniform1f(gl.getUniformLocation(program, 'epicZoomFactor'), epicZoomFactor);
     }
+
+    epicImageTracker.sendEvent(hasEpicTexture0 && hasEpicTexture1);
+    epicDataTracker.sendEvent(hasEpicData);
   }
 
   function render(time) 
@@ -206,8 +270,10 @@ Promise.all([
 
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.TRIANGLES, 0, 6);
-    }    
+    }
     requestAnimationFrame(render);
+
+    renderTracker.sendEvent(true);
   }
 
   requestAnimationFrame(render);
