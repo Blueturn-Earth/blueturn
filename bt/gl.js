@@ -200,7 +200,7 @@ Promise.all([
         const elapsedTimeMs = Date.now() - pageLoadTime;
         const firstEventName = 'first-' + this.#eventName;
         console.log(firstEventName + ": " + elapsedTimeMs + "ms after page load");
-        gtag(firstEventName, {
+        gtag('event', firstEventName, {
           timeSincePageLoadMs: elapsedTimeMs
         });
         this.#never = false;
@@ -214,7 +214,7 @@ Promise.all([
         const elapsedTimeMs = Date.now() - this.#lostTime;
         const lostEventName = 'lost-' + this.#eventName;
         console.log(lostEventName + " for " + elapsedTimeMs + "ms");
-        gtag(lostEventName, {
+        gtag('event', lostEventName, {
           lossTime: elapsedTimeMs
         });
         this.#lostTime = undefined;
