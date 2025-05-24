@@ -11,7 +11,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Blueturn</title>
-  <link rel="stylesheet" href="./bt_o/style.css">
+  <link rel="stylesheet" href="./bt/style.css">
 
   <!-- Global site tag (gtag.js) - Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=UA-142372523-1"></script>
@@ -45,12 +45,18 @@
   <div id="current-time-text"></div>
   <div id="loading-text"></div>
   <a href="https://blueturn.earth" target="_blank">
-    <img src="./bt_o/images/logos/LogoBTV1024BT.png" id="btLogo" alt="Blueturn Logo" />
+    <img src="./bt/images/logos/LogoBTV1024BT.png" id="btLogo" alt="Blueturn Logo" />
   </a>
   <script type="module">
     import * as glMatrix from "https://esm.sh/gl-matrix";
     window.glMatrix = glMatrix;
   </script>
-  <script type="module" src="./bt.js"></script>
+  <script type="module" src="./bt/controlparams.js"></script>
+  <script type="module" src="./bt/utils.js"></script>
+  <script type="module" src="./bt/texture_loader.js"></script>
+  <script type="module" src="./bt/epic.js"></script>
+  <script type="module" src="./bt/app.js"></script>
+  <script type="module" src="./bt/gl.js"></script>
+  <script type="module" src="./bt/screen.js"></script>
 </body>
 </html>

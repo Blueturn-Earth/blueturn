@@ -1,0 +1,34 @@
+name: Obfuscate and Commit
+
+on:
+  push:
+    branches:
+      - main  # or your default branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'  # or any version you use
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run build script
+        run: node build.js
+
+      - name: Commit and push bt.js
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bt.js
+          git commit -m "Auto-build: obfuscated bt.js" || echo "No changes to commit"
+          git push
+
