@@ -153,11 +153,9 @@ gScreen.addEventListener("drag", (e) => {
     const deltaEpicTime = (e.deltaPos.x) / canvas.width * 3600 * 24;
     if (epicPressTime)
     {
-        const prevEpicTimeSec = gEpicTimeSec;
-
         gSetEpicTimeSec(gEpicTimeSec + deltaEpicTime, e.startPos);
 
-        currentTimeSpeed = (gEpicTimeSec - prevEpicTimeSec) / e.deltaTime;
+        currentTimeSpeed = deltaEpicTime / e.deltaTime;
         //console.log("gEpicTimeSec: " + gEpicTimeSec + ", deltaEpicTime: " + deltaEpicTime + ", currentTimeSpeed: " + currentTimeSpeed);
     }
 });
@@ -294,7 +292,7 @@ export function gUpdateEpicTime(time)
         if (lastUpdateTime)
         {
             const deltaTime = (time - lastUpdateTime) / 1000.0;
-            currentTimeSpeed = lerp(currentTimeSpeed, targetSpeed, 0.1);
+            currentTimeSpeed = lerp(currentTimeSpeed, targetSpeed, 0.05);
             gSetEpicTimeSec(gEpicTimeSec + deltaTime * currentTimeSpeed);
             //console.log("gEpicTimeSec: " + gEpicTimeSec + ", deltaTime: " + deltaTime + ", currentTimeSpeed: " + currentTimeSpeed);
         }
