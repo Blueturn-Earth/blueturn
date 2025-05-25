@@ -2,11 +2,11 @@
 // Licensed under CC BY-NC-SA 4.0.
 // See https://creativecommons.org/licenses/by-nc-sa/4.0/
 
-const { vec3, mat3 } = window.glMatrix;
+const { mat3 } = window.glMatrix;
 import { gControlState } from './controlparams.js';
 
 import { gEpicStartTimeSec, gEpicEndTimeSec} from './epic.js';
-import { gEpicImageLoader} from './epic_image_loader.js';
+import gEpicImageLoader from './epic_image_loader.js';
 import { gScreen} from './screen.js';
 import { gCalcLatLonNorthRotationMatrix, gCalcNormalFromScreenCoord, gCalcLatLonFromScreenCoord} from './utils.js';
 
