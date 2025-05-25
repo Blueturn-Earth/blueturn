@@ -21,29 +21,39 @@ class EpicImageLoader
             this._completeEpicMetadata(epicImageData);
         }
 
-        if (!epicImageData.texture && 
-            (!epicImageData.imageURL ||
-             !this.#textureLoader.isPending(epicImageData.imageURL)))
-        {
+        return new Promise((resolve, reject) => {
             const url = gNasaEpicAPI.getEpicImageURL(epicImageData.date, epicImageData.image);
-            //console.log("Loading image URL: " + url);
-            epicImageData.imageURL = url;
-            this.#textureLoader.loadTexture(url, {
-                forceReload: false,
-                onSuccess: (url, tex) => {
-                    epicImageData.texture = tex;
-                    console.log("Loaded image: " + epicImageData.image + ", for date " + epicImageData.date);
-                    onLoaded?.();
-                },
-                onError: (url, err) => {console.error('Error loading texture for image ' + imageName + ', ' + err);},
-                onAbort: (url, err) => {console.warn('Aborted loading texture for image ' + imageName + ', ' + err);},
-                onEvict: (url, tex) => {
-                    epicImageData.texture = null;
-                    console.warn("Evicted image: " + epicImageData.image + ", for date " + epicImageData.date);
-                    onEvict?.();
-                }
-            });
-        }
+            if (!epicImageData.texture && !this.#textureLoader.isPending(url))
+            {
+                //console.log("Loading image URL: " + url);
+                epicImageData.imageURL = url;
+                this.#textureLoader.loadTexture(url, {
+                    forceReload: false,
+                    onSuccess: (url, tex) => {
+                        epicImageData.texture = tex;
+                        console.log("Loaded image: " + epicImageData.image + ", for date " + epicImageData.date);
+                        onLoaded?.();
+                        resolve(tex);
+                    },
+                    onError: (url, err) => {console.error('Error loading texture for image ' + imageName + ', ' + err); reject(err);},
+                    onAbort: (url, err) => {console.warn('Aborted loading texture for image ' + imageName + ', ' + err); reject(err);;},
+                    onEvict: (url, tex) => {
+                        epicImageData.texture = null;
+                        console.warn("Evicted image: " + epicImageData.image + ", for date " + epicImageData.date);
+                        onEvict?.();
+                    }
+                });
+            }
+            else if (epicImageData.texture)
+            {
+                //console.log("Using cached image URL: " + url);
+                resolve(epicImageData.texture);
+            }
+            else
+            {
+                console.warn("Epic image already currently loading: " + url);
+            }
+        });
     }
 
     markUsed(epicImageData) {

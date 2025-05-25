@@ -3,7 +3,6 @@
 // See https://creativecommons.org/licenses/by-nc-sa/4.0/
 
 import { 
-  gEpicTimeSec, 
   gUpdateEpicTime, 
   gEpicImageData, 
   gEpicImageData0, 

@@ -113,6 +113,10 @@ export class TextureLoader {
     }
   }
 
+  isPending(url) {
+    return url && this.pendingLoads.has(url);
+  }
+
   markUsed(url) {
     const entry = this.textureCache.get(url);
     if (entry) entry.lastUsed = performance.now();
