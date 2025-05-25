@@ -39,14 +39,23 @@ gScreen.addEventListener("down", (e) => {
     }
 });
 
-gScreen.addEventListener("up", (e) => {
+function unhold(pos)
+{
     if (longPressing)
     {
-        setZoom(false, e.upPos);
+        setZoom(false, pos);
         epicPressTime = undefined;
         longPressing = false;
     }
     holding = false;
+}
+
+gScreen.addEventListener("up", (e) => {
+    unhold(e.upPos);
+});
+
+gScreen.addEventListener("out", (e) => {
+    unhold(e.lastPos);
 });
 
 function getPivotNormal(pivotCoord, pivotEpicImageData, currentEpicImageData)
