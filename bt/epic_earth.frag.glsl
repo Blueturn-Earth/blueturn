@@ -70,6 +70,10 @@ vec3 RenderEpicImage(vec3 GroundNormal, EPICImageInfo epicImage)
     return texture(epicImage.texture, epic_uv0).rgb;
 }
 
+float signedSqrt(float x) {
+    return sign(x) * sqrt(abs(x));
+}
+
 vec3 Render(in vec2 fragCoord)
 {
     vec2 uv = fragCoordToUV(fragCoord);
@@ -81,10 +85,10 @@ vec3 Render(in vec2 fragCoord)
     float pivot_circle_radius = 200.0;
     float pivot_circle_descent = 200.0;
 
-    vec2 nozoom_uv = uv;
-
     if (epicZoomEnabled)
     {
+        vec2 nozoom_uv = uv;
+
         vec2 press_fragCoord = vec2(pivotScreenCoord.x, iResolution.y - pivotScreenCoord.y);
         vec2 press_uv = fragCoordToUV(press_fragCoord);
 
@@ -123,7 +127,7 @@ vec3 Render(in vec2 fragCoord)
     // Normal from UV:
     float earth_radius = curr_epicImage.earth_radius;
     vec2 pixel_uv = uv / earth_radius;
-    vec3 Normal     = vec3(pixel_uv, sqrt(1.0 - dot(pixel_uv, pixel_uv)));
+    vec3 Normal = vec3(pixel_uv, signedSqrt(1.0 - dot(pixel_uv, pixel_uv)));
 
     vec3 GroundNormal = Normal * GroundMatrix;
 
