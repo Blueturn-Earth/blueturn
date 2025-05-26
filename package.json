@@ -103,5 +103,11 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "chokidar-cli": "^3.0.0"
+  },
+  "scripts": {
+    "watch": "chokidar 'bt/**/*.js' -c 'node build.js'"
+  }
 }
