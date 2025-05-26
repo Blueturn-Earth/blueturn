@@ -1,11 +1,6 @@
+import gNasaEpicAPI from './epic_api.js';
 import { TextureLoader} from './texture_loader.js';
 import { gCalcLatLonNorthRotationMatrix} from './utils.js';
-
-const NASA_API_KEY="mkFSJvkb5TdUAEUtdWpAwPDEJxicFOCmuKuht0q4";
-//const NASA_API_KEY="DEMO_KEY";
-const EPIC_IMAGE_URL="https://api.nasa.gov/EPIC/archive/natural/";
-const IMAGE_FORMAT='jpg';
-const NO_CACHE=false;
 
 const canvas = document.getElementById('glcanvas');
 const gl = canvas.getContext('webgl2');
@@ -26,46 +21,43 @@ class EpicImageLoader
             this._completeEpicMetadata(epicImageData);
         }
 
-        if (!epicImageData.texture && 
-            (!epicImageData.imageURL ||
-             !this.#textureLoader.isPending(epicImageData.imageURL)))
-        {
-            const dateStr = epicImageData.date.replaceAll("-", "/").split(" ")[0];
-            const imageName = epicImageData.image;
-            const url = EPIC_IMAGE_URL + dateStr + "/" + IMAGE_FORMAT + "/" + imageName + "." + IMAGE_FORMAT + 
-                "?" + this._getAPIKeyQueryParamString() + "&" + this._getNoiseQueryParamString();
-            //console.log("Loading image URL: " + url);
-            epicImageData.imageURL = url;
-            this.#textureLoader.loadTexture(url, {
-                forceReload: false,
-                onSuccess: (url, tex) => {
-                    epicImageData.texture = tex;
-                    console.log("Loaded image: " + epicImageData.image + ", for date " + epicImageData.date);
-                    onLoaded?.();
-                },
-                onError: (url, err) => {console.error('Error loading texture for image ' + imageName + ', ' + err);},
-                onAbort: (url, err) => {console.warn('Aborted loading texture for image ' + imageName + ', ' + err);},
-                onEvict: (url, tex) => {
-                    epicImageData.texture = null;
-                    console.warn("Evicted image: " + epicImageData.image + ", for date " + epicImageData.date);
-                    onEvict?.();
-                }
-            });
-        }
+        return new Promise((resolve, reject) => {
+            const url = gNasaEpicAPI.getEpicImageURL(epicImageData.date, epicImageData.image);
+            if (!epicImageData.texture && !this.#textureLoader.isPending(url))
+            {
+                //console.log("Loading image URL: " + url);
+                epicImageData.imageURL = url;
+                this.#textureLoader.loadTexture(url, {
+                    forceReload: false,
+                    onSuccess: (url, tex) => {
+                        epicImageData.texture = tex;
+                        console.log("Loaded image: " + epicImageData.image + ", for date " + epicImageData.date);
+                        onLoaded?.();
+                        resolve(tex);
+                    },
+                    onError: (url, err) => {console.error('Error loading texture for image ' + imageName + ', ' + err); reject(err);},
+                    onAbort: (url, err) => {console.warn('Aborted loading texture for image ' + imageName + ', ' + err); reject(err);;},
+                    onEvict: (url, tex) => {
+                        epicImageData.texture = null;
+                        console.warn("Evicted image: " + epicImageData.image + ", for date " + epicImageData.date);
+                        onEvict?.();
+                    }
+                });
+            }
+            else if (epicImageData.texture)
+            {
+                //console.log("Using cached image URL: " + url);
+                resolve(epicImageData.texture);
+            }
+            else
+            {
+                console.warn("Epic image already currently loading: " + url);
+            }
+        });
     }
 
     markUsed(epicImageData) {
         this.#textureLoader.markUsed(epicImageData.imageURL);
-    }
-
-    _getAPIKeyQueryParamString()
-    {
-        return NASA_API_KEY != "" ? "api_key=" + NASA_API_KEY : "";
-    }
-
-    _getNoiseQueryParamString()
-    {
-        return NO_CACHE ? "noise=" + Math.floor(Date.now() / 1000) : "";
     }
 
     _calcEarthRadiusFromDistance(distance)
@@ -88,4 +80,5 @@ class EpicImageLoader
 
 }
 
-export const gEpicImageLoader = new EpicImageLoader();
+const gEpicImageLoader = new EpicImageLoader();
+export default gEpicImageLoader;

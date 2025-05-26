@@ -3,7 +3,6 @@
 // See https://creativecommons.org/licenses/by-nc-sa/4.0/
 
 import { 
-  gEpicTimeSec, 
   gUpdateEpicTime, 
   gEpicImageData, 
   gEpicImageData0, 
@@ -14,7 +13,7 @@ import {
 from './app.js';
 import { gControlState } from './controlparams.js';
 import { gEpicEndTimeSec, gEpicStartTimeSec } from './epic.js';
-import { gEpicImageLoader } from './epic_image_loader.js';
+import gEpicImageLoader from './epic_image_loader.js';
 
 const canvas = document.getElementById('glcanvas');
 const gl = canvas.getContext('webgl2');

@@ -2,7 +2,7 @@
 // Licensed under CC BY-NC-SA 4.0.
 // See https://creativecommons.org/licenses/by-nc-sa/4.0/
 
-import {gLoadEpicImagesForDate} from './epic.js';
+import {gLoadEpicImagesForDay} from './epic.js';
 
 export let gControlState = {
     timeSpeed: 3600,
@@ -16,7 +16,7 @@ export let gControlState = {
 let controlMap = new Map();
 controlMap.set('timespeed', (v) => {gControlState.timeSpeed = parseInt(v);});
 controlMap.set('play', (v) => {gControlState.playing = parseInt(v);});
-controlMap.set('date', (v) => {gControlState.date = v; gLoadEpicImagesForDate(gControlState.date)});
+controlMap.set('date', (v) => {gControlState.date = v; gLoadEpicImagesForDay(gControlState.date)});
 controlMap.set('showText', (v) => {gControlState.showText = parseInt(v);});
 controlMap.set('zoomEnabled', (v) => {gControlState.zoomEnabled = parseInt(v);});
 controlMap.set('showZoomCircle', (v) => {gControlState.showZoomCircle = parseInt(v);});

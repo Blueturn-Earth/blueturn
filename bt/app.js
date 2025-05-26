@@ -2,11 +2,11 @@
 // Licensed under CC BY-NC-SA 4.0.
 // See https://creativecommons.org/licenses/by-nc-sa/4.0/
 
-const { vec3, mat3 } = window.glMatrix;
+const { mat3 } = window.glMatrix;
 import { gControlState } from './controlparams.js';
 
 import { gEpicStartTimeSec, gEpicEndTimeSec} from './epic.js';
-import { gEpicImageLoader} from './epic_image_loader.js';
+import gEpicImageLoader from './epic_image_loader.js';
 import { gScreen} from './screen.js';
 import { gCalcLatLonNorthRotationMatrix, gCalcNormalFromScreenCoord, gCalcLatLonFromScreenCoord} from './utils.js';
 
@@ -39,14 +39,23 @@ gScreen.addEventListener("down", (e) => {
     }
 });
 
-gScreen.addEventListener("up", (e) => {
+function unhold(pos)
+{
     if (longPressing)
     {
-        setZoom(false, e.upPos);
+        setZoom(false, pos);
         epicPressTime = undefined;
         longPressing = false;
     }
     holding = false;
+}
+
+gScreen.addEventListener("up", (e) => {
+    unhold(e.upPos);
+});
+
+gScreen.addEventListener("out", (e) => {
+    unhold(e.lastPos);
 });
 
 function getPivotNormal(pivotCoord, pivotEpicImageData, currentEpicImageData)
@@ -144,11 +153,9 @@ gScreen.addEventListener("drag", (e) => {
     const deltaEpicTime = (e.deltaPos.x) / canvas.width * 3600 * 24;
     if (epicPressTime)
     {
-        const prevEpicTimeSec = gEpicTimeSec;
-
         gSetEpicTimeSec(gEpicTimeSec + deltaEpicTime, e.startPos);
 
-        currentTimeSpeed = (gEpicTimeSec - prevEpicTimeSec) / e.deltaTime;
+        currentTimeSpeed = deltaEpicTime / e.deltaTime;
         //console.log("gEpicTimeSec: " + gEpicTimeSec + ", deltaEpicTime: " + deltaEpicTime + ", currentTimeSpeed: " + currentTimeSpeed);
     }
 });
@@ -285,7 +292,7 @@ export function gUpdateEpicTime(time)
         if (lastUpdateTime)
         {
             const deltaTime = (time - lastUpdateTime) / 1000.0;
-            currentTimeSpeed = lerp(currentTimeSpeed, targetSpeed, 0.1);
+            currentTimeSpeed = lerp(currentTimeSpeed, targetSpeed, 0.05);
             gSetEpicTimeSec(gEpicTimeSec + deltaTime * currentTimeSpeed);
             //console.log("gEpicTimeSec: " + gEpicTimeSec + ", deltaTime: " + deltaTime + ", currentTimeSpeed: " + currentTimeSpeed);
         }

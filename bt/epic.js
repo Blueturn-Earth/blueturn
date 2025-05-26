@@ -2,63 +2,13 @@
 // Licensed under CC BY-NC-SA 4.0.
 // See https://creativecommons.org/licenses/by-nc-sa/4.0/
 
-import { gCalcLatLonNorthRotationMatrix} from './utils.js';
 import { gControlState } from './controlparams.js';
 import { gEpicTimeSec, gSetEpicTimeSec } from './app.js';
-import { gEpicImageLoader} from './epic_image_loader.js';
+import gEpicDataLoader from './epic_data_loader.js';
+import gEpicImageLoader from './epic_image_loader.js';
 
 export let gEpicStartTimeSec = undefined;
 export let gEpicEndTimeSec = undefined;
-
-const NASA_API_KEY="mkFSJvkb5TdUAEUtdWpAwPDEJxicFOCmuKuht0q4";
-//const NASA_API_KEY="DEMO_KEY";
-const CACHE_DATE="";
-const EPIC_JSON_URL="https://api.nasa.gov/EPIC/api/natural/";
-const EPIC_IMAGE_URL="https://api.nasa.gov/EPIC/archive/natural/";
-const today = new Date().toISOString().slice(0, 10); // e.g., "2025-04-13"
-const NO_CACHE=false;
-
-function GetAPIKey()
-{
-    return NASA_API_KEY != "" ? "?api_key=" + NASA_API_KEY : "";
-}
-
-function GetNoiseKey()
-{
-    return NO_CACHE ? "&noise=" + Math.floor(Date.now() / 1000) : "";
-}
-
-async function nasa_api_json(call) 
-{
-    console.log("Loading JSON: \'" + call + "\'");
-
-    if (!NO_CACHE) {
-        const cacheDate = localStorage.getItem(CACHE_DATE);
-        const cachedData = localStorage.getItem(call);
-        if (cacheDate === today && cachedData) {
-            try {
-                return JSON.parse(cachedData);
-            } catch (e) {
-                console.error('Invalid JSON in cache: ', e);
-            }
-        }
-    }
-
-    try {
-        const url = EPIC_JSON_URL + call + GetAPIKey();
-        //console.log("Loading image URL: " + url);
-        const response = await fetch(url);
-        const text = await response.text();
-
-        localStorage.setItem(CACHE_DATE, today);
-        localStorage.setItem(call, text);
-
-        return JSON.parse(text);
-    } catch (error) {
-        console.error('Error loading JSON:', error);
-        return null;
-    }
-}
 
 function updateLoadingText(loadingText)
 {
@@ -73,16 +23,15 @@ let all_days;
 let epicImageDataArray;
 const latestDayIndex = 0;
 
-nasa_api_json("all")
+gEpicDataLoader.loadEpicAvailableDays()
 .then((all_days1) => {
     all_days = all_days1;
-    return gLoadEpicImagesForDate(gControlState.date ? gControlState.date : all_days[latestDayIndex].date);
+    console.log("Last available day from EPIC: " + all_days[latestDayIndex].date);
+    return gLoadEpicImagesForDay(
+        gControlState.date ? gControlState.date : all_days[latestDayIndex].date,
+        gControlState.date ? false : true // don't use cache for latest date, as it may update
+    );
 });
-
-export async function gLoadEpicImagesForDate(date)
-{
-    return nasa_load_epic_day(date);
-}
 
 function getEndOfDayMidnight(date = new Date()) {
   const nextDay = new Date(date);
@@ -107,11 +56,12 @@ function getCurrentTimeAtDay(date = new Date()) {
     return date;
 }
 
-function nasa_load_epic_day(date)
+export async function gLoadEpicImagesForDay(date, nocache = false)
 {
     updateLoadingText("Loading data from " + date);
-    nasa_api_json('date/' + date)
+    gEpicDataLoader.loadEpicDay(date, nocache) 
     .then((dayEpicImageDataArray1) => {
+        //console.log("Loaded data for day: " + date);
         epicImageDataArray = dayEpicImageDataArray1;
         // load the previous day string after date string
         // Find the previous date string from the current date string
@@ -121,7 +71,7 @@ function nasa_load_epic_day(date)
             : null;
         if (prevDate) {
             updateLoadingText("Loading data from " + prevDate);
-            return nasa_api_json('date/' + prevDate);
+            return gEpicDataLoader.loadEpicDay(prevDate);
         }
         else {
             console.log("No previous date found.");
@@ -129,9 +79,12 @@ function nasa_load_epic_day(date)
         }
     })
     .then((prevDayEpicImageDataArray) => {
-        epicImageDataArray = prevDayEpicImageDataArray ?
-            prevDayEpicImageDataArray.concat(epicImageDataArray) :
-            epicImageDataArray
+        if (prevDayEpicImageDataArray)
+        {
+            //console.log("Loaded data for day before: " + date);
+            epicImageDataArray = prevDayEpicImageDataArray.concat(epicImageDataArray);
+        }
+
         // load the next day string after date string
         // Find the next date string from the current date string
         const dateIndex = all_days.findIndex(day => day.date === date);
@@ -140,7 +93,7 @@ function nasa_load_epic_day(date)
             : null;
         if (nextDate) {
             updateLoadingText("Loading data from " + nextDate);
-            return nasa_api_json('date/' + nextDate);
+            return gEpicDataLoader.loadEpicDay(nextDate);
         }
         else {
             console.log("No next date found.");
@@ -148,9 +101,11 @@ function nasa_load_epic_day(date)
         }
     })
     .then((nextDayEpicImageDataArray) => {
-        epicImageDataArray = nextDayEpicImageDataArray ?
-            epicImageDataArray.concat(nextDayEpicImageDataArray) :
-            epicImageDataArray
+        if (nextDayEpicImageDataArray)
+        {
+            console.log("Loaded data for day after: " + date);
+            epicImageDataArray = epicImageDataArray.concat(nextDayEpicImageDataArray);
+        }
 
         let curr_date = new Date(date);
         const end_date = getEndOfDayMidnight(curr_date);
@@ -232,5 +187,9 @@ function nasa_load_epic_day(date)
                 }
             });
         }
+    })
+    .catch((error) => {
+        console.error("Error loading EPIC images for day:", error);
+        updateLoadingText("Error loading data: " + error.message);
     });
 }
