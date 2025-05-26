@@ -32,7 +32,7 @@ class NasaEpicAPI
     getEpicCallURL(call, nocache = false)
     {
         const noiseQueryStr = (!nocache && !this._NO_CACHE) ? this._getNoiseQueryString() : "";
-        return this._EPIC_JSON_URL + call + this._getAPIKeyQueryString() + noiseQueryStr;
+        return this._EPIC_JSON_URL + call + "?" + this._getAPIKeyQueryString() + noiseQueryStr;
     }
 
     getEpicAvailableDaysCall()
