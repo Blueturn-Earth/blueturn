@@ -1,5 +1,13 @@
 {
   "name": "blueturn",
   "image": "node:20",  // or whatever image you're using
-  "postCreateCommand": "npm install && npm run watch"
+  "postCreateCommand": "npm install && npm run watch &",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "edonet.vscode-command-runner",
+        "mhutchie.git-graph"
+      ]
+    }
+  }
 }
