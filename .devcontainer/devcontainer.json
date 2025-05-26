@@ -1,6 +1,6 @@
 {
   "name": "blueturn",
-  "image": "node:20",  // or whatever image you're using
+  "image": "node:20",
   "postCreateCommand": "npm install && npm run watch &",
   "customizations": {
     "vscode": {
