@@ -10,7 +10,7 @@ export let gControlState = {
     date: undefined,
     showText: true,
     zoomEnabled: true,
-    showZoomCircle: false
+    showZoomCircle: true
 };
 
 let controlMap = new Map();
