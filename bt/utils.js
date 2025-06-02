@@ -4,6 +4,13 @@
 
 const { vec3, mat3 } = window.glMatrix;
 
+
+export function gCalcEarthRadiusFromDistance(distance)
+{
+    // Magic from SM
+    return ((1024-158) / 1024) * (1386540) / distance;
+}
+
 export function gCalcLatLonNorthRotationMatrix(latitudeDeg, longitudeDeg) {
     const lat = latitudeDeg * Math.PI / 180.0;
     const lon = longitudeDeg * Math.PI / 180.0;
@@ -87,5 +94,42 @@ export function gCalcLatLonFromScreenCoord(screenCoord, centroidMatrix, earthRad
     lat: lat,
     lon: lon
   };
+}
+
+export function gArrayBoundIndices(array, key, strict) 
+{
+  let lo = 0, hi = array.length - 1;
+  let lower = -1;
+  let upper = array.length;
+
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const midKey = array[mid];
+
+    if (midKey < key) {
+      lower = mid;
+      lo = mid + 1;
+    } 
+    else if (midKey > key) {
+      hi = mid - 1;
+      upper = mid;
+    }
+    else {
+      if (strict){
+        lower = mid - 1;
+        upper = mid + 1;
+      }
+      else {
+        lower = upper = mid;
+      }
+      break;
+    }
+  }
+
+  // At this point:
+  // lower = greatest index where key < input
+  // upper = smallest index where key > input (because we skipped equal keys)
+
+  return [lower, upper];
 }
 

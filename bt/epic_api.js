@@ -29,10 +29,15 @@ class NasaEpicAPI
         return this._todayDatesStr;
     }
 
-    getEpicCallURL(call, nocache = false)
+    getEpicCallURL(call)
+    {
+        return this._EPIC_JSON_URL + call;
+    }
+
+    getEpicCallURLSecretQuery(nocache = false)
     {
         const noiseQueryStr = (!nocache && !this._NO_CACHE) ? this._getNoiseQueryString() : "";
-        return this._EPIC_JSON_URL + call + "?" + this._getAPIKeyQueryString() + noiseQueryStr;
+        return this._getAPIKeyQueryString() + noiseQueryStr;
     }
 
     getEpicAvailableDaysCall()
@@ -63,9 +68,11 @@ class NasaEpicAPI
 
     getEpicImageURL(date, imageName)
     {
+        if (!date || !imageName) {
+            throw new Error("Invalid date or image name");
+        }
         const dateStr = date.replaceAll("-", "/").split(" ")[0];
-        return this._EPIC_IMAGE_URL + dateStr + "/" + this._IMAGE_FORMAT + "/" + imageName + "." + this._IMAGE_FORMAT +
-            "?" + this._getAPIKeyQueryString();
+        return this._EPIC_IMAGE_URL + dateStr + "/" + this._IMAGE_FORMAT + "/" + imageName + "." + this._IMAGE_FORMAT;
     }
 }
 
