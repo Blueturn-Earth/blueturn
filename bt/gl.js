@@ -14,7 +14,6 @@ import {
 } 
 from './app.js';
 import { gControlState } from './controlparams.js';
-import gEpicImageLoader from './epic_image_loader.js';
 
 const canvas = document.getElementById('glcanvas');
 const gl = canvas.getContext('webgl2');
@@ -108,7 +107,7 @@ function glUseEpicTexture(program, epicImageData, epicStructUniformName)
   }
   setActiveTexture(program, epicTextureUniformName, epicImageData.texture, epicTexUnit.get(epicTextureUniformName));
   gl.uniform1i(gl.getUniformLocation(program, epicHasTextureUniformName), 1);
-  gEpicImageLoader.markUsed(epicImageData);
+  gEpicDB.markUsedEpicImage(epicImageData);
 
   return true;
 }

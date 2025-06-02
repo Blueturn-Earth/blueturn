@@ -1,10 +1,15 @@
 import gEpicAPI from './epic_api.js';
 import {gGetTodayDateStr} from './utils.js';
 
-class EpicDataLoader
+export default class EpicDataLoader
 {
     #CACHE_DATE = "";
     _pendingLoads = new Map();
+
+    async init()
+    {
+        return this.loadEpicAvailableDays();
+    }
 
     async _loadJsonCallURL(call, nocache = false)
     {
@@ -98,6 +103,3 @@ class EpicDataLoader
         }
     }
 };
-
-const gEpicDataLoader = new EpicDataLoader();
-export default gEpicDataLoader;

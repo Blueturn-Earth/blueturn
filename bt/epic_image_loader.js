@@ -4,13 +4,27 @@ import { TextureLoader} from './texture_loader.js';
 const canvas = document.getElementById('glcanvas');
 const gl = canvas.getContext('webgl2');
 
-class EpicImageLoader
+export default class EpicImageLoader
 {
     #MAX_IMAGES=100;
     #textureLoader = new TextureLoader(gl, {
             maxGPUMemoryBytes: this.#MAX_IMAGES * 2048 * 2048 * 4 // 1.6GB
         });
     epicImageDataMap = new Map(); 
+
+    async init() {
+        return new Promise((resolve, reject) => {
+            this.#textureLoader.init()
+            .then(() => {
+                console.log("EpicImageLoader initialized");
+                resolve();
+            })
+            .catch((err) => {
+                console.error("EpicImageLoader initialization failed: " + err);
+                reject(err);
+            });
+        });
+    }
 
     async loadImage(epicImageData) {
         if (!epicImageData)
@@ -95,6 +109,3 @@ class EpicImageLoader
     }
 
 }
-
-const gEpicImageLoader = new EpicImageLoader();
-export default gEpicImageLoader;

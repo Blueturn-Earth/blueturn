@@ -1,7 +1,6 @@
 import SortedMap from "./sorted_map.js";
-import gEpicAPI from "./epic_api.js"
-import gEpicDataLoader from "./epic_data_loader.js";
-import gEpicImageLoader from "./epic_image_loader.js";
+import EpicDataLoader from "./epic_data_loader.js";
+import EpicImageLoader from "./epic_image_loader.js";
 import { 
     gCalcEarthRadiusFromDistance, 
     gCalcLatLonNorthRotationMatrix, 
@@ -17,15 +16,19 @@ export default class EpicDB {
     _epicOldestTimeSec = undefined;
     _epicLatestTimeSec = undefined;
     _ready = false;
-
+    #epicDataLoader = new EpicDataLoader();
+    #epicImageLoader = new EpicImageLoader();
     async init() 
     {
         return new Promise((resolve, reject) => {
-            gEpicDataLoader.loadEpicAvailableDays()
+            this.#epicImageLoader.init()
+            .then(() => {
+                return this.#epicDataLoader.loadEpicAvailableDays()
+            })
             .then((all_days1) => {
                 if (!all_days1 || all_days1.length === 0) {
                     // Something is corrupted - better to clear the cache and reject
-                    gEpicDataLoader.clearCache();
+                    this.#epicDataLoader.clearCache();
                     reject("No available days found in EPIC DB");
                     return;
                 }
@@ -195,11 +198,11 @@ export default class EpicDB {
 
             console.log("Loading EPIC data for day " + dayStr);
             this._epicDays.set(dayStr, { loading: true }); // Mark as loading
-            gEpicDataLoader.loadEpicDay(dayStr)
+            this.#epicDataLoader.loadEpicDay(dayStr)
             .then((epicDayData) => {
                 if (!epicDayData || epicDayData.length === 0) {
                     // Something is corrupted - better to clear the cache and reject
-                    gEpicDataLoader.clearCache();
+                    this.#epicDataLoader.clearCache();
                     reject("Epic day data not found for: " + dayStr);
                     return;
                 }
@@ -221,14 +224,27 @@ export default class EpicDB {
         });
     }
 
+    _completeEpicMetadata(epicImageData)
+    {
+        epicImageData.timeSec = EpicDB.getTimeSecFromDateTimeString(epicImageData.date);
+        const dx = epicImageData.dscovr_j2000_position.x;
+        const dy = epicImageData.dscovr_j2000_position.y;
+        const dz = epicImageData.dscovr_j2000_position.z;
+        const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        epicImageData.earthRadius = gCalcEarthRadiusFromDistance(distance);
+        epicImageData.centroid_matrix = gCalcLatLonNorthRotationMatrix(
+            epicImageData.centroid_coordinates.lat, 
+            epicImageData.centroid_coordinates.lon);
+    }
+
     _abortLoadingDaysExcept(days, reason) {
         // Abort loading of days that are not in the given list
-        gEpicDataLoader.abortEpicDayLoadsExcept(days, reason);
+        this.#epicDataLoader.abortEpicDayLoadsExcept(days, reason);
     }
     
     _abortLoadingImagesExcept(epicImageDataArray, reason) {
         // Abort loading of images that are not in the given list
-        gEpicImageLoader.abortEpicImageLoadsExcept(epicImageDataArray, reason);
+        this.#epicImageLoader.abortEpicImageLoadsExcept(epicImageDataArray, reason);
     }
 
     _loadImage(epicImageData, callback) {
@@ -249,7 +265,7 @@ export default class EpicDB {
 
         // Load the image for the given epicImageData
         epicImageData.textureLoading = true;
-        gEpicImageLoader.loadImage(epicImageData)
+        this.#epicImageLoader.loadImage(epicImageData)
         .then(() => {
             callback?.();
             epicImageData.textureLoading = false;
@@ -260,7 +276,7 @@ export default class EpicDB {
         });
     }
 
-    _predictAndLoadFrames(timeSec) {
+    async _predictAndLoadFrames(timeSec) {
         // Predict and load frames based on the given timeSec and timeSpeed
         // This is a heuristic to load frames around the given time
 
@@ -274,31 +290,29 @@ export default class EpicDB {
                     nextTime = this._epicLatestTimeSec - gControlState.loopRangeSec;
                     break;
                 }
-                this.fetchBoundKeyFrames(nextTime)
-                .then(([epicImageData0, epicImageData1]) => {
-                    this._loadImage(epicImageData0);
-                    this._loadImage(epicImageData1);
-                })
-                .catch((error) => {
-                    console.debug("Error preloading epic frames forward: ", error);
-                });
+                const [epicImageData0, epicImageData1] = await this.fetchBoundKeyFrames(nextTime);
+                await this._loadImage(epicImageData0);
+                await this._loadImage(epicImageData1);
             }
         }
 
-        // Preload frames around the given timeSec
-        this.fetchBoundKeyFrames(timeSec)
-        .then(([epicImageData0, epicImageData1]) => {
+        {
+            // Preload frames around the given timeSec
+            let [epicImageData0, epicImageData1] = await this.fetchBoundKeyFrames(timeSec);
             const SCROLL_PREDICT_NUM_FRAMES = 10;
             for (let i = 1; i <= SCROLL_PREDICT_NUM_FRAMES; i++) {
-                epicImageData0 = this._getPrevEpicImage(epicImageData0.timeSec, true);
-                epicImageData1 = this._getNextEpicImage(epicImageData1.timeSec, true);
-                this._loadImage(epicImageData0);
-                this._loadImage(epicImageData1);
+                if (epicImageData0)
+                {
+                    epicImageData0 = this._getPrevEpicImage(epicImageData0.timeSec, true);
+                    await this._loadImage(epicImageData0);
+                }
+                if (epicImageData1)
+                {
+                    epicImageData1 = this._getNextEpicImage(epicImageData1.timeSec, true);
+                    await this._loadImage(epicImageData1);
+                }
             }
-        })
-        .catch((error) => {
-            console.debug("Error preloading epic frames around: ", error);
-        });
+        }
     }
 
     getBoundKeyFrames(timeSec) {
@@ -422,16 +436,10 @@ export default class EpicDB {
         return null;
     }
 
-    _completeEpicMetadata(epicImageData)
-    {
-        epicImageData.timeSec = EpicDB.getTimeSecFromDateTimeString(epicImageData.date);
-        const dx = epicImageData.dscovr_j2000_position.x;
-        const dy = epicImageData.dscovr_j2000_position.y;
-        const dz = epicImageData.dscovr_j2000_position.z;
-        const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
-        epicImageData.earthRadius = gCalcEarthRadiusFromDistance(distance);
-        epicImageData.centroid_matrix = gCalcLatLonNorthRotationMatrix(
-            epicImageData.centroid_coordinates.lat, 
-            epicImageData.centroid_coordinates.lon);
+    markUsedEpicImage(epicImageData) {
+        // Mark the epic image as used, so it won't be removed from the cache
+        if (epicImageData && epicImageData.texture) {
+            this.#epicImageLoader.markUsed(epicImageData);
+        }
     }
 }
