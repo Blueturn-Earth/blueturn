@@ -67,10 +67,15 @@ class EpicDataLoader
     }
 
     abortEpicDayLoadsExcept(days, reason) {
-        days.forEach((date) => {
-            const excludedCall = gEpicAPI.getEpicDayCall(date);
-            if (this._pendingLoads.has(excludedCall)) {
-                // If the call is in pending loads, we will abort it
+        this._pendingLoads.forEach((controller, call) => {
+            let doAbort = true;
+            days.forEach((date) => {
+                const excludedCall = gEpicAPI.getEpicDayCall(date);
+                if (call === excludedCall) {
+                    doAbort = false; // Do not abort the call for the excluded date
+                }
+            });
+            if (doAbort) {
                 console.log("Aborting EPIC API call: " + call + " for reason: " + reason);
                 localStorage.removeItem(call);
                 controller.abort(reason);

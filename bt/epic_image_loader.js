@@ -53,7 +53,8 @@ class EpicImageLoader
             }
             else
             {
-                console.warn("Epic image already currently loading: " + url);
+                // can happen by some race condition
+                //console.warn("Epic image already currently loading: " + url);
             }
         });
     }
