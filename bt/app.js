@@ -196,7 +196,7 @@ export function gSetEpicTimeSec(timeSec)
         // Looping around default loop time range
         prevEpicTimeSec = latestEpicTimeSec;
         timeSec = latestEpicTimeSec - gControlState.loopRangeSec;
-        console.log("Past latest available EPIC image time " + latestEpicTimeSec + ", looping back to loop range: " + timeSec);
+        console.log("Past latest available EPIC image time, jumping back to loop period of " + gControlState.loopRangeSec + "s");
     }
     if (timeSec < oldestEpicTimeSec)
         // Block at oldest time

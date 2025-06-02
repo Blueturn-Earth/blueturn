@@ -262,8 +262,14 @@ export default class EpicDB {
         if (gControlState.play) {
             // Preload frames for the coming 10s
             const TIME_PREDICT_SEC = 10;
+            let nextTime = timeSec
             for (let i = 1; i <= TIME_PREDICT_SEC; i++) {
-                this.fetchBoundKeyFrames(timeSec + i * gControlState.timeSpeed)
+                nextTime += i * gControlState.timeSpeed;
+                if (nextTime > this._epicLatestTimeSec) {
+                    nextTime = this._epicLatestTimeSec - gControlState.loopRangeSec;
+                    break;
+                }
+                this.fetchBoundKeyFrames(nextTime)
                 .then(([epicImageData0, epicImageData1]) => {
                     this._loadImage(epicImageData0);
                     this._loadImage(epicImageData1);
