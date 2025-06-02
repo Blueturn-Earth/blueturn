@@ -1,6 +1,5 @@
 import gNasaEpicAPI from './epic_api.js';
 import { TextureLoader} from './texture_loader.js';
-import { gCalcLatLonNorthRotationMatrix} from './utils.js';
 
 const canvas = document.getElementById('glcanvas');
 const gl = canvas.getContext('webgl2');
@@ -13,12 +12,13 @@ class EpicImageLoader
         });
     epicImageDataMap = new Map(); 
 
-    async loadImage(epicImageData, {onLoaded, onEvict}) {
-        const timeSec = (new Date(epicImageData.date)).getTime() / 1000;
+    async loadImage(epicImageData) {
+        if (!epicImageData)
+            return Promise.reject("epicImageData arg is not set");
+        const timeSec = epicImageData.timeSec;
         const foundEpicImageData = this.epicImageDataMap.get(timeSec);
         if (foundEpicImageData !== epicImageData) {
             this.epicImageDataMap.set(timeSec, epicImageData);
-            this._completeEpicMetadata(epicImageData);
         }
 
         return new Promise((resolve, reject) => {
@@ -32,16 +32,18 @@ class EpicImageLoader
                     onSuccess: (url, tex) => {
                         epicImageData.texture = tex;
                         console.log("Loaded image: " + epicImageData.image + ", for date " + epicImageData.date);
-                        onLoaded?.();
                         resolve(tex);
                     },
-                    onError: (url, err) => {console.error('Error loading texture for image ' + imageName + ', ' + err); reject(err);},
-                    onAbort: (url, err) => {console.warn('Aborted loading texture for image ' + imageName + ', ' + err); reject(err);;},
+                    onError: (url, err) => {
+                        console.error('Error loading texture for image ' + epicImageData.image + ', ' + err); 
+                        reject(err);},
+                    onAbort: (url, err) => {
+                        const error = 'Aborted loading texture for image ' + epicImageData.image + ', ' + err;
+                        console.warn(error); 
+                        reject(error);},
                     onEvict: (url, tex) => {
                         epicImageData.texture = null;
-                        console.warn("Evicted image: " + epicImageData.image + ", for date " + epicImageData.date);
-                        onEvict?.();
-                    }
+                        console.warn("Evicted image: " + epicImageData.image + ", for date " + epicImageData.date);}
                 });
             }
             else if (epicImageData.texture)
@@ -57,25 +59,38 @@ class EpicImageLoader
     }
 
     markUsed(epicImageData) {
+        if (!epicImageData)
+        {
+            return;
+        }
+        if (!epicImageData.imageURL)
+        {
+            console.error("Undefined URL for EPIC image data " + epicImageData.date);
+            return;
+        }
         this.#textureLoader.markUsed(epicImageData.imageURL);
     }
 
-    _calcEarthRadiusFromDistance(distance)
-    {
-        // Magic from SM
-        return ((1024-158) / 1024) * (1386540) / distance;
+    abortLoad(epicImageData, reason) {
+        if (!epicImageData)
+        {
+            return;
+        }
+        if (!epicImageData.imageURL)
+        {
+            console.error("Undefined URL for EPIC image data " + epicImageData.date);
+            return;
+        }
+        this.#textureLoader.abort(epicImageData.imageURL, reason);
     }
 
-    _completeEpicMetadata(epicImageData)
-    {
-        const dx = epicImageData.dscovr_j2000_position.x;
-        const dy = epicImageData.dscovr_j2000_position.y;
-        const dz = epicImageData.dscovr_j2000_position.z;
-        const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
-        epicImageData.earthRadius = this._calcEarthRadiusFromDistance(distance);
-        epicImageData.centroid_matrix = gCalcLatLonNorthRotationMatrix(
-            epicImageData.centroid_coordinates.lat, 
-            epicImageData.centroid_coordinates.lon);
+    abortEpicImageLoadsExcept(epicImageDataArray, reason) {
+        let urls = [];
+        epicImageDataArray.forEach((epicImageData) => {
+            if (epicImageData && epicImageData.imageURL)
+                urls.push(epicImageData.imageURL);
+        });
+        this.#textureLoader.abortUrlsExcept(urls, reason);
     }
 
 }

@@ -1,8 +1,10 @@
 import gNasaEpicAPI from './epic_api.js';
+import {gUpdateLoadingText} from './screen.js';
 
 class EpicDataLoader
 {
     #CACHE_DATE = "";
+    _pendingLoads = new Map();
 
     async _loadJsonCallURL(call, nocache = false)
     {
@@ -26,9 +28,13 @@ class EpicDataLoader
                 }
             }
 
-            const url = gNasaEpicAPI.getEpicCallURL(call, nocache);
-            //console.log("Loading Epic Data URL: " + url);
-            fetch(url)
+            let url = gNasaEpicAPI.getEpicCallURL(call);
+            const controller = new AbortController();
+            const signal = controller.signal;            
+            this._pendingLoads.set(call, controller);
+            console.log("Loading Epic Data URL: " + url);
+            url += "?" + gNasaEpicAPI.getEpicCallURLSecretQuery(nocache)
+            fetch(url, { mode: 'cors', cache: 'force-cache', signal })
             .then(response => {
                 if (!response.ok) {
                     reject (new Error('Network response was not ok: ' + response.statusText));
@@ -40,6 +46,7 @@ class EpicDataLoader
                     localStorage.setItem(this.#CACHE_DATE, gNasaEpicAPI.getTodayDateStr());
                     localStorage.setItem(call, text);
                 }
+                this._pendingLoads.delete(call);
                 resolve(JSON.parse(text));
             })
             .catch(error => {
@@ -59,8 +66,31 @@ class EpicDataLoader
         return this._loadJsonCallURL(gNasaEpicAPI.getEpicDayCall(date), nocache);
     }
 
-    loadEpicDataForTimeSec(timeSec) 
-    {
+    abortEpicDayLoadsExcept(days, reason) {
+        days.forEach((date) => {
+            const excludedCall = gNasaEpicAPI.getEpicDayCall(date);
+            if (this._pendingLoads.has(excludedCall)) {
+                // If the call is in pending loads, we will abort it
+                console.log("Aborting EPIC API call: " + call + " for reason: " + reason);
+                localStorage.removeItem(call);
+                controller.abort(reason);
+                this._pendingLoads.delete(excludedCall);
+            }
+        });
+    }
+
+    clearCache(dayStr) {
+        if (dayStr) {
+            const call = gNasaEpicAPI.getEpicDayCall(dayStr);
+            localStorage.removeItem(call);
+            this._pendingLoads.delete(call);
+            console.log("Cleared cache for EPIC API call: " + call);
+        } else {
+            localStorage.removeItem(this.#CACHE_DATE);
+            localStorage.clear();
+            this._pendingLoads.clear();
+            console.log("Cleared all EPIC API cache.");
+        }
     }
 };
 

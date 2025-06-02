@@ -1,3 +1,5 @@
+import gNasaEpicAPI from './epic_api.js';
+
 export class TextureLoader {
   constructor(gl, { maxGPUMemoryBytes = 64 * 1024 * 1024 } = {}) {
     this.gl = gl;
@@ -19,9 +21,12 @@ export class TextureLoader {
 
     const controller = new AbortController();
     const signal = controller.signal;
-    this.pendingLoads.set(url, { controller });
+    this.pendingLoads.set(url, controller);
     
-    fetch(url, { mode: 'cors', cache: 'force-cache', signal })
+    console.log("Loading Epic Image URL: " + url);
+    const NO_CACHE = true;
+    const fullUrl = url + "?" + gNasaEpicAPI.getEpicCallURLSecretQuery(NO_CACHE)
+    fetch(fullUrl, { mode: 'cors', cache: 'force-cache', signal })
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.blob();
@@ -122,12 +127,27 @@ export class TextureLoader {
     if (entry) entry.lastUsed = performance.now();
   }
 
-  abort(url) {
+  abort(url, reason) {
     const entry = this.pendingLoads.get(url);
     if (entry) {
-      entry.controller.abort();
+      entry.controller.abort(reason);
       this.pendingLoads.delete(url);
     }
+  }
+
+  abortUrlsExcept(urls, reason) {
+    let remainingPendingLoads = new Map();
+    urls.forEach((excludedUrl) => {
+      this._pendingLoads.forEach((controller, url) => {
+        if(url != excludedUrl) {
+          controller.abort(reason);
+        }
+        else {
+          remainingPendingLoads.set(url, controller);
+        }
+      });
+    });
+    this._pendingLoads = remainingPendingLoads;
   }
 
   clearCache() {
