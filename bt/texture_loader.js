@@ -90,14 +90,14 @@ export class TextureLoader {
     });
   }
 
-  _delayRequests(response, url) {
+  _delayRequests(response, url, reason) {
     const retryAfter = response.headers.get("Retry-After");
     const DEFAULT_RETRY_AFTER = 10; // Default retry after time in seconds
     const delaySec = retryAfter ? parseFloat(retryAfter) : DEFAULT_RETRY_AFTER;
-    console.warn(`Too many requests for image: ${url}. Will abort and block requests for ${delaySec} seconds.`);
+    console.warn(reason + ` for image: ${url}. Will abort and block requests for ${delaySec} seconds.`);
     const now = new Date();
     this._nextRequestDate = new Date(now.getTime() + delaySec * 1000);
-    this.abortUrlsExcept([], "Too many requests");
+    this.abortUrlsExcept([], reason);
   }
 
   _handleFetchError(response, url, onError) {
@@ -111,14 +111,10 @@ export class TextureLoader {
       onError?.(url, new Error("Access forbidden"));
       break;
     case 503:
-      console.warn(`Server error, can't fetch image: ${url}`);
-      this._delayRequests(response, url);
-      onError?.(url, new Error("Server error"));
+      this._delayRequests(response, url, "Server Error");
       break;
     case 429:
-      console.warn(`Too many requests: ${url}`);
-      this._delayRequests(response, url);
-      onError?.(url, new Error("Too many requests"));
+      this._delayRequests(response, url, "Too many requests");
       break;
     default:
       console.error(`Failed to fetch image: ${url}, status: ${response.status}`);
