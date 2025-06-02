@@ -1,5 +1,5 @@
-import gNasaEpicAPI from './epic_api.js';
-import {gUpdateLoadingText} from './screen.js';
+import gEpicAPI from './epic_api.js';
+import {gGetTodayDateStr} from './utils.js';
 
 class EpicDataLoader
 {
@@ -9,10 +9,10 @@ class EpicDataLoader
     async _loadJsonCallURL(call, nocache = false)
     {
         return new Promise((resolve, reject) => {
-            if (gNasaEpicAPI.isUsingCache() && !nocache) {
+            if (gEpicAPI.isUsingCache() && !nocache) {
                 const cacheDate = localStorage.getItem(this.#CACHE_DATE);
                 const cachedData = localStorage.getItem(call);
-                if (cacheDate === gNasaEpicAPI.getTodayDateStr() && cachedData) {
+                if (cacheDate === gGetTodayDateStr() && cachedData) {
                     try {
                         //console.log("Using cached data for call \"" + call + "\"");
                         resolve(JSON.parse(cachedData));
@@ -28,12 +28,12 @@ class EpicDataLoader
                 }
             }
 
-            let url = gNasaEpicAPI.getEpicCallURL(call);
+            let url = gEpicAPI.getEpicCallURL(call);
             const controller = new AbortController();
             const signal = controller.signal;            
             this._pendingLoads.set(call, controller);
             console.log("Loading Epic Data URL: " + url);
-            url += "?" + gNasaEpicAPI.getEpicCallURLSecretQuery(nocache)
+            url += "?" + gEpicAPI.getEpicCallURLSecretQuery(nocache)
             fetch(url, { mode: 'cors', cache: 'force-cache', signal })
             .then(response => {
                 if (!response.ok) {
@@ -42,8 +42,8 @@ class EpicDataLoader
                 return response.text();
             })
             .then(text => {
-                if (gNasaEpicAPI.isUsingCache() && !nocache) {
-                    localStorage.setItem(this.#CACHE_DATE, gNasaEpicAPI.getTodayDateStr());
+                if (gEpicAPI.isUsingCache() && !nocache) {
+                    localStorage.setItem(this.#CACHE_DATE, gGetTodayDateStr());
                     localStorage.setItem(call, text);
                 }
                 this._pendingLoads.delete(call);
@@ -58,17 +58,17 @@ class EpicDataLoader
 
     async loadEpicAvailableDays() {
         //console.log("Loading all available days from EPIC API...");
-        return this._loadJsonCallURL(gNasaEpicAPI.getEpicAvailableDaysCall());
+        return this._loadJsonCallURL(gEpicAPI.getEpicAvailableDaysCall());
     }
 
-    async loadEpicDay(date = gNasaEpicAPI.getTodayDateStr(), nocache = false) {
+    async loadEpicDay(date = gGetTodayDateStr(), nocache = false) {
         console.log("Loading data for " + date + " from EPIC API...");
-        return this._loadJsonCallURL(gNasaEpicAPI.getEpicDayCall(date), nocache);
+        return this._loadJsonCallURL(gEpicAPI.getEpicDayCall(date), nocache);
     }
 
     abortEpicDayLoadsExcept(days, reason) {
         days.forEach((date) => {
-            const excludedCall = gNasaEpicAPI.getEpicDayCall(date);
+            const excludedCall = gEpicAPI.getEpicDayCall(date);
             if (this._pendingLoads.has(excludedCall)) {
                 // If the call is in pending loads, we will abort it
                 console.log("Aborting EPIC API call: " + call + " for reason: " + reason);
@@ -81,7 +81,7 @@ class EpicDataLoader
 
     clearCache(dayStr) {
         if (dayStr) {
-            const call = gNasaEpicAPI.getEpicDayCall(dayStr);
+            const call = gEpicAPI.getEpicDayCall(dayStr);
             localStorage.removeItem(call);
             this._pendingLoads.delete(call);
             console.log("Cleared cache for EPIC API call: " + call);

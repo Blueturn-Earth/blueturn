@@ -1,4 +1,4 @@
-import gNasaEpicAPI from './epic_api.js';
+import gEpicAPI from './epic_api.js';
 
 export class TextureLoader {
   constructor(gl, { maxGPUMemoryBytes = 64 * 1024 * 1024 } = {}) {
@@ -25,7 +25,7 @@ export class TextureLoader {
     
     console.log("Loading Epic Image URL: " + url);
     const NO_CACHE = true;
-    const fullUrl = url + "?" + gNasaEpicAPI.getEpicCallURLSecretQuery(NO_CACHE)
+    const fullUrl = url + "?" + gEpicAPI.getEpicCallURLSecretQuery(NO_CACHE)
     fetch(fullUrl, { mode: 'cors', cache: 'force-cache', signal })
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);

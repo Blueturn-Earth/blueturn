@@ -133,3 +133,25 @@ export function gArrayBoundIndices(array, key, strict)
   return [lower, upper];
 }
 
+export function gGetPrevDateStr(date = _todayDatesStr)
+{
+    const prevDate = new Date(date);
+    prevDate.setDate(prevDate.getDate() - 1);
+    return prevDate.toISOString().slice(0, 10);
+}
+
+export function gGetNextDateStr(date)
+{
+    const prevDate = new Date(date);
+    prevDate.setDate(prevDate.getDate() + 1);
+    return prevDate.toISOString().slice(0, 10);
+}
+
+const TodayDatesStr = new Date().toISOString().slice(0, 10);
+
+export function gGetTodayDateStr()
+{
+    return TodayDatesStr;
+}
+
+

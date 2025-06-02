@@ -1,4 +1,4 @@
-import gNasaEpicAPI from './epic_api.js';
+import gEpicAPI from './epic_api.js';
 import { TextureLoader} from './texture_loader.js';
 
 const canvas = document.getElementById('glcanvas');
@@ -22,7 +22,7 @@ class EpicImageLoader
         }
 
         return new Promise((resolve, reject) => {
-            const url = gNasaEpicAPI.getEpicImageURL(epicImageData.date, epicImageData.image);
+            const url = gEpicAPI.getEpicImageURL(epicImageData.date, epicImageData.image);
             if (!epicImageData.texture && !this.#textureLoader.isPending(url))
             {
                 //console.log("Loading image URL: " + url);

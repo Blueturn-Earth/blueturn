@@ -1,8 +1,13 @@
 import SortedMap from "./sorted_map.js";
-import gNasaEpicAPI from "./epic_api.js"
+import gEpicAPI from "./epic_api.js"
 import gEpicDataLoader from "./epic_data_loader.js";
 import gEpicImageLoader from "./epic_image_loader.js";
-import { gCalcEarthRadiusFromDistance, gCalcLatLonNorthRotationMatrix, gArrayBoundIndices} from './utils.js';
+import { 
+    gCalcEarthRadiusFromDistance, 
+    gCalcLatLonNorthRotationMatrix, 
+    gArrayBoundIndices, 
+    gGetPrevDateStr, 
+    gGetNextDateStr} from './utils.js';
 import { gControlState } from "./controlparams.js";
 
 export default class EpicDB { 
@@ -117,7 +122,7 @@ export default class EpicDB {
             return epicDayData[i_prev];
         }
         // If we are here, it means we reached the beginning of the day data, so go for prev day
-        const prevDayStr = gNasaEpicAPI.getPrevDateStr(dayStr);
+        const prevDayStr = gGetPrevDateStr(dayStr);
         if (!this._epicDays.has(prevDayStr)) {
             return null; // No data for the prev day
         }
@@ -150,7 +155,7 @@ export default class EpicDB {
             return epicDayData[i_next];
         }
         // If we are here, it means we reached the end of the day data, so go for next day
-        const nextDayStr = gNasaEpicAPI.getNextDateStr(dayStr);
+        const nextDayStr = gGetNextDateStr(dayStr);
         if (!this._epicDays.has(nextDayStr)) {
             return null; // No data for the next day
         }
@@ -328,8 +333,8 @@ export default class EpicDB {
             // Load metadata from days around the given date
             const date = new Date(timeSec * 1000);
             const dayStr = date.toISOString().slice(0, 10);
-            const prevDayStr = gNasaEpicAPI.getPrevDateStr(dayStr);
-            const nextDayStr = gNasaEpicAPI.getNextDateStr(dayStr);
+            const prevDayStr = gGetPrevDateStr(dayStr);
+            const nextDayStr = gGetNextDateStr(dayStr);
             this._abortLoadingDaysExcept([dayStr, prevDayStr, nextDayStr], 
                 "Aborted loading days except current:" + dayStr + ", previous:" + prevDayStr + ", next:" + nextDayStr);
             
