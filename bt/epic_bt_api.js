@@ -1,8 +1,16 @@
-export class BtS3EpicAPI 
+export default class BtEpicAPI 
 {
-    _EPIC_IMAGES_URL = "https://storage.googleapis.com/content.blueturn.earth/images/";
+    _EPIC_IMAGES_S3_URL = "https://storage.googleapis.com/content.blueturn.earth/images/";
+    _EPIC_IMAGES_CDN_URL = "https://content.blueturn.earth/images/";
+    _EPIC_IMAGES_URL = undefined;
     _IMAGE_FORMAT = 'jpg';
     _NO_CACHE = false;
+
+    constructor({ useCDN = false, noCache = false } = {})
+    {
+        this._EPIC_IMAGES_URL = useCDN ? this._EPIC_IMAGES_CDN_URL : this._EPIC_IMAGES_S3_URL;
+        this._NO_CACHE = noCache;
+    }
 
     _getNoiseQueryString()
     {

@@ -1,4 +1,4 @@
-export class NasaEpicAPI 
+export default class NasaEpicAPI 
 {
     _NASA_API_KEY = "mkFSJvkb5TdUAEUtdWpAwPDEJxicFOCmuKuht0q4";
     //_NASA_API_KEY = "DEMO_KEY";

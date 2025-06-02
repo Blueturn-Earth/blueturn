@@ -3,6 +3,7 @@
 // See https://creativecommons.org/licenses/by-nc-sa/4.0/
 
 export let gControlState = {
+    source: 'nasa',
     timeSpeed: 3600,
     play: false,
     date: undefined,
@@ -14,6 +15,7 @@ export let gControlState = {
 };
 
 let controlMap = new Map();
+controlMap.set('source', (v) => {gControlState.source = v;}); // 'nasa', 'bt-s3', 'bt-cdn'
 controlMap.set('timeSpeed', (v) => {gControlState.timeSpeed = parseInt(v);});
 controlMap.set('play', (v) => {gControlState.play = parseInt(v);});
 controlMap.set('date', (v) => {gControlState.date = v;});
