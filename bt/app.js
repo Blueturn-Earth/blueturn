@@ -425,8 +425,9 @@ export function gUpdateEpicTime(time)
         const targetSpeed = gControlState.play ? gControlState.timeSpeed : 0.0;
         if (lastUpdateTime)
         {
+            const DECCELERATION_FACTOR = 0.1; // Adjust this value to control the deceleration speed
             const deltaTime = (time - lastUpdateTime) / 1000.0;
-            currentTimeSpeed = lerp(currentTimeSpeed, targetSpeed, 0.05);
+            currentTimeSpeed = lerp(currentTimeSpeed, targetSpeed, DECCELERATION_FACTOR);
             gSetEpicTimeSec(gEpicTimeSec + deltaTime * currentTimeSpeed);
         }
     }
