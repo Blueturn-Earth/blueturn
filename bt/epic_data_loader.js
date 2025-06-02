@@ -72,6 +72,7 @@ export default class EpicDataLoader
     }
 
     abortEpicDayLoadsExcept(days, reason) {
+        let remainingPendingLoads = new Map();
         this._pendingLoads.forEach((controller, call) => {
             let doAbort = true;
             days.forEach((date) => {
@@ -84,9 +85,12 @@ export default class EpicDataLoader
                 console.log("Aborting EPIC API call: " + call + " for reason: " + reason);
                 localStorage.removeItem(call);
                 controller.abort(reason);
-                this._pendingLoads.delete(excludedCall);
+            }
+            else {
+                remainingPendingLoads.set(call, controller);
             }
         });
+        this._pendingLoads = remainingPendingLoads;
     }
 
     clearCache(dayStr) {

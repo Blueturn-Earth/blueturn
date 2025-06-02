@@ -273,6 +273,7 @@ export default class EpicDB {
         .catch((error) => {
             console.error("Error loading epic image: ", error);
             epicImageData.textureLoading = false;
+            this._abortLoadingImagesExcept([], "Aborted all loading after error");
         });
     }
 
