@@ -44,11 +44,14 @@ export default class EpicImageLoader
     }
 
     async loadImage(epicImageData) {
-        if (!epicImageData)
-            return Promise.reject("epicImageData arg is not set");
-        const timeSec = epicImageData.timeSec;
-
         return new Promise((resolve, reject) => {
+            if (!epicImageData)
+            {
+                reject("epicImageData arg is not set");
+                return;
+            }
+            const timeSec = epicImageData.timeSec;
+
             const url = gEpicAPI.getEpicImageURL(epicImageData.date, epicImageData.image);
             if (!epicImageData.texture && !this.#textureLoader.isPending(url))
             {
@@ -84,6 +87,7 @@ export default class EpicImageLoader
             {
                 // can happen by some race condition
                 //console.warn("Epic image already currently loading: " + url);
+                resolve(null);
             }
         });
     }

@@ -154,4 +154,9 @@ export function gGetTodayDateStr()
     return TodayDatesStr;
 }
 
+export function gGetDayFromTimeSec(timeSec)
+{
+    const date = new Date(timeSec * 1000);
+    return date.toISOString().slice(0, 10);
+}
 

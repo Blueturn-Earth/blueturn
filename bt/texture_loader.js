@@ -155,7 +155,7 @@ export class TextureLoader {
         if (now < this._nextRequestDate) {
           const delay = this._nextRequestDate - now;
           //console.warn(`Blocking request for ${url} for ${delay / 1000} seconds due to too many requests`);
-          //onError?.(url, `HTTP requests still blocked for ${delay / 1000} seconds due to too many requests`);
+          onError?.(url, `HTTP requests still blocked for ${delay / 1000} seconds due to too many requests`);
           return;
         }
       }
@@ -170,7 +170,8 @@ export class TextureLoader {
         .then(r => {
           if (!r.ok) {
             this._handleFetchError(r, url, onError);
-            throw new Error(`Failed to fetch image: ${url}, status: ${r.status}`);
+            onError?.(`Failed to fetch image: ${url}, status: ${r.status}`);
+            return;
           }
           return r.blob();
         })
@@ -190,7 +191,9 @@ export class TextureLoader {
         })
         .catch(err => {
           this._pendingLoads.delete(url);
-          if (err.name === 'AbortError' || err.startsWith('Abort')) {
+          if (err && 
+              (err.name === 'AbortError' || 
+               (typeof err === "string" && err.startsWith('Abort')))) {
             onAbort?.(url, err);
           } else {
             onError?.(url, err);

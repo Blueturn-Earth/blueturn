@@ -105,6 +105,34 @@ export default class EpicDB {
         return !!this.getEpicDataForTimeSec(timeSec);
     }
 
+    isTimeSecFirstOfDay(timeSec) {
+        // Check if the given timeSec is the first epic image of the day
+        const dayStr = EpicDB.getDayStrFromTimeSec(timeSec);
+        if (!this._epicDays.has(dayStr)) {
+            return false; // No data for this day
+        }
+        const epicDayData = this._epicDays.get(dayStr);
+        if (!epicDayData || epicDayData.length === 0) {
+            return false; // No data for this day
+        }
+        // Check if the first epic image of the day matches the given timeSec
+        return timeSec <= epicDayData[0].timeSec;
+    }
+    
+    isTimeSecLastOfDay(timeSec) {
+        // Check if the given timeSec is the last epic image of the day
+        const dayStr = EpicDB.getDayStrFromTimeSec(timeSec);
+        if (!this._epicDays.has(dayStr)) {
+            return false; // No data for this day
+        }
+        const epicDayData = this._epicDays.get(dayStr);
+        if (!epicDayData || epicDayData.length === 0) {
+            return false; // No data for this day
+        }
+        // Check if the last epic image of the day matches the given timeSec
+        return timeSec >= epicDayData[epicDayData.length - 1].timeSec;
+    }
+    
     _getPrevEpicImage(timeSec, strict = true) {
         const dayStr = EpicDB.getDayStrFromTimeSec(timeSec);
         if (!this._epicDays.has(dayStr)) {
@@ -295,12 +323,20 @@ export default class EpicDB {
                     nextTime = this._epicLatestTimeSec - gControlState.loopRangeSec;
                     break;
                 }
-                const [epicImageData0, epicImageData1] = await this.fetchBoundKeyFrames(nextTime);
-                await this._loadImage(epicImageData0);
-                await this._loadImage(epicImageData1);
+                try {
+                    const [epicImageData0, epicImageData1] = await this.fetchBoundKeyFrames(nextTime);
+                    await this._loadImage(epicImageData0);
+                    await this._loadImage(epicImageData1);
+                }
+                catch (error) {
+                    console.warn("Failed preloading epic images around timeSec " + nextTime + ": ", error);
+                    // If we fail to load, we can just stop preloading
+                    break;
+                }
             }
         }
 
+        try
         {
             // Preload frames around the given timeSec
             let [epicImageData0, epicImageData1] = await this.fetchBoundKeyFrames(timeSec);
@@ -317,6 +353,10 @@ export default class EpicDB {
                     await this._loadImage(epicImageData1);
                 }
             }
+        }
+        catch (error) {
+            console.warn("Failed preloading epic images before timeSec " + timeSec + ": ", error);
+            // If we fail to load, we can just stop preloading
         }
     }
 
@@ -469,6 +509,7 @@ export default class EpicDB {
         else {
             // Start loading the images for the bound frames
             this._loadTwoImages(timeSec, epicImageDataKey0, epicImageDataKey1);
+            return [epicImageDataKey0, epicImageDataKey1];
         }
 
 

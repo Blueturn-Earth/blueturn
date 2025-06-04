@@ -7,7 +7,7 @@ import { gControlState } from './controlparams.js';
 
 import EpicDB from './epic_db.js';
 import { gScreen} from './screen.js';
-import { gCalcLatLonNorthRotationMatrix, gCalcNormalFromScreenCoord, gCalcLatLonFromScreenCoord} from './utils.js';
+import { gCalcLatLonNorthRotationMatrix, gCalcNormalFromScreenCoord, gCalcLatLonFromScreenCoord, gGetDayFromTimeSec} from './utils.js';
 
 export let gEpicZoom = false;
 export let gEpicTimeSec = undefined;
@@ -212,6 +212,26 @@ export function gSetEpicTimeSec(timeSec)
 
     if (prevEpicTimeSec)
     {
+        if(gEpicDB.isTimeSecFirstOfDay(timeSec) && timeSec != oldestEpicTimeSec)
+        {
+            let prevDayTimeSec = timeSec - 3600 * 24;
+            // get day from timeSec
+            while (!gEpicDB.isDayAvailable(gGetDayFromTimeSec(prevDayTimeSec)))
+            {
+                prevDayTimeSec -= 3600 * 24;
+                timeSec = prevDayTimeSec; // go back one day
+            }
+        }
+        if(gEpicDB.isTimeSecLastOfDay(timeSec) && timeSec != latestEpicTimeSec)
+        {
+            let nextDayTimeSec = timeSec + 3600 * 24;
+            // get day from timeSec
+            while (!gEpicDB.isDayAvailable(gGetDayFromTimeSec(nextDayTimeSec)))
+            {
+                nextDayTimeSec += 3600 * 24;
+                timeSec = nextDayTimeSec; // go back one day
+            }
+        }
         if (!gUpdateEpicInterpolation())
         {
             // block the time change if we cannot interpolate EPIC images
