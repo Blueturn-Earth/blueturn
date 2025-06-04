@@ -2,11 +2,10 @@ export default class BtEpicAPI
 {
     _EPIC_IMAGES_S3_URL = "https://storage.googleapis.com/content.blueturn.earth/images/";
     _EPIC_IMAGES_CDN_URL = "https://content.blueturn.earth/images/";
-    _EPIC_IMAGES_URL = undefined;
     _IMAGE_FORMAT = 'jpg';
     _NO_CACHE = false;
 
-    constructor({ useCDN = false, noCache = false } = {})
+    constructor(useCDN = false, noCache = false)
     {
         this._EPIC_IMAGES_URL = useCDN ? this._EPIC_IMAGES_CDN_URL : this._EPIC_IMAGES_S3_URL;
         this._NO_CACHE = noCache;
@@ -50,6 +49,11 @@ export default class BtEpicAPI
         if (!date || !imageName) {
             throw new Error("Invalid date or image name");
         }
-        return this._EPIC_IMAGE_URL + this._IMAGE_FORMAT + "/" + imageName + "." + this._IMAGE_FORMAT;
+        return this._EPIC_IMAGES_URL + this._IMAGE_FORMAT + "/" + imageName + "." + this._IMAGE_FORMAT;
+    }
+
+    getAvailableDateFromIndex(allDays, i)
+    {
+        return allDays[allDays.length - i - 1];
     }
 }

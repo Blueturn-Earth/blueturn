@@ -60,4 +60,9 @@ export default class NasaEpicAPI
         const dateStr = date.replaceAll("-", "/").split(" ")[0];
         return this._EPIC_IMAGE_URL + dateStr + "/" + this._IMAGE_FORMAT + "/" + imageName + "." + this._IMAGE_FORMAT;
     }
+
+    getAvailableDateFromIndex(allDays, i)
+    {
+        return allDays[i].date;
+    }
 }

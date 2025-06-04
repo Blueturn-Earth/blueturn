@@ -1,6 +1,8 @@
 import SortedMap from "./sorted_map.js";
 import EpicDataLoader from "./epic_data_loader.js";
 import EpicImageLoader from "./epic_image_loader.js";
+import gEpicAPI from './epic_api.js';
+
 import { 
     gCalcEarthRadiusFromDistance, 
     gCalcLatLonNorthRotationMatrix, 
@@ -32,12 +34,12 @@ export default class EpicDB {
                     reject("No available days found in EPIC DB");
                     return;
                 }
-                all_days1.forEach((day) => {
-                    this._epicDays.set(day.date, null);
-                }); 
-                this._epicLastDay = all_days1[0].date;
+                for (let i = 0; i < all_days1.length; i++) {
+                    this._epicDays.set(gEpicAPI.getAvailableDateFromIndex(all_days1, i), null); // Initialize with empty values
+                }
+                this._epicLastDay = gEpicAPI.getAvailableDateFromIndex(all_days1, 0);
                 console.log("Last available day from EPIC: " + this._epicLastDay);
-                this._epicFirstDay = all_days1[all_days1.length-1].date;
+                this._epicFirstDay = gEpicAPI.getAvailableDateFromIndex(all_days1, all_days1.length-1);
                 this._loadEpicDay(this._epicLastDay)
                 .then((lastDayData) => {
                     const lastEpicData = lastDayData[lastDayData.length - 1];
