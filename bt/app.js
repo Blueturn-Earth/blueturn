@@ -84,7 +84,13 @@ export async function gInitEpicTime()
             }
 
             gEpicDB.fetchBoundKeyFrames(startTimeSec)
-            .then(([epicImageData0, epicImageData1]) => {
+            .then((boundPair) => {
+                if (!boundPair) // likely aborted
+                {
+                    resolve(null);
+                    return;
+                }
+                let [epicImageData0, epicImageData1] = boundPair;
                 console.assert(epicImageData0 || epicImageData1);
                 if (!epicImageData0 && !epicImageData1)
                 {

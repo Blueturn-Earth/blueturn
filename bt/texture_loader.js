@@ -190,7 +190,7 @@ export class TextureLoader {
         })
         .catch(err => {
           this._pendingLoads.delete(url);
-          if (err.name === 'AbortError') {
+          if (err.name === 'AbortError' || err.startsWith('Abort')) {
             onAbort?.(url, err);
           } else {
             onError?.(url, err);

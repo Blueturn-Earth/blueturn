@@ -55,8 +55,14 @@ export default class EpicDataLoader
                 resolve(JSON.parse(text));
             })
             .catch(error => {
-                console.error('Error loading JSON from URL:', error);
-                reject(error); // rethrow to handle it in the calling code
+                if (error.startsWith('Abort')) {
+                    console.warn(error);
+                    resolve(null); // Resolve with null if the request was aborted
+                }
+                else {
+                    console.error('Error loading JSON from URL:', error);
+                    reject(error); // rethrow to handle it in the calling code
+                }
             });
         });
     }

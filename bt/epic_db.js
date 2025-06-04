@@ -268,9 +268,11 @@ export default class EpicDB {
         // Load the image for the given epicImageData
         epicImageData.textureLoading = true;
         this.#epicImageLoader.loadImage(epicImageData)
-        .then(() => {
-            callback?.();
+        .then((tex) => {
             epicImageData.textureLoading = false;
+            if(!tex)
+                return; // resolved with null, probably aborted
+            callback?.();
         })
         .catch((error) => {
             console.error("Error loading epic image: ", error);
@@ -362,6 +364,8 @@ export default class EpicDB {
                     [epicImageDataKey0, epicImageDataKey1] = this.getBoundKeyFrames(timeSec);
                     if (epicImageDataKey0 && epicImageDataKey1)
                         resolve([epicImageDataKey0, epicImageDataKey1]);
+                    else
+                        resolve(null); // likely aborted
                 })
                 .catch((error) => {
                     reject("Error loading current day " + dayStr + ": " + error);
@@ -375,6 +379,8 @@ export default class EpicDB {
                     [epicImageDataKey0, epicImageDataKey1] = this.getBoundKeyFrames(timeSec);
                     if (epicImageDataKey0 && epicImageDataKey1)
                         resolve([epicImageDataKey0, epicImageDataKey1]);
+                    else
+                        resolve(null); // likely aborted
                 })
                 .catch((error) => {
                     reject("Error loading previous day " + dayStr + ": " + error);
@@ -388,6 +394,8 @@ export default class EpicDB {
                     [epicImageDataKey0, epicImageDataKey1] = this.getBoundKeyFrames(timeSec);
                     if (epicImageDataKey0 && epicImageDataKey1)
                         resolve([epicImageDataKey0, epicImageDataKey1]);
+                    else
+                        resolve(null); // likely aborted
                 })
                 .catch((error) => {
                     reject("Error loading next day " + dayStr + ": " + error);
@@ -397,6 +405,34 @@ export default class EpicDB {
         });
     }
 
+    _loadTwoImages(timeSec, epicImageData0, epicImageData1) {
+        if (epicImageData0)
+        {
+            if (epicImageData0.texture) {
+                loadPredictedFrames(this);
+            }
+            else {
+                this._loadImage(epicImageData0, () => {loadPredictedFrames(this);});
+            }
+        }
+        if (epicImageData1)
+        {
+            if (epicImageData1.texture) {
+                loadPredictedFrames(this);
+            }
+            else {
+                this._loadImage(epicImageData1, () => {loadPredictedFrames(this);});
+            }
+        }
+        function loadPredictedFrames(self) {
+            if (epicImageData0 && epicImageData0.texture && 
+                epicImageData1 && epicImageData1.texture) {
+                // All frames loaded, now we can return the key frames
+                // But first start loading based on prediction
+                self._predictAndLoadFrames(timeSec);
+            }
+        }
+    }
 
     // returns bound frames, with strict prev and non-strict next
     // if one missing, returns nothing
@@ -408,34 +444,34 @@ export default class EpicDB {
             console.error("EpicDB not initialized yet");
             return null;
         }
+
         let epicImageDataKey1 = this._getNextEpicImage(timeSec, false);
         let epicImageDataKey0 = this._getPrevEpicImage(timeSec, false);
-        if (epicImageDataKey0 && epicImageDataKey0.texture &&
-            epicImageDataKey1 && epicImageDataKey1.texture) {
-            this._predictAndLoadFrames(timeSec);
+
+        if (!epicImageDataKey0 || !epicImageDataKey1) {
+            this.fetchBoundKeyFrames(timeSec)
+            .then((boundPair) => {
+                if (!boundPair || boundPair.length !== 2) {
+                    return null; // likely aborted
+                }
+                const [epicImageData0, epicImageData1] = boundPair;
+                // All days loaded, now we can process the images
+                this._abortLoadingImagesExcept([epicImageData0, epicImageData1], "Aborted loading images except bound frames around timeSec: " + timeSec);
+                this._loadTwoImages(epicImageData0, epicImageData1);
+            })
+            .catch((error) => {
+                console.error("Error fetching bound key frames: ", error);
+            });
+        }
+        else if (epicImageDataKey0.texture && epicImageDataKey1.texture) {
             return [epicImageDataKey0, epicImageDataKey1];
         }
+        else {
+            // Start loading the images for the bound frames
+            this._loadTwoImages(timeSec, epicImageDataKey0, epicImageDataKey1);
+        }
 
-        this.fetchBoundKeyFrames(timeSec)
-        .then(([epicImageData0, epicImageData1]) => {
-            // All days loaded, now we can process the images
-            this._abortLoadingImagesExcept([epicImageData0, epicImageData1], "Aborted loading images except bound frames around timeSec: " + timeSec);
-            if (epicImageData0)
-                this._loadImage(epicImageData0, () => {loadPredictedFrames(this);});
-            if (epicImageData1)
-                this._loadImage(epicImageData1, () => {loadPredictedFrames(this);});
-            function loadPredictedFrames(self) {
-                if (epicImageData0 && epicImageData0.texture && 
-                    epicImageData1 && epicImageData1.texture) {
-                    // All frames loaded, now we can return the key frames
-                    // But first start loading based on prediction
-                    self._predictAndLoadFrames(timeSec);
-                }
-            }
-        })
-        .catch((error) => {
-            console.error("Error fetching bound key frames: ", error);
-        });
+
         return null;
     }
 

@@ -10,7 +10,7 @@ export default class EpicImageLoader
     #textureLoader = new TextureLoader(gl, {
             maxGPUMemoryBytes: this.#MAX_IMAGES * 2048 * 2048 * 4 // 1.6GB
         });
-    epicImageDataMap = new Map(); 
+    #url2EpicImageDataMap = new Map(); 
 
     async init() {
         return new Promise((resolve, reject) => {
@@ -26,14 +26,27 @@ export default class EpicImageLoader
         });
     }
 
+    _evictEpicImageTexture(evictedUrl) {
+        const evictedEpicImageData = this.#url2EpicImageDataMap.get(evictedUrl);
+        if (evictedEpicImageData)
+        {
+            // Remove the evicted image data from the map
+            this.#url2EpicImageDataMap.delete(evictedUrl);
+            evictedEpicImageData.imageURL = null;
+            evictedEpicImageData.texture = null;
+            // Avoid log spam
+            //console.warn("Evicted image data for date: " + evictedEpicImageData.date);
+        }
+        else
+        {
+            console.error("Evicted image data not found for URL: " + evictedUrl);
+        }
+    }
+
     async loadImage(epicImageData) {
         if (!epicImageData)
             return Promise.reject("epicImageData arg is not set");
         const timeSec = epicImageData.timeSec;
-        const foundEpicImageData = this.epicImageDataMap.get(timeSec);
-        if (foundEpicImageData !== epicImageData) {
-            this.epicImageDataMap.set(timeSec, epicImageData);
-        }
 
         return new Promise((resolve, reject) => {
             const url = gEpicAPI.getEpicImageURL(epicImageData.date, epicImageData.image);
@@ -41,6 +54,7 @@ export default class EpicImageLoader
             {
                 //console.log("Loading image URL: " + url);
                 epicImageData.imageURL = url;
+                this.#url2EpicImageDataMap.set(url, epicImageData);
                 this.#textureLoader.loadTexture(url, {
                     forceReload: false,
                     onSuccess: (url, tex) => {
@@ -50,14 +64,15 @@ export default class EpicImageLoader
                     },
                     onError: (url, err) => {
                         console.error('Error loading texture for image ' + epicImageData.image + ', ' + err); 
-                        reject(err);},
+                        reject(err);
+                    },
                     onAbort: (url, err) => {
-                        const error = 'Aborted loading texture for image ' + epicImageData.image + ', ' + err;
-                        console.warn(error); 
-                        reject(error);},
-                    onEvict: (url, tex) => {
-                        epicImageData.texture = null;
-                        console.warn("Evicted image: " + epicImageData.image + ", for date " + epicImageData.date);}
+                        console.warn('Aborted loading texture for image ' + epicImageData.image + ', ' + err); 
+                        resolve(null);
+                    },
+                    onEvict: (evictedUrl, tex) => {
+                        this._evictEpicImageTexture(evictedUrl);
+                    }
                 });
             }
             else if (epicImageData.texture)
