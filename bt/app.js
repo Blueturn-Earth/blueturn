@@ -527,7 +527,7 @@ export function gUpdateEpicInterpolation()
             (gEpicTimeSec - epicImageData0.timeSec) / (epicImageData1.timeSec - epicImageData0.timeSec) :
             0.0;
 
-        epicImageData.time_sec = gEpicTimeSec;
+        epicImageData.timeSec = gEpicTimeSec;
 
         // Interpolate Radius:
         let earthRadius0 = epicImageData0.earthRadius;
