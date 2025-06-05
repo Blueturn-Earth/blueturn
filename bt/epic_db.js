@@ -303,7 +303,7 @@ export default class EpicDB {
             callback?.();
         })
         .catch((error) => {
-            console.error("Error loading epic image: ", error);
+            console.error("Error loading epic image. Error msg: ", error);
             epicImageData.textureLoading = false;
             this._abortLoadingImagesExcept([], "Aborted all loading after error");
         });
@@ -312,7 +312,7 @@ export default class EpicDB {
     async _predictAndLoadFrames(timeSec) {
         // Predict and load frames based on the given timeSec and timeSpeed
         // This is a heuristic to load frames around the given time
-
+        let numLoadedForward = 0;
         if (gControlState.play) {
             // Preload frames for the coming 10s
             const TIME_PREDICT_SEC = 10;
@@ -325,8 +325,14 @@ export default class EpicDB {
                 }
                 try {
                     const [epicImageData0, epicImageData1] = await this.fetchBoundKeyFrames(nextTime);
-                    await this._loadImage(epicImageData0);
-                    await this._loadImage(epicImageData1);
+                    if (!epicImageData0.texture && !epicImageData0.textureLoading) {
+                        await this._loadImage(epicImageData0);
+                        numLoadedForward++;
+                    }
+                    if (!epicImageData1.texture && !epicImageData1.textureLoading) {
+                        await this._loadImage(epicImageData1);
+                        numLoadedForward++;
+                    }
                 }
                 catch (error) {
                     console.warn("Failed preloading epic images around timeSec " + nextTime + ": ", error);
@@ -335,7 +341,11 @@ export default class EpicDB {
                 }
             }
         }
-
+        if (numLoadedForward > 0) {
+            console.log("Preloaded (for play) " + numLoadedForward + " epic images forward from timeSec " + timeSec);
+        }
+        const numLoadedForwardForPlay = numLoadedForward;
+        let numLoadedBackward = 0;
         try
         {
             // Preload frames around the given timeSec
@@ -344,19 +354,39 @@ export default class EpicDB {
             for (let i = 1; i <= SCROLL_PREDICT_NUM_FRAMES; i++) {
                 if (epicImageData0)
                 {
-                    epicImageData0 = this._getPrevEpicImage(epicImageData0.timeSec, true);
-                    await this._loadImage(epicImageData0);
+                    const timeSec = epicImageData0.timeSec;
+                    epicImageData0 = this._getPrevEpicImage(timeSec, true);
+                    if (!epicImageData0)
+                        await this.fetchBoundKeyFrames(timeSec);
+                    epicImageData0 = this._getPrevEpicImage(timeSec, true);
+                    if (epicImageData0 && !epicImageData0.texture && !epicImageData0.textureLoading) {
+                        await this._loadImage(epicImageData0);
+                        numLoadedBackward++;
+                    }
                 }
-                if (epicImageData1)
+                if (epicImageData1 && numLoadedForward < SCROLL_PREDICT_NUM_FRAMES)
                 {
-                    epicImageData1 = this._getNextEpicImage(epicImageData1.timeSec, true);
-                    await this._loadImage(epicImageData1);
+                    const timeSec = epicImageData1.timeSec;
+                    epicImageData1 = this._getNextEpicImage(timeSec, true);
+                    if (!epicImageData1)
+                        await this.fetchBoundKeyFrames(timeSec);
+                    epicImageData1 = this._getNextEpicImage(timeSec, true);
+                    if (epicImageData1 && !epicImageData1.texture && !epicImageData1.textureLoading) {
+                        await this._loadImage(epicImageData1);
+                        numLoadedForward++;
+                    }
                 }
             }
         }
         catch (error) {
             console.warn("Failed preloading epic images before timeSec " + timeSec + ": ", error);
             // If we fail to load, we can just stop preloading
+        }
+        if (numLoadedForward > numLoadedForwardForPlay) {
+            console.log("Preloaded (for scroll) " + (numLoadedForward - numLoadedForwardForPlay) + " more epic images forward from timeSec " + timeSec);
+        }
+        if (numLoadedBackward > 0) {
+            console.log("Preloaded (for scroll) " + numLoadedBackward + " epic images backward from timeSec " + timeSec);
         }
     }
 

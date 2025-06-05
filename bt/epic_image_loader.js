@@ -66,7 +66,8 @@ export default class EpicImageLoader
                         resolve(tex);
                     },
                     onError: (url, err) => {
-                        console.error('Error loading texture for image ' + epicImageData.image + ', ' + err); 
+                        if (epicImageData && epicImageData.image)
+                            console.error('Error loading texture for image ' + epicImageData.image + '. Error msg: ' + err); 
                         reject(err);
                     },
                     onAbort: (url, err) => {

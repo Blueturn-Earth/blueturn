@@ -155,7 +155,8 @@ export class TextureLoader {
         if (now < this._nextRequestDate) {
           const delay = this._nextRequestDate - now;
           //console.warn(`Blocking request for ${url} for ${delay / 1000} seconds due to too many requests`);
-          onError?.(url, `HTTP requests still blocked for ${delay / 1000} seconds due to too many requests`);
+          // avoid log spam
+          //onError?.(url, `HTTP requests still blocked for ${delay / 1000} seconds due to too many requests`);
           return;
         }
       }
@@ -176,17 +177,17 @@ export class TextureLoader {
           return r.blob();
         })
         .then(blob => {
-          // Store in 2nd-level cache DB
+          return this._createTextureFromBlob(blob);
+        })
+        .then(([texture, width, height, blob]) => {
+          const size = width * height * 4; // estimate in bytes
+          this._insertIntoCache(url, texture, size, onEvict);
+          this._pendingLoads.delete(url);
+          // Store in 2nd-level cache DB (once confirmed texture is good)
           this._storeImageInDB(url, blob)
           .catch(err => {
             console.warn("Failed to store image in IndexedDB", err);
           });
-          return this._createTextureFromBlob(blob);
-        })
-        .then(([texture, width, height]) => {
-          const size = width * height * 4; // estimate in bytes
-          this._insertIntoCache(url, texture, size, onEvict);
-          this._pendingLoads.delete(url);
           onSuccess?.(url, texture);
         })
         .catch(err => {
@@ -221,7 +222,7 @@ export class TextureLoader {
           const width = image.naturalWidth;
           const height = image.naturalHeight;
           URL.revokeObjectURL(image.src);
-          resolve([tex, width, height]);
+          resolve([tex, width, height, blob]);
         } catch (err) {
           reject(err);
         }
