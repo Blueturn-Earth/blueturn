@@ -28,8 +28,29 @@ export default class EpicDB {
         return new Promise((resolve, reject) => {
             this.#epicImageLoader.init()
             .then(() => {
-                return this.#epicDataLoader.loadEpicAvailableDays()
+                return this.loadLatest();
             })
+            .then(() => {
+                this._ready = true; // enough to get the latest
+                console.log("EPIC DB initialized successfully");
+                resolve();
+                return this._loadEpicDay(this._epicFirstDay);
+            })
+            .then((firstDayData) => {
+                const firstEpicData = firstDayData[0];
+                this._epicOldestTimeSec = firstEpicData.timeSec;
+                console.log("Oldest available data from EPIC: " + firstEpicData.date + ", timeSec=" + this._epicOldestTimeSec);
+            })
+            .catch((error) => {
+                console.error("Failed to initialize EPIC DB: ", error);
+                reject(error);
+            });
+        });
+    }
+
+    async loadLatest() {
+        return new Promise((resolve, reject) => {
+            this.#epicDataLoader.loadEpicAvailableDays()
             .then((all_days1) => {
                 if (!all_days1 || all_days1.length === 0) {
                     // Something is corrupted - better to clear the cache and reject
@@ -43,31 +64,20 @@ export default class EpicDB {
                 this._epicLastDay = gEpicAPI.getAvailableDateFromIndex(all_days1, 0);
                 console.log("Last available day from EPIC: " + this._epicLastDay);
                 this._epicFirstDay = gEpicAPI.getAvailableDateFromIndex(all_days1, all_days1.length-1);
-                this._loadEpicDay(this._epicLastDay)
-                .then((lastDayData) => {
-                    const lastEpicData = lastDayData[lastDayData.length - 1];
-                    this._epicLatestTimeSec = lastEpicData.timeSec;
-                    console.log("Latest available data from EPIC: " + lastEpicData.date + ", timeSec=" + this._epicLatestTimeSec);
-                    this._ready = true; // enough to get the latest
-                    resolve();        
-                })
-                .catch((error) => {
-                    reject("Failed to load last day " + this._epicLastDay + " :" + error)
-                });
-                this._loadEpicDay(this._epicFirstDay)
-                .then((firstDayData) => {
-                    const firstEpicData = firstDayData[0];
-                    this._epicOldestTimeSec = firstEpicData.timeSec;
-                    console.log("Oldest available data from EPIC: " + firstEpicData.date + ", timeSec=" + this._epicOldestTimeSec);
-                })
-                .catch((error) => {
-                    console.warn("Failed to load first day " + this._epicLastDay + " :" + error)
-                    return;
-                });
+                return this._loadEpicDay(this._epicLastDay)
+            })
+            .then((lastDayData) => {
+                const lastEpicData = lastDayData[lastDayData.length - 1];
+                this._epicLatestTimeSec = lastEpicData.timeSec;
+                console.log("Latest available data from EPIC: " + lastEpicData.date + ", timeSec=" + this._epicLatestTimeSec);
+                resolve(this._epicLatestTimeSec);        
             })
             .catch((error) => {
-                reject("Failed to load available days: " + error)
+                reject("Failed to load latest data:" + error)
             });
+
+            // Every hour we will check for latest data
+            setTimeout(this.loadLatest, 1000 * 60 * 60);
         });
     }
 
