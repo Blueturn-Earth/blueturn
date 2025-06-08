@@ -331,11 +331,11 @@ export default class EpicDB {
         });
     }
 
-    async _predictAndLoadFrames(timeSec) {
+    async _predictAndPreloadImages(timeSec) {
         // Predict and load frames based on the given timeSec and timeSpeed
         // This is a heuristic to load frames around the given time
         let numLoadedForward = 0;
-        if (gControlState.play) {
+        if (gControlState.play && !gControlState.holding) {
             // Preload frames for the coming 10s
             const TIME_PREDICT_SEC = 10;
             let nextTime = timeSec
@@ -531,18 +531,18 @@ export default class EpicDB {
         });
     }
 
-    _loadTwoImages(timeSec, epicImageData0, epicImageData1) {
+    _loadTwoBoundImages(timeSec, epicImageData0, epicImageData1) {
         if (epicImageData0 && !epicImageData0.texture)
-            this._loadImage(epicImageData0, () => {loadPredictedFrames(this);});
+            this._loadImage(epicImageData0, () => {preloadFramesAfterComplete(this);});
         if (epicImageData1 && !epicImageData1.texture)
-            this._loadImage(epicImageData1, () => {loadPredictedFrames(this);});
-        loadPredictedFrames(this);
-        function loadPredictedFrames(self) {
+            this._loadImage(epicImageData1, () => {preloadFramesAfterComplete(this);});
+        preloadFramesAfterComplete(this);
+        function preloadFramesAfterComplete(self) {
             if (epicImageData0 && epicImageData0.texture && 
                 epicImageData1 && epicImageData1.texture) {
                 // All frames loaded, now we can return the key frames
                 // But first start loading based on prediction
-                self._predictAndLoadFrames(timeSec);
+                self._predictAndPreloadImages(timeSec);
             }
         }
     }
@@ -570,19 +570,19 @@ export default class EpicDB {
                 const [epicImageData0, epicImageData1] = boundPair;
                 // All days loaded, now we can process the images
                 this._abortLoadingImagesExcept([epicImageData0, epicImageData1], "Aborted loading images except bound frames around timeSec: " + timeSec);
-                this._loadTwoImages(epicImageData0, epicImageData1);
+                this._loadTwoBoundImages(epicImageData0, epicImageData1);
             })
             .catch((error) => {
                 console.error("Error fetching bound key frames: ", error);
             });
         }
         else if (epicImageDataKey0.texture && epicImageDataKey1.texture) {
-            this._predictAndLoadFrames(timeSec);
+            this._predictAndPreloadImages(timeSec);
             return [epicImageDataKey0, epicImageDataKey1];
         }
         else {
             // Start loading the images for the bound frames
-            this._loadTwoImages(timeSec, epicImageDataKey0, epicImageDataKey1);
+            this._loadTwoBoundImages(timeSec, epicImageDataKey0, epicImageDataKey1);
             return [epicImageDataKey0, epicImageDataKey1];
         }
 
