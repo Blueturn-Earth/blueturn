@@ -77,7 +77,7 @@ export async function gInitEpicTime()
             if (gEpicDB.hasEpicDataForTimeSec(startTimeSec))
             {
                 console.log("Start time: " + date_time);
-                gSetEpicTimeRange(startTimeSec, gControlState.rangeSec);
+                gSetEpicTimeRange(startTimeSec, gControlState.range);
                 resolve(startTimeSec);
                 return;
             }
@@ -96,7 +96,7 @@ export async function gInitEpicTime()
                     // Should really not happen
                     console.error("Failed to fetch bound key EPIC frames - returned null")
                     console.log("Start time: " + date_time);
-                    gSetEpicTimeRange(startTimeSec, gControlState.rangeSec);
+                    gSetEpicTimeRange(startTimeSec, gControlState.range);
                     resolve(startTimeSec);
                     return;
                 }
@@ -128,14 +128,14 @@ export async function gInitEpicTime()
                     gControlState.time = date_time.split(' ')[1];
                 }
                 console.log("Start time: " + date_time);
-                gSetEpicTimeRange(startTimeSec, gControlState.rangeSec);
+                gSetEpicTimeRange(startTimeSec, gControlState.range);
                 resolve(startTimeSec);
                 return;
             })
             .catch((error) => {
                 console.error("Failed to fetch bound key frames around start time: " + error);
                 console.log("Start time: " + date_time);
-                gSetEpicTimeRange(startTimeSec, gControlState.rangeSec);
+                gSetEpicTimeRange(startTimeSec, gControlState.range);
                 resolve(startTimeSec);
                 return;
             });
@@ -206,7 +206,7 @@ export function gSetEpicTimeSec(timeSec)
     {
         // Looping around default loop time range
         prevEpicTimeSec = latestEpicTimeSec;
-        const loopBackRangeSec = gControlState.rangeSec ? gControlState.rangeSec : 3600 * 24; // default to 24 hours
+        const loopBackRangeSec = gControlState.range ? gControlState.range : 3600 * 24; // default to 24 hours
         timeSec = latestEpicTimeSec - loopBackRangeSec;
         //console.log("Past latest available EPIC image time, jumping back to loop period of " + loopBackRangeSec + "s");
     }
@@ -461,7 +461,7 @@ export function gUpdateEpicTime(time)
 
     if (!gControlState.holding)
     {
-        const targetSpeed = gControlState.play ? gControlState.timeSpeed : 0.0;
+        const targetSpeed = gControlState.play ? gControlState.speed : 0.0;
         if (lastUpdateTime)
         {
             const DECCELERATION_FACTOR = 0.1; // Adjust this value to control the deceleration speed
@@ -532,7 +532,7 @@ export function gUpdateEpicInterpolation()
 
         epicImageData = epicImageData1;
         epicImageData.mix01 = 1.0;
-        if (gControlState.play && gControlState.timeSpeed > 0.0)
+        if (gControlState.play && gControlState.speed > 0.0)
             return false; // we will use this false return value to block during play
     }
 
@@ -543,7 +543,7 @@ export function gUpdateEpicInterpolation()
 
         epicImageData = epicImageData0;
         epicImageData.mix01 = 0.0;
-        if (gControlState.play && gControlState.timeSpeed > 0.0)
+        if (gControlState.play && gControlState.speed > 0.0)
             return false; // we will use this false return value to block during play
     }
 
@@ -578,7 +578,7 @@ export function gUpdateEpicInterpolation()
     [gEpicImageData, gEpicImageData0, gEpicImageData1] = 
     [epicImageData, epicImageData0, epicImageData1];
 
-    if (gControlState.play && gControlState.timeSpeed > 0.0 &&
+    if (gControlState.play && gControlState.speed > 0.0 &&
         (!gEpicImageData0.texture || !gEpicImageData1.texture))
         return false; // we will use this false return value to block during play
 
