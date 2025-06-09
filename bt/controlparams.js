@@ -6,7 +6,7 @@ export let gControlState = {
     source: 'nasa',
     timeSpeed: 3600,
     play: true,
-    date: undefined,
+    day: undefined,
     time: undefined,
     rangeSec: undefined,
     showText: true,
@@ -20,7 +20,7 @@ let controlMap = new Map();
 controlMap.set('source', (v) => {gControlState.source = v;}); // 'nasa', 'bt-s3', 'bt-cdn'
 controlMap.set('speed', (v) => {gControlState.timeSpeed = parseInt(v);});
 controlMap.set('play', (v) => {gControlState.play = parseInt(v) != 0;});
-controlMap.set('date', (v) => {gControlState.date = v;});
+controlMap.set('day', (v) => {gControlState.day = v;});
 controlMap.set('time', (v) => {gControlState.time = v;});
 controlMap.set('range', (v) => {gControlState.rangeSec = parseInt(v) * 24 * 3600;});
 controlMap.set('showText', (v) => {gControlState.showText = parseInt(v);});

@@ -39,9 +39,9 @@ export async function gInitEpicTime()
         gEpicDB.init()
         .then(() => {
             // Now that we know the limit, set start time
-            if (!gControlState.date)
+            if (!gControlState.day)
             {
-                gControlState.date = gEpicDB.getLastDay();
+                gControlState.day = gEpicDB.getLastDay();
             }
             if (!gControlState.time)
             {
@@ -50,7 +50,7 @@ export async function gInitEpicTime()
                 gControlState.time = now.toUTCString().split(' ')[4];
             }
 
-            let date_time = gControlState.date + " " + gControlState.time;
+            let date_time = gControlState.day + " " + gControlState.time;
             let startTimeSec = EpicDB.getTimeSecFromDateTimeString(date_time);
 
             if (startTimeSec < gEpicDB.getOldestEpicImageTimeSec())
@@ -58,19 +58,19 @@ export async function gInitEpicTime()
                 const bad_date_time = date_time;
                 startTimeSec = gEpicDB.getOldestEpicImageTimeSec();
                 const oldestDate = new Date(startTimeSec * 1000);
-                gControlState.date = oldestDate.toISOString().split('T')[0];
+                gControlState.day = oldestDate.toISOString().split('T')[0];
                 gControlState.time = oldestDate.toUTCString().split(' ')[4];
-                date_time = gControlState.date + " " + gControlState.time;
+                date_time = gControlState.day + " " + gControlState.time;
                 console.warn("Start time " + bad_date_time + " is older than oldest available EPIC image - adjust to oldest time " + date_time);
             }
-            while (startTimeSec > gEpicDB.getLatestEpicImageTimeSec() || !gEpicDB.isDayAvailable(gControlState.date))
+            while (startTimeSec > gEpicDB.getLatestEpicImageTimeSec() || !gEpicDB.isDayAvailable(gControlState.day))
             {
                 const bad_date_time = date_time;
                 startTimeSec -= 3600 * 24; // go back one day
                 const adjustedDate = new Date(startTimeSec * 1000);
-                gControlState.date = adjustedDate.toISOString().split('T')[0];
+                gControlState.day = adjustedDate.toISOString().split('T')[0];
                 gControlState.time = adjustedDate.toUTCString().split(' ')[4];
-                date_time = gControlState.date + " " + gControlState.time;
+                date_time = gControlState.day + " " + gControlState.time;
                 console.warn("Start time " + bad_date_time + " is not in available EPIC range - adjust to 24 hours backwards: " + date_time);
             }
             // align to exact time of closest EPIC image
@@ -108,13 +108,13 @@ export async function gInitEpicTime()
                 else if (!epicImageData1) {
                     startTimeSec = epicImageData0.timeSec;
                     date_time = epicImageData0.date;
-                    gControlState.date = date_time.split(' ')[0];
+                    gControlState.day = date_time.split(' ')[0];
                     gControlState.time = date_time.split(' ')[1];
                 }
                 else if (!epicImageData0) {
                     startTimeSec = epicImageData1.timeSec;
                     date_time = epicImageData1.date;
-                    gControlState.date = date_time.split(' ')[0];
+                    gControlState.day = date_time.split(' ')[0];
                     gControlState.time = date_time.split(' ')[1];
                 }
                 else {
@@ -124,7 +124,7 @@ export async function gInitEpicTime()
                         date_time = epicImageData1.date;
                     else
                         date_time = epicImageData0.date;
-                    gControlState.date = date_time.split(' ')[0];
+                    gControlState.day = date_time.split(' ')[0];
                     gControlState.time = date_time.split(' ')[1];
                 }
                 console.log("Start time: " + date_time);
