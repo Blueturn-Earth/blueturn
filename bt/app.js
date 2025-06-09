@@ -7,7 +7,7 @@ import { gControlState } from './controlparams.js';
 
 import EpicDB from './epic_db.js';
 import { gScreen} from './screen.js';
-import { gCalcLatLonNorthRotationMatrix, gCalcNormalFromScreenCoord, gCalcLatLonFromScreenCoord, gGetDayFromTimeSec} from './utils.js';
+import { gCalcLatLonNorthRotationMatrix, gCalcNormalFromScreenCoord, gCalcLatLonFromScreenCoord, gGetDayFromTimeSec, gGetDateFromTimeSec} from './utils.js';
 
 export let gEpicZoom = false;
 export let gEpicTimeSec = undefined;
@@ -467,7 +467,33 @@ export function gUpdateEpicTime(time)
             const DECCELERATION_FACTOR = 0.1; // Adjust this value to control the deceleration speed
             const systemDeltaTime = (time - lastUpdateTime) / 1000.0;
             currentTimeSpeed = lerp(currentTimeSpeed, targetSpeed, DECCELERATION_FACTOR);
-            gSetEpicTimeSec(gEpicTimeSec + systemDeltaTime * currentTimeSpeed);
+            let timeSec = gEpicTimeSec + systemDeltaTime * currentTimeSpeed;
+            let snapping = false;
+            if (!gControlState.play)
+            {
+                const [epicImageData0, epicImageData1] = gEpicDB.getBoundKeyFrames(timeSec);
+                if (epicImageData0 && epicImageData1)
+                {
+                    const closestEpicImageData = (timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec) ? epicImageData0 : epicImageData1;
+                    const distSec = Math.abs(timeSec - closestEpicImageData.timeSec);
+                    const SNAP_FACTOR = 0.1;
+                    const speedToClosest = SNAP_FACTOR * distSec / systemDeltaTime;
+                    if (Math.abs(currentTimeSpeed) <= speedToClosest)
+                    {
+                        const TIME_DIFF_EPSILON = 1;
+                        snapping = Math.abs(timeSec - closestEpicImageData.timeSec) > TIME_DIFF_EPSILON;
+                        if (gControlState.snapping && !snapping) {
+                            console.log("Snap to closest EPIC image: " + closestEpicImageData.date);
+                        }
+                        if(snapping)
+                            timeSec = lerp(timeSec, closestEpicImageData.timeSec, SNAP_FACTOR);
+                        else
+                            timeSec = closestEpicImageData.timeSec;
+                    }
+                }
+            }
+            gControlState.snapping = snapping;
+            gSetEpicTimeSec(timeSec);
         }
     }
 
