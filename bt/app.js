@@ -10,9 +10,11 @@ import { gScreen} from './screen.js';
 import { gCalcLatLonNorthRotationMatrix, gCalcNormalFromScreenCoord, gCalcLatLonFromScreenCoord, gGetDayFromTimeSec, gGetDateFromTimeSec} from './utils.js';
 
 export let gEpicTimeSec = undefined;
+export let gDateText = undefined;
 export let gEpicImageData0 = undefined; 
 export let gEpicImageData1 = undefined; 
 export let gEpicImageData = undefined;
+export let gZoom = false;
 export let gPivotEpicImageData = undefined;
 
 document.getElementById('btLogo').addEventListener('click', function() {
@@ -249,7 +251,7 @@ export function gSetEpicTimeSec(timeSec)
             // block the time change if we cannot interpolate EPIC images
             timeSec = prevEpicTimeSec;
         }
-        else if(gControlState.zoom)
+        else if(gZoom)
         {
             // block the time change if we are zoomed in and the pivot is not facing the current image
             // Check that pivot's lat lon is facing the 
@@ -273,7 +275,7 @@ export function gSetEpicTimeSec(timeSec)
 function gTagZoomEvent(triggerEvent)
 {
     const gtagEventInfo = {
-        'zoom': gControlState.zoom,
+        'zoom': gZoom,
         'trigger-event': triggerEvent,
         'play': gControlState.play,
         'time': gEpicTimeSec,
@@ -293,8 +295,8 @@ gScreen.addEventListener("long-press", (e) => {
 
 gScreen.addEventListener("double-click", (e) => {
     if (!gControlState.play)
-        setZoom(!gControlState.zoom, e.clickPos);
-    else if (gControlState.zoom)
+        setZoom(!gZoom, e.clickPos);
+    else if (gZoom)
         setZoom(false, e.clickPos);
 
     gTagZoomEvent("double-click");
@@ -305,7 +307,7 @@ gScreen.addEventListener("click", (e) => {
     gtag('event', 'play', {
         'play': gControlState.play,
         'trigger-event': 'click',
-        'zoom': gControlState.zoom
+        'zoom': gZoom
     });
     gControlState.holding = false;
 });
@@ -329,22 +331,22 @@ gScreen.addEventListener("drag", (e) => {
 });
 
 gScreen.addEventListener("mousewheel", (e) => {
-    const wasZoom = gControlState.zoom;
-    if (!gControlState.zoom && e.wheelDelta > 0)
+    const wasZoom = gZoom;
+    if (!gZoom && e.wheelDelta > 0)
         setZoom(true, e.wheelPos);
-    if (gControlState.zoom && e.wheelDelta < 0)
+    if (gZoom && e.wheelDelta < 0)
         setZoom(false, e.wheelPos);
-    if (wasZoom != gControlState.zoom)
+    if (wasZoom != gZoom)
         gTagZoomEvent('mousewheel');
 });
 
 gScreen.addEventListener("pinch", (e) => {
-    const wasZoom = gControlState.zoom;
-    if (!gControlState.zoom && e.pinchDelta > 0)
+    const wasZoom = gZoom;
+    if (!gZoom && e.pinchDelta > 0)
         setZoom(true, e.pinchCenterPos);
-    if (gControlState.zoom && e.pinchDelta < 0)
+    if (gZoom && e.pinchDelta < 0)
         setZoom(false, e.pinchCenterPos);
-    if (wasZoom != gControlState.zoom)
+    if (wasZoom != gZoom)
         gTagZoomEvent('pinch');
 });
 
@@ -418,6 +420,11 @@ function setZoom(on, pivotPos)
 {
     if (!gEpicTimeSec)
         return;
+
+    // Default
+    gZoom = false;
+    gControlState.zoom = undefined;
+
     if (on)
     {
         if (gEpicImageData)
@@ -429,15 +436,15 @@ function setZoom(on, pivotPos)
                 return false;
             }
             pivotStartPos = pivotPos;
-            gControlState.zoom = true;
+            gZoom = true;
+            gControlState.zoom = 
+                gPivotEpicImageData.pivot_coordinates.lat.toString() + ","+
+                gPivotEpicImageData.pivot_coordinates.lon;
             //console.log('pivotStartPos: ' + JSON.stringify(pivotStartPos));
         }
     }
-    else
-    {
-        gControlState.zoom = false;
-    }
 
+    console.log('pivot lat.lon coordinates: ' + gControlState.zoom);
     updateDateText(gEpicTimeSec);
 }
 
@@ -594,7 +601,7 @@ function updateDateText(timeSec)
     const date = new Date(timeSec * 1000);
     let dateStr = "";
     let timezoneFound = undefined;
-    if (gControlState.zoom &&
+    if (gZoom &&
         gPivotEpicImageData && 
         gPivotEpicImageData.pivot_coordinates)
     {
@@ -620,7 +627,7 @@ function updateDateText(timeSec)
         month: '2-digit',
         year: 'numeric'
     };
-    if (gControlState.zoom &&
+    if (gZoom &&
         gPivotEpicImageData && 
         gPivotEpicImageData.pivot_timezone && 
         gPivotEpicImageData.pivot_timezone.timeZoneId) {
@@ -636,7 +643,7 @@ function updateDateText(timeSec)
     }
     dateStr += date.toLocaleString("en-GB", options);
     dateStr = dateStr.replace(/(.*\d{2}:\d{2})\s*(.*)$/, '$1 ($2)');
-
+    gDateText = dateStr;
     document.getElementById("current-time-text").textContent = dateStr;
 
     const timeZoneEventTimeMs = (new Date()).getTime();

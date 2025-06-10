@@ -10,7 +10,7 @@ export let gControlState = {
     time: undefined,
     range: undefined,
     showText: true,
-    zoom: false,
+    zoom: undefined,
     holding: false,
     snapping: false
 };
@@ -23,7 +23,7 @@ gControlMap.set('day', (v) => {gControlState.day = v;});
 gControlMap.set('time', (v) => {gControlState.time = v;});
 gControlMap.set('range', (v) => {gControlState.range = parseInt(v) * 24 * 3600;});
 gControlMap.set('showText', (v) => {gControlState.showText = parseInt(v) != 0;});
-gControlMap.set('zoom', (v) => {gControlState.zoom = parseInt(v) != 0;});
+gControlMap.set('zoom', (v) => {gControlState.zoom = v;});
 
 const urlParams = new URLSearchParams(window.location.search);
 

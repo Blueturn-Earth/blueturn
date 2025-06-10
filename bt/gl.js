@@ -9,6 +9,7 @@ import {
   gEpicImageData, 
   gEpicImageData0, 
   gEpicImageData1, 
+  gZoom,
   gPivotEpicImageData
 } 
 from './app.js';
@@ -303,7 +304,7 @@ Promise.all([
 
     if (gPivotEpicImageData)
     {
-      const targetZoomFactor = gControlState.zoom ? maxZoom : 1.0;
+      const targetZoomFactor = gZoom ? maxZoom : 1.0;
       zoomFactor += 0.03 * (targetZoomFactor - zoomFactor); 
       glUpdateEPICImage(gPivotEpicImageData, 'pivot_epicImage');
       gl.uniform2f(gl.getUniformLocation(program, 'pivotScreenCoord'), 
