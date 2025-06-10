@@ -13,6 +13,7 @@ import {
 } 
 from './app.js';
 import { gControlState } from './controlparams.js';
+import { gScreen } from './screen.js';
 
 const canvas = document.getElementById('glcanvas');
 const gl = canvas.getContext('webgl2');
@@ -277,6 +278,19 @@ Promise.all([
     gl.uniform1f(gl.getUniformLocation(program, 'mixBmEpic'), mixBMEpicFactor);
   }
 
+  function glUpdateZoomCircleRadius()
+  {
+      let zoomCircleRadius = 200.0;
+      const cursorPos = gScreen.getCursorPos();
+      const pivotCursorVector = {
+        x: cursorPos.x - gPivotEpicImageData.pivot_coordinates.x,
+        y: cursorPos.y - gPivotEpicImageData.pivot_coordinates.y
+      };
+      const cursorPivotDistance = Math.sqrt(pivotCursorVector.x * pivotCursorVector.x + pivotCursorVector.y * pivotCursorVector.y);
+      zoomCircleRadius = Math.max(zoomCircleRadius, cursorPivotDistance);
+      gl.uniform1f(gl.getUniformLocation(program, 'zoomCircleRadius'), zoomCircleRadius);
+  }
+
   function glUpdateUniforms()
   {
     const [hasEpicData0, hasEpicTexture0] = glUpdateEPICImage(gEpicImageData0, 'epicImage[0]');
@@ -298,9 +312,8 @@ Promise.all([
       gl.uniform1i(gl.getUniformLocation(program, 'zoomActive'), true);
       gl.uniform1f(gl.getUniformLocation(program, 'zoomFactor'), zoomFactor);
 
-      let zoomCircleRadius = 200.0;
       gl.uniform1i(gl.getUniformLocation(program, 'showZoomCircle'), 1);
-      gl.uniform1f(gl.getUniformLocation(program, 'zoomCircleRadius'), zoomCircleRadius);
+      glUpdateZoomCircleRadius();
     }
     else
     {
