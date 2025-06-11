@@ -47,3 +47,18 @@ window.addEventListener("message", (event) => {
         }
     });
 });
+
+(function detectParentAndSendToGA() {
+    try {
+    const referrer = document.referrer; // This is the URL of the parent site
+    //console.log("Analytics: parent URL: " + referrer);
+    if (referrer) {
+        // Send as custom event
+        gtag('event', 'iframe_loaded', {
+        'parent_url': referrer
+        });
+    }
+    } catch (e) {
+    console.warn('Analytics: Unable to detect parent:', e);
+    }
+})();
