@@ -49,7 +49,7 @@ function shareURL(url) {
 
 const USE_TINY_URL = true; // Set to true to use TinyURL for shorter links
 
-export function share() {
+export function shareLink() {
     const day_time = gGetDateFromTimeSec(gEpicTimeSec);
     const day_time_split = day_time.split(' ');
     gControlState.day = day_time_split[0];
@@ -70,4 +70,19 @@ export function share() {
     }
 }
 
-window.share = share;
+export function sharePic() {
+  html2canvas(document.getElementById('glcanvas')).then(canvas => {
+    canvas.toBlob(blob => {
+      const file = new File([blob], 'screenshot.png', { type: 'image/png' });
+
+      navigator.share({
+        title: 'Bug report',
+        text: 'Found a weird UI bug here 👇',
+        files: [file]
+      });
+    });
+  });
+}
+
+window.shareLink = shareLink;
+window.sharePic = sharePic;
