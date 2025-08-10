@@ -8,11 +8,13 @@ export let gControlState = {
     play: true,
     day: undefined,
     time: undefined,
-    jump: false,
     range: undefined,
     showText: true,
     zoom: undefined,
+    // internal state
     holding: false,
+    jump: false,
+    jumping: false,
     snapping: false
 };
 

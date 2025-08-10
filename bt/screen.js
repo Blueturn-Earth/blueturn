@@ -60,6 +60,7 @@ class Screen
         this.#events.set("out", []);
         this.#events.set("mousewheel", []);
         this.#events.set("pinch", []);
+        this.#events.set("key", []);
 
         let self = this;
         window.addEventListener("load", function(e) {
@@ -111,6 +112,11 @@ class Screen
 
             document.addEventListener("wheel", function(e) {
                 self.#handleWheel(e);
+            });
+
+            // handle key press
+            document.addEventListener("keyup", function(e) {
+                self.#handleKey(e);
             });
         });
     }
@@ -327,6 +333,15 @@ class Screen
         };
         this.callEvent("mousewheel", eWheel);
 
+    }
+
+    #handleKey(e)
+    {
+        this.callEvent("key", {
+            key: e.key,
+            code: e.code,
+            modifiers: getModifierMask(e)
+        });
     }
 }
 

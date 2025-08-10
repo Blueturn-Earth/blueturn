@@ -43,13 +43,13 @@ export async function gInitEpicTime()
 {
     // set first time
     gEpicDB.init()
-    .then(gResetEpicTime)            
+    .then(gJumpToEpicTime)            
     .catch((error) => {
         reject("Failed to init EpicDB: " + error);
     });
 }
 
-export async function gResetEpicTime()
+export async function gJumpToEpicTime()
 {
     return new Promise((resolve, reject) => {
         if (!gEpicDB.isReady())
@@ -58,6 +58,7 @@ export async function gResetEpicTime()
             return;
         }
 
+        gControlState.jumping = true;
         gControlState.jump = false;
 
         // Now that we know the limit, set start time
@@ -73,7 +74,7 @@ export async function gResetEpicTime()
         datePicker.addEventListener('change', function (e) {
             gControlState.day = this.value;
             gControlState.play = false;
-            gResetEpicTime();
+            gControlState.jump = true;
         });
 
         if (!gControlState.time)
@@ -111,6 +112,7 @@ export async function gResetEpicTime()
         {
             console.log("Start time: " + date_time);
             gSetInitialEpicTimeSec(startTimeSec);
+            gControlState.jumping = false;
             resolve(startTimeSec);
             return;
         }
@@ -119,6 +121,7 @@ export async function gResetEpicTime()
         .then((boundPair) => {
             if (!boundPair) // likely aborted
             {
+                gControlState.jumping = false;
                 resolve(null);
                 return;
             }
@@ -130,6 +133,7 @@ export async function gResetEpicTime()
                 console.error("Failed to fetch bound key EPIC frames - returned null")
                 console.log("Start time: " + date_time);
                 gSetInitialEpicTimeSec(startTimeSec);
+                gControlState.jumping = false;
                 resolve(startTimeSec);
                 return;
             }
@@ -162,6 +166,7 @@ export async function gResetEpicTime()
             }
             console.log("Start time: " + date_time);
             gSetInitialEpicTimeSec(startTimeSec);
+            gControlState.jumping = false;
             resolve(startTimeSec);
             return;
         })
@@ -169,6 +174,7 @@ export async function gResetEpicTime()
             console.error("Failed to fetch bound key frames around start time: " + error);
             console.log("Start time: " + date_time);
             gSetInitialEpicTimeSec(startTimeSec);
+            gControlState.jumping = false;
             resolve(startTimeSec);
             return;
         });
@@ -363,6 +369,40 @@ gScreen.addEventListener("click", (e) => {
     gControlState.holding = false;
 });
 
+
+gScreen.addEventListener("key", (e) => {
+    switch (e.key) {
+        case "ArrowDown":
+            {
+                // Shift gControlState.day by one day before the current day
+                const newEpicTimeSec = gEpicTimeSec - 24 * 3600;
+                // Get ISO string and remove the time zone suffix (.000Z)
+                const isoString = new Date(newEpicTimeSec * 1000).toISOString();
+                const dateTimePair = isoString.split('T');
+                gControlState.day = dateTimePair[0];
+                gControlState.time = dateTimePair[1].replace(/\.000Z$/, '');
+                gControlState.play = false;
+                gControlState.jump = true;
+            }
+            break;
+        case "ArrowUp":
+            {
+                // Shift gControlState.day by one day after the current day
+                const newEpicTimeSec = gEpicTimeSec + 24 * 3600;
+                // Get ISO string and remove the time zone suffix (.000Z)
+                const isoString = new Date(newEpicTimeSec * 1000).toISOString();
+                const dateTimePair = isoString.split('T');
+                gControlState.day = dateTimePair[0];
+                gControlState.time = dateTimePair[1].replace(/\.000Z$/, '');
+                gControlState.play = false;
+                gControlState.jump = true;
+            }
+            break;
+        default:
+            console.warn("Unhandled key: " + e.key);
+    }
+});
+
 let dragging = false;
 let dragTimeout = undefined;
 gScreen.addEventListener("drag", (e) => {
@@ -516,9 +556,14 @@ export function gUpdateEpicTime(time)
         return;
     }
 
+    if (gControlState.jumping)
+    {
+        return;
+    }
+
     if (gControlState.jump)
     {
-        gResetEpicTime();
+        gJumpToEpicTime();
         return;
     }
 
