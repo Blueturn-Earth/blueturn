@@ -45,7 +45,7 @@ export async function gInitEpicTime()
     gEpicDB.init()
     .then(gJumpToEpicTime)            
     .catch((error) => {
-        reject("Failed to init EpicDB: " + error);
+        console.error("Failed to init EpicDB: " + error);
     });
 }
 
