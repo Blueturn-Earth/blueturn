@@ -51,6 +51,11 @@ export async function gInitEpicTime()
 
 export async function gJumpToEpicTime()
 {
+    if (gControlState.jumping)
+    {
+        console.warn("Already jumping to new date, ignoring request");
+        return;
+    }
     return new Promise((resolve, reject) => {
         if (!gEpicDB.isReady())
         {
@@ -59,7 +64,6 @@ export async function gJumpToEpicTime()
         }
 
         gControlState.jumping = true;
-        gControlState.jump = false;
 
         // Now that we know the limit, set start time
         if (!gControlState.day)
@@ -72,6 +76,7 @@ export async function gJumpToEpicTime()
         datePicker.min = gEpicDB.getFirstDay();
         datePicker.value = gControlState.day;
         datePicker.addEventListener('change', function (e) {
+            console.log("Date changed to: " + this.value);
             gControlState.day = this.value;
             gControlState.play = false;
             gControlState.jump = true;
@@ -113,6 +118,7 @@ export async function gJumpToEpicTime()
             console.log("Start time: " + date_time);
             gSetInitialEpicTimeSec(startTimeSec);
             gControlState.jumping = false;
+            gControlState.jump = false;
             resolve(startTimeSec);
             return;
         }
@@ -122,6 +128,7 @@ export async function gJumpToEpicTime()
             if (!boundPair) // likely aborted
             {
                 gControlState.jumping = false;
+                gControlState.jump = false;
                 resolve(null);
                 return;
             }
@@ -134,6 +141,7 @@ export async function gJumpToEpicTime()
                 console.log("Start time: " + date_time);
                 gSetInitialEpicTimeSec(startTimeSec);
                 gControlState.jumping = false;
+                gControlState.jump = false;
                 resolve(startTimeSec);
                 return;
             }
@@ -167,6 +175,7 @@ export async function gJumpToEpicTime()
             console.log("Start time: " + date_time);
             gSetInitialEpicTimeSec(startTimeSec);
             gControlState.jumping = false;
+            gControlState.jump = false;
             resolve(startTimeSec);
             return;
         })
@@ -175,6 +184,7 @@ export async function gJumpToEpicTime()
             console.log("Start time: " + date_time);
             gSetInitialEpicTimeSec(startTimeSec);
             gControlState.jumping = false;
+            gControlState.jump = false;
             resolve(startTimeSec);
             return;
         });
@@ -563,6 +573,7 @@ export function gUpdateEpicTime(time)
 
     if (gControlState.jump)
     {
+        console.log("Requested jumping to new date");
         gJumpToEpicTime();
         return;
     }
