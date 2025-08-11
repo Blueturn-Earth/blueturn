@@ -79,6 +79,7 @@ export async function gJumpToEpicTime()
             console.log("Date changed to: " + this.value);
             gControlState.day = this.value;
             gControlState.play = false;
+            gControlState.blockSnapping = false;
             gControlState.jump = true;
         });
 
@@ -196,6 +197,7 @@ gScreen.addEventListener("down", (e) => {
     if (gEpicTimeSec)
     {
         epicPressTime = gEpicTimeSec;
+        gControlState.blockSnapping = false;
         gControlState.holding = true;
     }
 });
@@ -372,6 +374,7 @@ gScreen.addEventListener("double-click", (e) => {
 
 gScreen.addEventListener("click", (e) => {
     gControlState.play = !gControlState.play;
+    gControlState.blockSnapping = false;
     gtag('event', 'play', {
         'play': gControlState.play,
         'trigger-event': 'click',
@@ -393,6 +396,7 @@ gScreen.addEventListener("key", (e) => {
                 gControlState.day = dateTimePair[0];
                 gControlState.time = dateTimePair[1].replace(/\.000Z$/, '');
                 gControlState.play = false;
+                gControlState.blockSnapping = true;
                 gControlState.jump = true;
             }
             break;
@@ -406,6 +410,7 @@ gScreen.addEventListener("key", (e) => {
                 gControlState.day = dateTimePair[0];
                 gControlState.time = dateTimePair[1].replace(/\.000Z$/, '');
                 gControlState.play = false;
+                gControlState.blockSnapping = true;
                 gControlState.jump = true;
             }
             break;
@@ -589,7 +594,7 @@ export function gUpdateEpicTime(time)
             currentTimeSpeed = lerp(currentTimeSpeed, targetSpeed, DECCELERATION_FACTOR);
             let timeSec = gEpicTimeSec + systemDeltaTime * currentTimeSpeed;
             let snapping = false;
-            if (!gControlState.play)
+            if (!gControlState.play && !gControlState.blockSnapping)
             {
                 const [epicImageData0, epicImageData1] = gEpicDB.getBoundKeyFrames(timeSec);
                 if (epicImageData0 && epicImageData1)
@@ -603,7 +608,7 @@ export function gUpdateEpicTime(time)
                         const TIME_DIFF_EPSILON = 1;
                         snapping = Math.abs(timeSec - closestEpicImageData.timeSec) > TIME_DIFF_EPSILON;
                         if (gControlState.snapping && !snapping) {
-                            console.log("Snap to closest EPIC image: " + closestEpicImageData.date);
+                            console.log("Snapped to closest EPIC image: " + closestEpicImageData.date);
                         }
                         if(snapping)
                             timeSec = lerp(timeSec, closestEpicImageData.timeSec, SNAP_FACTOR);

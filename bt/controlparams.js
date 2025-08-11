@@ -15,7 +15,8 @@ export let gControlState = {
     holding: false,
     jump: false,
     jumping: false,
-    snapping: false
+    snapping: false,
+    blockSnapping: false
 };
 
 export let gControlMap = new Map();
