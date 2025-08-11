@@ -92,6 +92,9 @@ export default class EpicDB {
     static getTimeSecFromDateTimeString(dateTimeStr) {return (new Date(dateTimeStr + "Z")).getTime() / 1000;}
     static getDayStrFromTimeSec(timeSec) {
         const date = new Date(timeSec * 1000);
+        if (isNaN(date.getTime())) {
+            throw new Error("Invalid time value for timeSec= " + timeSec);
+        }
         const dateStr = date.toISOString().split('T')[0];
         return dateStr; // YYYY-MM-DD format
     }
@@ -245,6 +248,12 @@ export default class EpicDB {
                 // Already loaded
                 callback?.(epicDayData);
                 resolve(epicDayData);
+                return;
+            }
+
+            if (epicDayData && epicDayData.loading) {
+                // Already loading
+                resolve(null);
                 return;
             }
 
@@ -466,7 +475,11 @@ export default class EpicDB {
             if (!epicImageDataKey0 && !epicImageDataKey1)
             {
                 this._loadEpicDay(dayStr)
-                .then(() => {
+                .then((epicDayData) => {
+                    if (epicDayData == null) {
+                        resolve(null); // likely loading already
+                        return;
+                    }
                     const boundPair = this.getBoundKeyFrames(timeSec);
                     if (!boundPair || boundPair.length !== 2) {
                         resolve(null); // likely aborted
@@ -491,7 +504,11 @@ export default class EpicDB {
             else if (!epicImageDataKey0) // if left frame is missing
             {
                 this._loadEpicDay(prevDayStr)
-                .then(() => {
+                .then((epicDayData) => {
+                    if (epicDayData == null) {
+                        resolve(null); // likely loading already
+                        return;
+                    }
                     const boundPair = this.getBoundKeyFrames(timeSec);
                     if (!boundPair || boundPair.length !== 2) {
                         resolve(null); // likely aborted
@@ -511,7 +528,11 @@ export default class EpicDB {
             else //if (!epicImageDataKey1) // if right frame is missing
             {
                 this._loadEpicDay(nextDayStr)
-                .then(() => {
+                .then((epicDayData) => {
+                    if (epicDayData == null) {
+                        resolve(null); // likely loading already
+                        return;
+                    }
                     const boundPair = this.getBoundKeyFrames(timeSec);
                     if (!boundPair || boundPair.length !== 2) {
                         resolve(null); // likely aborted

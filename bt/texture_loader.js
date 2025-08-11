@@ -164,7 +164,7 @@ export class TextureLoader {
       const signal = controller.signal;
       this._pendingLoads.set(url, controller);
       
-      console.log("Loading Epic Image URL: " + url);
+      //console.log("Loading Epic Image URL: " + url);
       const NO_CACHE = true;
       const fullUrl = url + "?" + gEpicAPI.getEpicCallURLSecretQuery(NO_CACHE)
       fetch(fullUrl, { mode: 'cors', cache: 'force-cache', signal })
