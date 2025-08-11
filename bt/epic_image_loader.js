@@ -35,7 +35,7 @@ export default class EpicImageLoader
             evictedEpicImageData.imageURL = null;
             evictedEpicImageData.texture = null;
             // Avoid log spam
-            //console.warn("Evicted image data for date: " + evictedEpicImageData.date);
+            console.warn("Evicted image data for date: " + evictedEpicImageData.date);
         }
         else
         {
