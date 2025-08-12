@@ -87,10 +87,10 @@ export async function gJumpToEpicTime()
         {
             // set the current hour within the current day
             const now = new Date();
-            gControlState.time = now.toUTCString().split(' ')[4].replace(/\.000Z$/, '');
+            gControlState.time = now.toUTCString().split(' ')[4].replace(/\.\d+Z$/, '');
         }
 
-        let date_time = gControlState.day + " " + gControlState.time.replace(/\.000Z$/, '');
+        let date_time = gControlState.day + " " + gControlState.time.replace(/\.\d+Z$/, '');
         console.log("Jumping to EPIC time: " + date_time);
         let startTimeSec = EpicDB.getTimeSecFromDateTimeString(date_time);
 
@@ -100,7 +100,7 @@ export async function gJumpToEpicTime()
             startTimeSec = gEpicDB.getOldestEpicImageTimeSec();
             const oldestDate = new Date(startTimeSec * 1000);
             gControlState.day = oldestDate.toISOString().split('T')[0];
-            gControlState.time = oldestDate.toUTCString().split(' ')[4].replace(/\.000Z$/, '');
+            gControlState.time = oldestDate.toUTCString().split(' ')[4].replace(/\.\d+Z$/, '');
             date_time = gControlState.day + " " + gControlState.time;
             console.warn("Start time " + bad_date_time + " is older than oldest available EPIC image - adjust to oldest time " + date_time);
         }
@@ -110,7 +110,7 @@ export async function gJumpToEpicTime()
             startTimeSec -= 3600 * 24; // go back one day
             const adjustedDate = new Date(startTimeSec * 1000);
             gControlState.day = adjustedDate.toISOString().split('T')[0];
-            gControlState.time = adjustedDate.toUTCString().split(' ')[4].replace(/\.000Z$/, '');
+            gControlState.time = adjustedDate.toUTCString().split(' ')[4].replace(/\.\d+Z$/, '');
             date_time = gControlState.day + " " + gControlState.time;
             console.warn("Start time " + bad_date_time + " is not in available EPIC range - adjust to 24 hours backwards: " + date_time);
         }
@@ -394,7 +394,7 @@ gScreen.addEventListener("key", (e) => {
                 const isoString = new Date(newEpicTimeSec * 1000).toISOString();
                 const dateTimePair = isoString.split('T');
                 gControlState.day = dateTimePair[0];
-                gControlState.time = dateTimePair[1].replace(/\.000Z$/, '');
+                gControlState.time = dateTimePair[1].replace(/\.\d+Z$/, '');
                 gControlState.play = false;
                 gControlState.blockSnapping = true;
                 gControlState.jump = true;
@@ -408,7 +408,7 @@ gScreen.addEventListener("key", (e) => {
                 const isoString = new Date(newEpicTimeSec * 1000).toISOString();
                 const dateTimePair = isoString.split('T');
                 gControlState.day = dateTimePair[0];
-                gControlState.time = dateTimePair[1].replace(/\.000Z$/, '');
+                gControlState.time = dateTimePair[1].replace(/\.\d+Z$/, '');
                 gControlState.play = false;
                 gControlState.blockSnapping = true;
                 gControlState.jump = true;
