@@ -123,6 +123,7 @@ class Screen
 
     #CLICK_THRESHOLD = canvas.width / 50;
     #DOUBLECLICK_THRESHOLD = canvas.width / 30;
+    #PRESS_TIMEOUT_MS = 200;
     #LONG_PRESS_TIME_MS = 500;
     #DOUBLE_CLICK_TIME_MS = 200;
     #MOVE_2_CROSS_THRESHOLD = 0.1;
@@ -195,6 +196,9 @@ class Screen
             e.startPos = this.#startPos;
         }
 
+        if (this.pressTimeout) // too early
+            return;
+
         this.callEvent("move", e);
 
         if (e.startPos)
@@ -214,6 +218,9 @@ class Screen
     }
 
     #handleMove2(x1, y1, x2, y2) {
+        if (this.pressTimeout) // too early
+            return;
+
         const move2Vector = {
             x: x2 - x1,
             y: y2 - y1
@@ -243,6 +250,7 @@ class Screen
         }
         this.#lastMove2Vector = {x: vectorX, y: vectorY};
     }
+
     #handleStart(x, y, e = undefined) {
         if (!e)
             e = {};
@@ -261,6 +269,15 @@ class Screen
 
         this.clickCancelled = false;
 
+        if (!this.pressTimeout)
+        {
+            this.pressTimeout = setTimeout(
+                () => {
+                    this.pressTimeout = undefined;
+                }, 
+                this.#PRESS_TIMEOUT_MS);
+        }
+
         if (!this.longPressTimeout)
         {
             this.longPressTimeout = setTimeout(() => {
@@ -273,6 +290,12 @@ class Screen
 
     #handleEnd() {
         gModifiersMask = gModifiersMask & ~Modifiers.LeftBtn;
+
+        if (this.pressTimeout)
+        {
+            clearTimeout(this.pressTimeout);
+            this.pressTimeout = undefined;
+        }
 
         if (this.longPressTimeout)
         {
@@ -294,7 +317,6 @@ class Screen
             const eClick = {
                 clickPos: this.#lastMovePos
             };
-            this.callEvent("click", eClick);
             if (this.doubleClickTimeout)
             {
                 this.callEvent("double-click", eClick);
@@ -303,6 +325,7 @@ class Screen
             }
             else
             {
+                this.callEvent("click", eClick);
                 this.doubleClickTimeout = setTimeout(() => {
                     this.doubleClickTimeout = undefined;
                 }, this.#DOUBLE_CLICK_TIME_MS);
