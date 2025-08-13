@@ -461,7 +461,7 @@ gScreen.addEventListener("swype-down", (e) => {
 
 let dragging = false;
 let dragTimeout = undefined;
-gScreen.addEventListener("drag", (e) => {
+gScreen.addEventListener("drag-x", (e) => {
     if (epicPressTime && gEpicTimeSec)
     {
         const dragDeltaTime = (e.deltaPos.x) / canvas.width * 3600 * 24;

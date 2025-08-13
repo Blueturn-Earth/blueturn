@@ -49,6 +49,8 @@ class Screen
         // Supported events
         this.#events.set("move", []);
         this.#events.set("drag", []);
+        this.#events.set("drag-x", []);
+        this.#events.set("drag-y", []);
         this.#events.set("down", []);
         this.#events.set("long-press", []);
         this.#events.set("up", []);
@@ -123,13 +125,14 @@ class Screen
         });
     }
 
-    #CLICK_THRESHOLD = 50;
-    #DOUBLECLICK_THRESHOLD = 80;
-    #PRESS_TIMEOUT_MS = 200;
+    #MIN_DRAG_DISTANCE = 50;
+    #MIN_DOUBLE_CLICK_DISTANCE = 80;
+    #CLICK_TIMEOUT_MS = 200;
     #LONG_PRESS_TIME_MS = 500;
-    #DOUBLE_CLICK_TIME_MS = 200;
+    #DOUBLE_CLICK_MAX_TIME_MS = 200;
     #MOVE_2_CROSS_THRESHOLD = 0.1;
     #PINCH_STEP = canvas.width / 50;
+    #MIN_SWYPE_DISTANCE = 50;
     #SWYPE_TIMEOUT_MS = 300;
 
     getCursorPos()
@@ -184,15 +187,15 @@ class Screen
                 y: e.movePos.y - this.#lastMovePos.y
             };
             if (this.#lastMoveTime) {
-            e.deltaTime = ((new Date()).getTime() - this.#lastMoveTime) / 1000.0;
-            e.posSpeed = {
-                x: e.deltaPos.x / e.deltaTime,
-                y: e.deltaPos.y / e.deltaTime
-            }
+                e.deltaTime = ((new Date()).getTime() - this.#lastMoveTime) / 1000.0;
+                e.posSpeed = {
+                    x: e.deltaPos.x / e.deltaTime,
+                    y: e.deltaPos.y / e.deltaTime
+                }
 
                 if (gModifiersMask & Modifiers.LeftBtn)
                 {
-            //console.log("deltaPos: " + JSON.stringify(e.deltaPos) + ", deltaTime: " + e.deltaTime + ", posSpeed: " + JSON.stringify(e.posSpeed));
+                    //console.log("deltaPos: " + JSON.stringify(e.deltaPos) + ", deltaTime: " + e.deltaTime + ", posSpeed: " + JSON.stringify(e.posSpeed));
                 }
             }
         }
@@ -204,40 +207,35 @@ class Screen
         else
         {
             e.startPos = this.#startPos;
-
-            const totalDelta = {
-                x: e.movePos.x - this.#startPos.x,
-                y: e.movePos.y - this.#startPos.y
-            };
-            if (Math.abs(totalDelta.x) > this.#CLICK_THRESHOLD ||
-                Math.abs(totalDelta.y) > this.#CLICK_THRESHOLD)
-            {
-                if (this.pressTimeout)
-                {
-                    clearTimeout(this.pressTimeout);
-                    this.pressTimeout = undefined;
-                }
-            }
         }
-
-        if (this.pressTimeout) // too early
-            return;
 
         this.callEvent("move", e);
 
-        if (e.startPos)
+        if (gModifiersMask & Modifiers.LeftBtn) 
         {
-            if (Math.abs(e.movePos.x - e.startPos.x) > this.#CLICK_THRESHOLD || 
-                Math.abs(e.movePos.y - e.startPos.y) > this.#CLICK_THRESHOLD)
+            if (Math.abs(e.movePos.x - e.startPos.x) > this.#MIN_DRAG_DISTANCE || 
+                Math.abs(e.movePos.y - e.startPos.y) > this.#MIN_DRAG_DISTANCE)
             {
+                if (this.clickTimeout)
+                {
+                    clearTimeout(this.clickTimeout);
+                    this.clickTimeout = undefined;
+                }
                 if (this.longPressTimeout)
                 {
                     clearTimeout(this.longPressTimeout);
                     this.longPressTimeout = undefined;
                 }
             }
-            e.dragPos = e.movePos;
-            this.callEvent("drag", e);
+
+            if (!this.clickTimeout) {
+                e.dragPos = e.movePos;
+                this.callEvent("drag", e);
+                if (Math.abs(e.movePos.x - e.startPos.x) > this.#MIN_DRAG_DISTANCE)
+                    this.callEvent("drag-x", e);
+                if (Math.abs(e.movePos.y - e.startPos.y) > this.#MIN_DRAG_DISTANCE)
+                    this.callEvent("drag-y", e);
+            }
         }
     }
 
@@ -251,9 +249,6 @@ class Screen
             this.#lastMove2Vector = move2Vector;
             return;
         }
-
-        if (this.pressTimeout) // too early
-            return;
 
         // cross-product
         const cross = this.#lastMove2Vector.x * move2Vector.y - this.#lastMove2Vector.y * move2Vector.x;
@@ -295,13 +290,13 @@ class Screen
 
         this.clickCancelled = false;
 
-        if (!this.pressTimeout)
+        if (!this.clickTimeout)
         {
-            this.pressTimeout = setTimeout(
+            this.clickTimeout = setTimeout(
                 () => {
-                    this.pressTimeout = undefined;
+                    this.clickTimeout = undefined;
                 }, 
-                this.#PRESS_TIMEOUT_MS);
+                this.#CLICK_TIMEOUT_MS);
         }
 
         if (!this.longPressTimeout)
@@ -324,8 +319,8 @@ class Screen
         console.log("try swype delta: x=" + dragDelta.x + ", y=" + dragDelta.y + ", time=" + dragDuration);
 
         if (dragDuration < this.#SWYPE_TIMEOUT_MS &&
-            (Math.abs(dragDelta.x) > this.#CLICK_THRESHOLD ||
-             Math.abs(dragDelta.y) > this.#CLICK_THRESHOLD))
+            (Math.abs(dragDelta.x) > this.#MIN_SWYPE_DISTANCE ||
+             Math.abs(dragDelta.y) > this.#MIN_SWYPE_DISTANCE))
         {
             const swypeSpeedVector = {
                 x: dragDelta.x / dragDuration,
@@ -366,10 +361,10 @@ class Screen
     #handleEnd() {
         gModifiersMask = gModifiersMask & ~Modifiers.LeftBtn;
 
-        if (this.pressTimeout)
+        if (this.clickTimeout)
         {
-            clearTimeout(this.pressTimeout);
-            this.pressTimeout = undefined;
+            clearTimeout(this.clickTimeout);
+            this.clickTimeout = undefined;
         }
 
         if (this.longPressTimeout)
@@ -388,8 +383,8 @@ class Screen
             return;
 
         if (!this.clickCancelled &&
-            Math.abs(this.#lastMovePos.x - this.#startPos.x) < this.#DOUBLECLICK_THRESHOLD &&
-            Math.abs(this.#lastMovePos.y - this.#startPos.y) < this.#DOUBLECLICK_THRESHOLD)
+            Math.abs(this.#lastMovePos.x - this.#startPos.x) < this.#MIN_DOUBLE_CLICK_DISTANCE &&
+            Math.abs(this.#lastMovePos.y - this.#startPos.y) < this.#MIN_DOUBLE_CLICK_DISTANCE)
         {
             const eClick = {
                 clickPos: this.#lastMovePos
@@ -405,7 +400,7 @@ class Screen
                 this.callEvent("click", eClick);
                 this.doubleClickTimeout = setTimeout(() => {
                     this.doubleClickTimeout = undefined;
-                }, this.#DOUBLE_CLICK_TIME_MS);
+                }, this.#DOUBLE_CLICK_MAX_TIME_MS);
             }
         }
 
@@ -458,6 +453,8 @@ function logEvent(e)
 // gScreen.addEventListener("up", logEvent);
 // gScreen.addEventListener("out", logEvent);
 // //gScreen.addEventListener("drag", logEvent);
+// //gScreen.addEventListener("drag-x", logEvent);
+// //gScreen.addEventListener("drag-y", logEvent);
 gScreen.addEventListener("click", logEvent);
 gScreen.addEventListener("long-press", logEvent);
 gScreen.addEventListener("double-click", logEvent);
