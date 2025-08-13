@@ -194,6 +194,20 @@ class Screen
         else
         {
             e.startPos = this.#startPos;
+
+            const totalDelta = {
+                x: e.movePos.x - this.#startPos.x,
+                y: e.movePos.y - this.#startPos.y
+            };
+            if (Math.abs(totalDelta.x) > this.#CLICK_THRESHOLD ||
+                Math.abs(totalDelta.y) > this.#CLICK_THRESHOLD)
+            {
+                if (this.pressTimeout)
+                {
+                    clearTimeout(this.pressTimeout);
+                    this.pressTimeout = undefined;
+                }
+            }
         }
 
         if (this.pressTimeout) // too early
