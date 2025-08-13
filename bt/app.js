@@ -421,40 +421,42 @@ gScreen.addEventListener("click", (e) => {
     }
 });
 
+function jumpDays(numDays)
+{
+    const newEpicTimeSec = gEpicTimeSec + numDays * 24 * 3600;
+    // Get ISO string and remove the time zone suffix (.000Z)
+    const isoString = new Date(newEpicTimeSec * 1000).toISOString();
+    const dateTimePair = isoString.split('T');
+    gControlState.day = dateTimePair[0];
+    gControlState.time = dateTimePair[1].replace(/\.\d+Z$/, '');
+    gControlState.play = false;
+    gControlState.blockSnapping = true;
+    gControlState.jump = true;
+}
 
 gScreen.addEventListener("key", (e) => {
     switch (e.key) {
         case "ArrowDown":
             {
-                // Shift gControlState.day by one day before the current day
-                const newEpicTimeSec = gEpicTimeSec - 24 * 3600;
-                // Get ISO string and remove the time zone suffix (.000Z)
-                const isoString = new Date(newEpicTimeSec * 1000).toISOString();
-                const dateTimePair = isoString.split('T');
-                gControlState.day = dateTimePair[0];
-                gControlState.time = dateTimePair[1].replace(/\.\d+Z$/, '');
-                gControlState.play = false;
-                gControlState.blockSnapping = true;
-                gControlState.jump = true;
+                jumpDays(-1);
             }
             break;
         case "ArrowUp":
             {
-                // Shift gControlState.day by one day after the current day
-                const newEpicTimeSec = gEpicTimeSec + 24 * 3600;
-                // Get ISO string and remove the time zone suffix (.000Z)
-                const isoString = new Date(newEpicTimeSec * 1000).toISOString();
-                const dateTimePair = isoString.split('T');
-                gControlState.day = dateTimePair[0];
-                gControlState.time = dateTimePair[1].replace(/\.\d+Z$/, '');
-                gControlState.play = false;
-                gControlState.blockSnapping = true;
-                gControlState.jump = true;
+                jumpDays(+1);
             }
             break;
         default:
             console.warn("Unhandled key: " + e.key);
     }
+});
+
+gScreen.addEventListener("swype-up", (e) => {
+    jumpDays(+1);
+});
+
+gScreen.addEventListener("swype-down", (e) => {
+    jumpDays(-1);
 });
 
 let dragging = false;
