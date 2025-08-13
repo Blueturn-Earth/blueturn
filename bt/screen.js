@@ -39,13 +39,10 @@ class Screen
 {
     #events = new Map();
     #startPos = undefined;
+    #startTime = undefined;
     #lastMovePos = undefined;
     #lastMoveTime = undefined;
     #lastMove2Vector = undefined;
-
-    get startPos() {
-        return this.#startPos;
-    }
 
     constructor()
     {
@@ -61,6 +58,11 @@ class Screen
         this.#events.set("mousewheel", []);
         this.#events.set("pinch", []);
         this.#events.set("key", []);
+        this.#events.set("swype", []);
+        this.#events.set("swype-left", []);
+        this.#events.set("swype-right", []);
+        this.#events.set("swype-up", []);
+        this.#events.set("swype-down", []);
 
         let self = this;
         window.addEventListener("load", function(e) {
@@ -121,13 +123,14 @@ class Screen
         });
     }
 
-    #CLICK_THRESHOLD = canvas.width / 50;
-    #DOUBLECLICK_THRESHOLD = canvas.width / 30;
+    #CLICK_THRESHOLD = 50;
+    #DOUBLECLICK_THRESHOLD = 80;
     #PRESS_TIMEOUT_MS = 200;
     #LONG_PRESS_TIME_MS = 500;
     #DOUBLE_CLICK_TIME_MS = 200;
     #MOVE_2_CROSS_THRESHOLD = 0.1;
     #PINCH_STEP = canvas.width / 50;
+    #SWYPE_TIMEOUT_MS = 300;
 
     getCursorPos()
     {
@@ -163,7 +166,8 @@ class Screen
 
     // Private section
 
-    #handleMove(x, y, e = undefined) {
+    #handleMove(x, y, e = undefined) 
+    {
         if (e)
         {
             gModifiersMask |= getModifierMask(e);
@@ -173,18 +177,24 @@ class Screen
             e = {};
 
         e.movePos = getCanvasCoords(x, y);
-        if (this.#lastMoveTime && this.#lastMovePos)
+        if (this.#lastMovePos)
         {
             e.deltaPos = {
                 x: e.movePos.x - this.#lastMovePos.x,
                 y: e.movePos.y - this.#lastMovePos.y
             };
+            if (this.#lastMoveTime) {
             e.deltaTime = ((new Date()).getTime() - this.#lastMoveTime) / 1000.0;
             e.posSpeed = {
                 x: e.deltaPos.x / e.deltaTime,
                 y: e.deltaPos.y / e.deltaTime
             }
+
+                if (gModifiersMask & Modifiers.LeftBtn)
+                {
             //console.log("deltaPos: " + JSON.stringify(e.deltaPos) + ", deltaTime: " + e.deltaTime + ", posSpeed: " + JSON.stringify(e.posSpeed));
+                }
+            }
         }
         this.#lastMovePos = e.movePos;
         this.#lastMoveTime = (new Date()).getTime();
@@ -232,9 +242,6 @@ class Screen
     }
 
     #handleMove2(x1, y1, x2, y2) {
-        if (this.pressTimeout) // too early
-            return;
-
         const move2Vector = {
             x: x2 - x1,
             y: y2 - y1
@@ -244,6 +251,10 @@ class Screen
             this.#lastMove2Vector = move2Vector;
             return;
         }
+
+        if (this.pressTimeout) // too early
+            return;
+
         // cross-product
         const cross = this.#lastMove2Vector.x * move2Vector.y - this.#lastMove2Vector.y * move2Vector.x;
         // length of each vector
@@ -270,7 +281,8 @@ class Screen
             e = {};
         e.startPos = getCanvasCoords(x, y);
         this.#startPos = this.#lastMovePos = e.startPos;
-
+        this.#startTime = (new Date()).getTime();
+        this.#lastMoveTime = undefined;
         gModifiersMask = gModifiersMask | Modifiers.LeftBtn;
         e.modifierMask = gModifiersMask;
 
@@ -302,6 +314,55 @@ class Screen
         }
     }
 
+    #trySwype() 
+    {
+        const dragDuration = this.#lastMoveTime - this.#startTime;
+        const dragDelta = {
+            x: this.#lastMovePos.x - this.#startPos.x,
+            y: this.#lastMovePos.y - this.#startPos.y
+        };
+        console.log("try swype delta: x=" + dragDelta.x + ", y=" + dragDelta.y + ", time=" + dragDuration);
+
+        if (dragDuration < this.#SWYPE_TIMEOUT_MS &&
+            (Math.abs(dragDelta.x) > this.#CLICK_THRESHOLD ||
+             Math.abs(dragDelta.y) > this.#CLICK_THRESHOLD))
+        {
+            const swypeSpeedVector = {
+                x: dragDelta.x / dragDuration,
+                y: dragDelta.y / dragDuration
+            };
+            const swypeSpeed = Math.sqrt(
+                swypeSpeedVector.x * swypeSpeedVector.x +
+                swypeSpeedVector.y * swypeSpeedVector.y
+            );
+
+            const eSwype = {
+                swypePos: this.#lastMovePos,
+                swypeSpeed: swypeSpeed,
+                swypeSpeedVector: swypeSpeedVector
+            };
+            this.callEvent("swype", eSwype);
+
+            if (Math.abs(dragDelta.x) > Math.abs(dragDelta.y)) {
+                if (dragDelta.x > 0)
+                    this.callEvent("swype-right", eSwype);
+                else
+                    this.callEvent("swype-left", eSwype);
+            }
+            else
+            {
+                if (dragDelta.y < 0)
+                    this.callEvent("swype-up", eSwype);
+                else
+                    this.callEvent("swype-down", eSwype);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
     #handleEnd() {
         gModifiersMask = gModifiersMask & ~Modifiers.LeftBtn;
 
@@ -323,11 +384,13 @@ class Screen
 
         this.callEvent("up", eUp);
 
+        if (this.#trySwype())
+            return;
+
         if (!this.clickCancelled &&
             Math.abs(this.#lastMovePos.x - this.#startPos.x) < this.#DOUBLECLICK_THRESHOLD &&
             Math.abs(this.#lastMovePos.y - this.#startPos.y) < this.#DOUBLECLICK_THRESHOLD)
         {
-            const clickTimeMs = (new Date()).getTime();
             const eClick = {
                 clickPos: this.#lastMovePos
             };
@@ -395,11 +458,17 @@ function logEvent(e)
 // gScreen.addEventListener("up", logEvent);
 // gScreen.addEventListener("out", logEvent);
 // //gScreen.addEventListener("drag", logEvent);
-// gScreen.addEventListener("click", logEvent);
-// gScreen.addEventListener("long-press", logEvent);
-// gScreen.addEventListener("double-click", logEvent);
+gScreen.addEventListener("click", logEvent);
+gScreen.addEventListener("long-press", logEvent);
+gScreen.addEventListener("double-click", logEvent);
 // gScreen.addEventListener("mousewheel", logEvent);
 // gScreen.addEventListener("pinch", logEvent);
+gScreen.addEventListener("key", logEvent);
+gScreen.addEventListener("swype", logEvent);
+gScreen.addEventListener("swype-left", logEvent);
+gScreen.addEventListener("swype-right", logEvent);
+gScreen.addEventListener("swype-up", logEvent);
+gScreen.addEventListener("swype-down", logEvent);
 //
 
 function resize()
