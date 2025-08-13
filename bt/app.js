@@ -364,6 +364,13 @@ gScreen.addEventListener("long-press", (e) => {
 });
 
 gScreen.addEventListener("double-click", (e) => {
+    if (gControlState.playTimeout)
+    {
+        clearTimeout(gControlState.playTimeout);
+        gControlState.playTimeout = undefined;
+    }
+    setControlStatePlay(false);
+
     if (!gControlState.play)
         setZoom(!gZoom, e.clickPos);
     else if (gZoom)
@@ -372,15 +379,46 @@ gScreen.addEventListener("double-click", (e) => {
     gTagZoomEvent("double-click");
 });
 
-gScreen.addEventListener("click", (e) => {
-    gControlState.play = !gControlState.play;
-    gControlState.blockSnapping = false;
+function setControlStatePlay(play)
+{
+    gControlState.play = play;
     gtag('event', 'play', {
         'play': gControlState.play,
         'trigger-event': 'click',
         'zoom': gZoom
     });
+}
+
+const PLAY_TIMEOUT_MS = 250;
+
+gScreen.addEventListener("click", (e) => {
+    gControlState.blockSnapping = false;
     gControlState.holding = false;
+    // pause immediately, play with delay
+    if (gControlState.play || gControlState.playTimeout) {
+        if (gControlState.playTimeout)
+        {
+            clearTimeout(gControlState.playTimeout);
+            gControlState.playTimeout = undefined;
+        }
+        setControlStatePlay(false);
+    }
+    else {
+        if (gControlState.playTimeout)
+        {
+            clearTimeout(gControlState.playTimeout);
+        }
+        gControlState.playTimeout = setTimeout(
+            () => {
+                gControlState.playTimeout = undefined;
+                if (!gControlState.play)
+                {
+                    setControlStatePlay(true);
+                }
+            },
+            PLAY_TIMEOUT_MS
+        );
+    }
 });
 
 
