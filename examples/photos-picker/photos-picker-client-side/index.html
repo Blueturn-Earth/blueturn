@@ -1,93 +1,130 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Google Photos Picker Demo</title>
-</head>
-<body>
-  <button id="choose-btn">Select Photos from Google Photos</button>
-  <div id="output"></div>
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Google Photos Picker – minimal web sample</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 680px; margin: 2rem auto; }
+      button { padding: .6rem 1rem; font-size: 1rem; }
+      pre { background: #f6f8fa; padding: 1rem; overflow: auto; }
+    </style>
+  </head>
+  <body>
+    <h1>Photos Picker demo</h1>
+    <p>
+      <label>Client ID:
+        <input id="clientId" size="60" placeholder="YOUR_OAUTH_WEB_CLIENT_ID.apps.googleusercontent.com">
+      </label>
+    </p>
+    <button id="pickBtn">Authorize & Open Picker</button>
+    <div id="status"></div>
+    <h3>Picked items</h3>
+    <pre id="out">(none yet)</pre>
 
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script>
-    const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
-    const SCOPE = 'https://www.googleapis.com/auth/photoslibrary.readonly';
-    let accessToken;
+    <!-- Load Google Identity Services. Use onload to be sure it's ready. -->
+    <script src="https://accounts.google.com/gsi/client" async defer onload="gsiLoaded()"></script>
+    <script>
+      const SCOPE = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly';
+      const PICKER_BASE = 'https://photospicker.googleapis.com/v1';
 
-    // Step 1: OAuth 2.0 Sign-in
-    function initGsi() {
-      google.accounts.id.initialize({
-        client_id: CLIENT_ID,
-        callback: (response) => {
-          accessToken = response.credential;
-          document.getElementById('choose-btn').disabled = false;
-        },
-        scope: SCOPE
-      });
-      document.getElementById('choose-btn').disabled = true;
-    }
+      let tokenClient;
+      let accessToken;
 
-    window.onload = () => initGsi();
-
-    document.getElementById('choose-btn').addEventListener('click', async () => {
-      if (!accessToken) {
-        google.accounts.id.prompt();
-        return;
+      function log(msg) {
+        document.getElementById('status').innerText = msg;
+        console.log(msg);
       }
 
-      // Step 2: Create Picker Session
-      const sessionResp = await fetch('https://photoslibrary.googleapis.com/v1/pickerSessions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          filters: { mediaType: ['PHOTO', 'VIDEO'] }
-        })
-      });
-      const session = await sessionResp.json();
-      const pickerUri = session.pickerUri;
-      if (!pickerUri) {
-        console.error('No pickerUri returned');
-        return;
+      // Called when the GSI script has loaded
+      function gsiLoaded() {
+        log('GSI loaded. Click the button to authorize.');
+        document.getElementById('pickBtn').disabled = false;
       }
 
-      // Step 3: Redirect to Picker
-      window.location.href = pickerUri;
+      function ensureToken() {
+        return new Promise((resolve, reject) => {
+          if (accessToken) return resolve(accessToken);
+          const clientId = document.getElementById('clientId').value.trim();
+          if (!clientId) return reject(new Error('Please paste your OAuth Web Client ID.'));
+          tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: clientId,
+            scope: SCOPE,
+            prompt: 'consent', // show consent the first time
+            callback: (resp) => {
+              if (resp.error) return reject(resp);
+              accessToken = resp.access_token;
+              resolve(accessToken);
+            }
+          });
+          tokenClient.requestAccessToken();
+        });
+      }
 
-      // Step 4: Poll for Completion
-      const sessionName = session.name;
-      let completed = false;
-      while (!completed) {
-        const pollResp = await fetch(`https://photoslibrary.googleapis.com/v1/${sessionName}`, {
+      async function createSession() {
+        const res = await fetch(`${PICKER_BASE}/sessions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            // Single-selection:
+            pickingConfig: { maxItemCount: 1 }
+          })
+        });
+        if (!res.ok) throw new Error(`sessions.create failed: ${res.status} ${await res.text()}`);
+        return res.json(); // { sessionId, pickerUri, ... }
+      }
+
+      async function getSession(sessionId) {
+        const res = await fetch(`${PICKER_BASE}/sessions/${encodeURIComponent(sessionId)}`, {
           headers: { 'Authorization': `Bearer ${accessToken}` }
         });
-        const poll = await pollResp.json();
-        if (poll.mediaItemsSet) {
-          completed = true;
-
-          // Step 5: List Selected Media Items
-          const listResp = await fetch(`https://photoslibrary.googleapis.com/v1/${sessionName}:list`, {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
-          });
-          const list = await listResp.json();
-          const { mediaItems = [] } = list;
-
-          const output = document.getElementById('output');
-          output.innerHTML = '<h2>Selected Items</h2>';
-          mediaItems.forEach(item => {
-            const img = document.createElement('img');
-            img.src = `${item.baseUrl}=w200`; // optional resizing
-            img.alt = item.filename || 'Selected';
-            img.style.margin = '5px';
-            output.appendChild(img);
-          });
-        } else {
-          await new Promise(r => setTimeout(r, 2000)); // wait 2 secs before next poll
-        }
+        if (!res.ok) throw new Error(`sessions.get failed: ${res.status} ${await res.text()}`);
+        return res.json(); // PickingSession (contains mediaItemsSet, pollingConfig, etc.)
       }
-    });
-  </script>
-</body>
+
+      async function listPicked(sessionId) {
+        const res = await fetch(`${PICKER_BASE}/mediaItems?sessionId=${encodeURIComponent(sessionId)}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (!res.ok) throw new Error(`mediaItems.list failed: ${res.status} ${await res.text()}`);
+        return res.json(); // { mediaItems: [PickedMediaItem], nextPageToken? }
+      }
+
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+      document.getElementById('pickBtn').addEventListener('click', async () => {
+        try {
+          document.getElementById('out').textContent = '(none yet)';
+          log('Authorizing…');
+          await ensureToken();
+
+          log('Creating picker session…');
+          const { sessionId, pickerUri } = await createSession(); // pickerUri is what you show/open for the user
+          log('Opening Google Photos picker…');
+          window.open(pickerUri, '_blank', 'noopener'); // or show as a link/QR for mobile
+
+          // Poll until media items are set
+          log('Waiting for selection…');
+          while (true) {
+            const sess = await getSession(sessionId);
+            if (sess.mediaItemsSet) break;
+            const intervalSec = (sess.pollingConfig && sess.pollingConfig.minPollIntervalSeconds) || 2;
+            await sleep(intervalSec * 1000);
+          }
+
+          log('Fetching picked media…');
+          const data = await listPicked(sessionId);
+          document.getElementById('out').textContent =
+            JSON.stringify(data.mediaItems || [], null, 2);
+
+          log('Done.');
+        } catch (e) {
+          console.error(e);
+          log(e.message || String(e));
+        }
+      });
+    </script>
+  </body>
 </html>
