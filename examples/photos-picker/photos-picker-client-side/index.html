@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Google Photos Picker Demo</title>
+</head>
+<body>
+  <button id="choose-btn">Select Photos from Google Photos</button>
+  <div id="output"></div>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
+    const SCOPE = 'https://www.googleapis.com/auth/photoslibrary.readonly';
+    let accessToken;
+
+    // Step 1: OAuth 2.0 Sign-in
+    function initGsi() {
+      google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: (response) => {
+          accessToken = response.credential;
+          document.getElementById('choose-btn').disabled = false;
+        },
+        scope: SCOPE
+      });
+      document.getElementById('choose-btn').disabled = true;
+    }
+
+    window.onload = () => initGsi();
+
+    document.getElementById('choose-btn').addEventListener('click', async () => {
+      if (!accessToken) {
+        google.accounts.id.prompt();
+        return;
+      }
+
+      // Step 2: Create Picker Session
+      const sessionResp = await fetch('https://photoslibrary.googleapis.com/v1/pickerSessions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          filters: { mediaType: ['PHOTO', 'VIDEO'] }
+        })
+      });
+      const session = await sessionResp.json();
+      const pickerUri = session.pickerUri;
+      if (!pickerUri) {
+        console.error('No pickerUri returned');
+        return;
+      }
+
+      // Step 3: Redirect to Picker
+      window.location.href = pickerUri;
+
+      // Step 4: Poll for Completion
+      const sessionName = session.name;
+      let completed = false;
+      while (!completed) {
+        const pollResp = await fetch(`https://photoslibrary.googleapis.com/v1/${sessionName}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        const poll = await pollResp.json();
+        if (poll.mediaItemsSet) {
+          completed = true;
+
+          // Step 5: List Selected Media Items
+          const listResp = await fetch(`https://photoslibrary.googleapis.com/v1/${sessionName}:list`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+          });
+          const list = await listResp.json();
+          const { mediaItems = [] } = list;
+
+          const output = document.getElementById('output');
+          output.innerHTML = '<h2>Selected Items</h2>';
+          mediaItems.forEach(item => {
+            const img = document.createElement('img');
+            img.src = `${item.baseUrl}=w200`; // optional resizing
+            img.alt = item.filename || 'Selected';
+            img.style.margin = '5px';
+            output.appendChild(img);
+          });
+        } else {
+          await new Promise(r => setTimeout(r, 2000)); // wait 2 secs before next poll
+        }
+      }
+    });
+  </script>
+</body>
+</html>
