@@ -7,6 +7,7 @@
       body { font-family: system-ui, sans-serif; max-width: 680px; margin: 2rem auto; }
       button { padding: .6rem 1rem; font-size: 1rem; }
       pre { background: #f6f8fa; padding: 1rem; overflow: auto; }
+      #photos img { display: block; margin: 10px 0; max-width: 300px; }
     </style>
   </head>
   <body>
@@ -20,6 +21,7 @@
     <div id="status"></div>
     <h3>Picked items</h3>
     <pre id="out">(none yet)</pre>
+    <div id="photos"></div>
 
     <!-- Load Google Identity Services. Use onload to be sure it's ready. -->
     <script src="https://accounts.google.com/gsi/client" async defer onload="gsiLoaded()"></script>
@@ -67,21 +69,36 @@
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            // Single-selection:
-            pickingConfig: { maxItemCount: 1 }
-          })
+          json: true/*,
+          body: {
+            pickingConfig: {
+              maxItemCount: 1 // limit to 1 item for simplicity
+            }
+          }*/
         });
-        if (!res.ok) throw new Error(`sessions.create failed: ${res.status} ${await res.text()}`);
-        return res.json(); // { sessionId, pickerUri, ... }
+        
+        if (!res.ok) {
+          throw new Error(`sessions.create failed: ${res.status} ${await res.text()}`);
+        }
+        
+        const resData = await res.json();
+
+        return resData; // { id, pickerUri }
       }
 
       async function getSession(sessionId) {
-        const res = await fetch(`${PICKER_BASE}/sessions/${encodeURIComponent(sessionId)}`, {
-          headers: { 'Authorization': `Bearer ${accessToken}` }
+        const encodedSessionId = encodeURIComponent(sessionId);
+        const res = await fetch(`${PICKER_BASE}/sessions/${encodedSessionId}`, {
+          method: 'GET',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}` 
+          },
+          json: true
         });
         if (!res.ok) throw new Error(`sessions.get failed: ${res.status} ${await res.text()}`);
-        return res.json(); // PickingSession (contains mediaItemsSet, pollingConfig, etc.)
+        const resData = await res.json(); // PickingSession (contains mediaItemsSet, pollingConfig, etc.)
+        return resData;
       }
 
       async function listPicked(sessionId) {
@@ -90,6 +107,16 @@
         });
         if (!res.ok) throw new Error(`mediaItems.list failed: ${res.status} ${await res.text()}`);
         return res.json(); // { mediaItems: [PickedMediaItem], nextPageToken? }
+      }
+
+      async function showImage(item, container) {
+        const res = await fetch(`${item.mediaFile.baseUrl}=w600`, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const blob = await res.blob();
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(blob);
+        container.appendChild(img);
       }
 
       const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -101,7 +128,9 @@
           await ensureToken();
 
           log('Creating picker session…');
-          const { sessionId, pickerUri } = await createSession(); // pickerUri is what you show/open for the user
+          const sessionResponse = await createSession(); // pickerUri is what you show/open for the user
+          const sessionId = sessionResponse.id;
+          const pickerUri = sessionResponse.pickerUri;
           log('Opening Google Photos picker…');
           window.open(pickerUri, '_blank', 'noopener'); // or show as a link/QR for mobile
 
@@ -118,6 +147,13 @@
           const data = await listPicked(sessionId);
           document.getElementById('out').textContent =
             JSON.stringify(data.mediaItems || [], null, 2);
+
+          log('Showing picked media…');
+          const photosDiv = document.getElementById("photos");
+          photosDiv.innerHTML = "";
+          data.mediaItems.forEach(item => {
+            showImage(item, photosDiv);
+          });
 
           log('Done.');
         } catch (e) {
