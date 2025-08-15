@@ -84,7 +84,7 @@ html, body, canvas {
     opacity: 1;
 }
 
-.share-button {
+#share-button {
     position: fixed;
     top: 10px;
     left: 10px;
@@ -98,11 +98,35 @@ html, body, canvas {
     transition: opacity 0.2s ease;
 }
 
-.share-button:hover {
+#share-button:hover {
   opacity: 1;
 }
 
-.share-button img {
+#share-button img {
+    width: 32px;
+    height: 32px;
+}
+
+#skypics-button {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5vmin;
+    height: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+    opacity: 0.3;
+    transition: opacity 0.2s ease;
+}
+
+#skypics-button:hover {
+  opacity: 1;
+}
+
+#skypics-button img {
     width: 32px;
     height: 32px;
 }

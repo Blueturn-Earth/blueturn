@@ -1,0 +1,166 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Google Photos Picker – minimal web sample</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 680px; margin: 2rem auto; }
+      button { padding: .6rem 1rem; font-size: 1rem; }
+      pre { background: #f6f8fa; padding: 1rem; overflow: auto; }
+      #photos img { display: block; margin: 10px 0; max-width: 300px; }
+    </style>
+  </head>
+  <body>
+    <h1>Photos Picker demo</h1>
+    <p>
+      <label>Client ID:
+        <input id="clientId" size="60" placeholder="YOUR_OAUTH_WEB_CLIENT_ID.apps.googleusercontent.com">
+      </label>
+    </p>
+    <button id="pickBtn">Authorize & Open Picker</button>
+    <div id="status"></div>
+    <h3>Picked items</h3>
+    <pre id="out">(none yet)</pre>
+    <div id="photos"></div>
+
+    <!-- Load Google Identity Services. Use onload to be sure it's ready. -->
+    <script src="https://accounts.google.com/gsi/client" async defer onload="gsiLoaded()"></script>
+    <script>
+      const SCOPE = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly';
+      const PICKER_BASE = 'https://photospicker.googleapis.com/v1';
+
+      let tokenClient;
+      let accessToken;
+
+      function log(msg) {
+        document.getElementById('status').innerText = msg;
+        console.log(msg);
+      }
+
+      // Called when the GSI script has loaded
+      function gsiLoaded() {
+        log('GSI loaded. Click the button to authorize.');
+        document.getElementById('pickBtn').disabled = false;
+      }
+
+      function ensureToken() {
+        return new Promise((resolve, reject) => {
+          if (accessToken) return resolve(accessToken);
+          const clientId = document.getElementById('clientId').value.trim();
+          if (!clientId) return reject(new Error('Please paste your OAuth Web Client ID.'));
+          tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: clientId,
+            scope: SCOPE,
+            prompt: 'consent', // show consent the first time
+            callback: (resp) => {
+              if (resp.error) return reject(resp);
+              accessToken = resp.access_token;
+              resolve(accessToken);
+            }
+          });
+          tokenClient.requestAccessToken();
+        });
+      }
+
+      async function createSession() {
+        const res = await fetch(`${PICKER_BASE}/sessions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          json: true/*,
+          body: {
+            pickingConfig: {
+              maxItemCount: 1 // limit to 1 item for simplicity
+            }
+          }*/
+        });
+        
+        if (!res.ok) {
+          throw new Error(`sessions.create failed: ${res.status} ${await res.text()}`);
+        }
+        
+        const resData = await res.json();
+
+        return resData; // { id, pickerUri }
+      }
+
+      async function getSession(sessionId) {
+        const encodedSessionId = encodeURIComponent(sessionId);
+        const res = await fetch(`${PICKER_BASE}/sessions/${encodedSessionId}`, {
+          method: 'GET',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}` 
+          },
+          json: true
+        });
+        if (!res.ok) throw new Error(`sessions.get failed: ${res.status} ${await res.text()}`);
+        const resData = await res.json(); // PickingSession (contains mediaItemsSet, pollingConfig, etc.)
+        return resData;
+      }
+
+      async function listPicked(sessionId) {
+        const res = await fetch(`${PICKER_BASE}/mediaItems?sessionId=${encodeURIComponent(sessionId)}`, {
+          headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+        if (!res.ok) throw new Error(`mediaItems.list failed: ${res.status} ${await res.text()}`);
+        return res.json(); // { mediaItems: [PickedMediaItem], nextPageToken? }
+      }
+
+      async function showImage(item, container) {
+        const res = await fetch(`${item.mediaFile.baseUrl}=w600`, {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const blob = await res.blob();
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(blob);
+        container.appendChild(img);
+      }
+
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+      document.getElementById('pickBtn').addEventListener('click', async () => {
+        try {
+          document.getElementById('out').textContent = '(none yet)';
+          log('Authorizing…');
+          await ensureToken();
+
+          log('Creating picker session…');
+          const sessionResponse = await createSession(); // pickerUri is what you show/open for the user
+          const sessionId = sessionResponse.id;
+          const pickerUri = sessionResponse.pickerUri;
+          log('Opening Google Photos picker…');
+          window.open(pickerUri, '_blank', 'noopener'); // or show as a link/QR for mobile
+
+          // Poll until media items are set
+          log('Waiting for selection…');
+          while (true) {
+            const sess = await getSession(sessionId);
+            if (sess.mediaItemsSet) break;
+            const intervalSec = (sess.pollingConfig && sess.pollingConfig.minPollIntervalSeconds) || 2;
+            await sleep(intervalSec * 1000);
+          }
+
+          log('Fetching picked media…');
+          const data = await listPicked(sessionId);
+          document.getElementById('out').textContent =
+            JSON.stringify(data.mediaItems || [], null, 2);
+
+          log('Showing picked media…');
+          const photosDiv = document.getElementById("photos");
+          photosDiv.innerHTML = "";
+          data.mediaItems.forEach(item => {
+            showImage(item, photosDiv);
+          });
+
+          log('Done.');
+        } catch (e) {
+          console.error(e);
+          log(e.message || String(e));
+        }
+      });
+    </script>
+  </body>
+</html>
