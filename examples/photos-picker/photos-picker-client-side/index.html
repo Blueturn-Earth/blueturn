@@ -20,11 +20,12 @@
     <button id="pickBtn">Authorize & Open Picker</button>
     <div id="status"></div>
     <h3>Picked items</h3>
-    <pre id="out">(none yet)</pre>
     <div id="photos"></div>
+    <pre id="mediaItemsOut">(none yet)</pre>
 
     <!-- Load Google Identity Services. Use onload to be sure it's ready. -->
     <script src="https://accounts.google.com/gsi/client" async defer onload="gsiLoaded()"></script>
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
     <script>
       const SCOPE = 'https://www.googleapis.com/auth/photospicker.mediaitems.readonly';
       const PICKER_BASE = 'https://photospicker.googleapis.com/v1';
@@ -109,6 +110,16 @@
         return res.json(); // { mediaItems: [PickedMediaItem], nextPageToken? }
       }
 
+      async function extractExifData(item, blob) {
+        return new Promise((resolve) => {
+          EXIF.getData(blob, function() {
+            const exifData = EXIF.getAllTags(this);
+            console.log('EXIF data:', exifData);
+            resolve(exifData);
+          });
+        });
+      }
+
       async function showImage(item, container) {
         const res = await fetch(`${item.mediaFile.baseUrl}=w600`, {
           headers: { Authorization: `Bearer ${accessToken}` }
@@ -117,13 +128,15 @@
         const img = document.createElement('img');
         img.src = URL.createObjectURL(blob);
         container.appendChild(img);
+        const exifData = await extractExifData(item, blob);
+        item.exif = exifData;
       }
 
       const sleep = ms => new Promise(r => setTimeout(r, ms));
 
       document.getElementById('pickBtn').addEventListener('click', async () => {
         try {
-          document.getElementById('out').textContent = '(none yet)';
+          document.getElementById('mediaItemsOut').textContent = '(none yet)';
           log('Authorizing…');
           await ensureToken();
 
@@ -145,8 +158,6 @@
 
           log('Fetching picked media…');
           const data = await listPicked(sessionId);
-          document.getElementById('out').textContent =
-            JSON.stringify(data.mediaItems || [], null, 2);
 
           log('Showing picked media…');
           const photosDiv = document.getElementById("photos");
@@ -155,6 +166,11 @@
             showImage(item, photosDiv);
           });
 
+          log('Showing picked media…');
+          document.getElementById('mediaItemsOut').textContent =
+            JSON.stringify(data.mediaItems || [], null, 2);
+
+          
           log('Done.');
         } catch (e) {
           console.error(e);
