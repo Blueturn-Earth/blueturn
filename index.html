@@ -32,12 +32,15 @@
     <a href="https://blueturn.earth" target="_blank">
       <img src="./bt/images/logos/LogoBTV1024BT.png" id="btLogo" alt="Blueturn Logo" />
     </a>
-    <button onclick="share()" class="share-button">
+    <button onclick="share()" id="share-button">
       <img src="bt/images/icons/share.png" alt="Share"/>
     </button>
-    <button onclick="skypics()" class="skypics-button">
+    <!-- <button onclick="skypics()" class="skypics-button">
       <img src="bt/images/icons/cloud-pic-small.png" alt="Sky Pics"/>
-    </button>
+    </button> -->
+    <a href="./examples/photos-picker/photos-picker-client-side" target="_blank">
+      <img src="./bt/images/icons/cloud-pic-small.png" id="skypics-button" alt="Sky Pics" />
+    </a>
     <input type="date" id="date-picker" onclick="this.showPicker && this.showPicker()">
   </div>
   <script type="module">
