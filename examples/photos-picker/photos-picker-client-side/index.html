@@ -12,6 +12,7 @@
   </head>
   <body>
     <h1>Photos Picker demo</h1>
+    <h2>Via Google Photos</h2>
     <p>
       <label>Client ID:
         <input id="clientId" size="60" placeholder="YOUR_OAUTH_WEB_CLIENT_ID.apps.googleusercontent.com">
@@ -19,6 +20,8 @@
     </p>
     <button id="pickBtn">Authorize & Open Picker</button>
     <div id="status"></div>
+    <h2>Via Local files</h2>
+    <input type="file" id="fileInput" accept="image/*">
     <h3>Picked items</h3>
     <div id="photos"></div>
     <pre id="mediaItemsOut">(none yet)</pre>
@@ -110,7 +113,7 @@
         return res.json(); // { mediaItems: [PickedMediaItem], nextPageToken? }
       }
 
-      async function extractExifData(item, blob) {
+      async function extractExifData(blob) {
         return new Promise((resolve) => {
           EXIF.getData(blob, function() {
             const exifData = EXIF.getAllTags(this);
@@ -128,8 +131,23 @@
         const img = document.createElement('img');
         img.src = URL.createObjectURL(blob);
         container.appendChild(img);
-        const exifData = await extractExifData(item, blob);
+        const exifData = await extractExifData(blob);
         item.exif = exifData;
+      }
+
+      async function openLocalFiles(files, container) {
+        data = {};
+        data.mediaItems = [];
+        for (const file of files) {
+          const photosDiv = document.getElementById("photos");
+          const img = document.createElement('img');
+          img.src = URL.createObjectURL(file);
+          container.appendChild(img);
+          item = {};
+          item.exif = await extractExifData(file);
+          data.mediaItems.push(item);
+        }
+        return data;
       }
 
       const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -170,7 +188,24 @@
           document.getElementById('mediaItemsOut').textContent =
             JSON.stringify(data.mediaItems || [], null, 2);
 
-          
+          log('Done.');
+        } catch (e) {
+          console.error(e);
+          log(e.message || String(e));
+        }
+      });
+
+      fileInput.addEventListener("change", async (event) => {
+        try {
+          log('Showing picked media…');
+          const photosDiv = document.getElementById("photos");
+          photosDiv.innerHTML = "";
+          const data = await openLocalFiles(event.target.files, photosDiv);
+
+          log('Showing picked media…');
+          document.getElementById('mediaItemsOut').textContent =
+            JSON.stringify(data.mediaItems || [], null, 2);
+
           log('Done.');
         } catch (e) {
           console.error(e);
