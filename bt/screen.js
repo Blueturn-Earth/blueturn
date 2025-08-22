@@ -311,6 +311,10 @@ class Screen
 
     #trySwype() 
     {
+        if (!this.#lastMoveTime || !this.#startTime)
+        {
+            return false;
+        }
         const dragDuration = this.#lastMoveTime - this.#startTime;
         const dragDelta = {
             x: this.#lastMovePos.x - this.#startPos.x,

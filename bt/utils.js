@@ -94,6 +94,12 @@ export function gCalcLatLonFromScreenCoord(screenCoord, centroidMatrix, earthRad
   
   let lat = Math.atan2(globeNormalLengthXZ, globeNormal[1]) / Math.PI * 180.0 - 90.0;
   let lon = 180.0 - Math.atan2(globeNormal[2], globeNormal[0]) / Math.PI * 180.0;
+
+  if (Number.isNaN(lon) || Number.isNaN(lat)) {
+    console.error("Unresolved latitude/longitude from screen coordinates " + screenCoord);
+    return null;
+  }
+
   if (lon >  180.0) lon -= 360.0;
   if (lon < -180.0) lon += 360.0;
   if (lat >  90.0 ) lat -= 180.0;
