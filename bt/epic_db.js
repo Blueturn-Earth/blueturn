@@ -491,7 +491,11 @@ export default class EpicDB {
                     else if (epicImageDataKey0 || epicImageDataKey1)
                     {
                         this.fetchBoundKeyFrames(timeSec) // maybe we miss prev or next
-                        .then((boundPair) => {resolve(boundPair);});
+                        .then((boundPair) => {resolve(boundPair);})
+                        .catch(e => {
+                            console.error("Error fetching bound key frames: " + e);
+                            resolve(null);
+                        });
                     }
                     else
                         resolve(null); // likely aborted
@@ -595,6 +599,7 @@ export default class EpicDB {
             })
             .catch((error) => {
                 console.error("Error fetching bound key frames: ", error);
+                return null; // missing close bounds
             });
         }
         else if (epicImageDataKey0.texture && epicImageDataKey1.texture) {
