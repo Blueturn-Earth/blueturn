@@ -3,7 +3,7 @@
 // See https://creativecommons.org/licenses/by-nc-sa/4.0/
 
 export let gControlState = {
-    source: 'nasa',
+    source: 'bt-s3',
     speed: 3600,
     play: true,
     day: undefined,
