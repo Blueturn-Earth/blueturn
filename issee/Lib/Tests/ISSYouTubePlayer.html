@@ -1,0 +1,43 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Test for ISSYouTubePlayer.js</title>
+        <meta name="copyrights" content="Michael Boccara @Blueturn 2024" />
+    </head>
+    <body>
+        <button type="button" onclick="timer.live()">Live</button>
+        <button type="button" onclick="timer.play()">Play</button>
+        <button type="button" onclick="timer.pause()">Pause</button>
+        <div id="text"><h1>Loading Timer...</h1></div>
+        <div>
+            <div id="testPlayer1">Loading Player 1...</div>
+            <div id="testPlayer2">Loading Player 2...</div>
+            <div id="testPlayer3">Loading Player 3...</div>
+            <div id="testPlayer4">Loading Player 4...</div>
+        </div>
+        <script src="../Timer.js"></script>
+        <script src="../MultiPlayer.js"></script>
+        <script>
+            // global single instance
+            var timer = new Timer();
+            timer.addTimeCallback(t => {
+                let sync_delta_s = undefined;
+                if(Timer.yt && Timer.yt.range)
+                {
+                    sync_delta_s = Timer.yt.range.max_seek - Timer.yt.range.min_seek
+                }
+                text.innerHTML = "<h1>" + t.date + "</h1><h3>Sync Delta = " + Timer.secStr(sync_delta_s) + "s</h3>";
+            }, 1000);
+            const NUM_PLAYERS = 2;
+            let ids = [];
+            for (i = 1; i <= NUM_PLAYERS; i++)
+            {
+                ids.push("testPlayer"+i);
+            }
+            let VIDEO_ID = "O9mYwRlucZY";
+            let DELAY_S = 15;
+            var multiPlayer = new MultiPlayer(VIDEO_ID, timer, ids, DELAY_S);
+        </script>
+    </body>
+</html>

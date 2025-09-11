@@ -1,0 +1,103 @@
+/*
+ * http://www.opensource.org/licenses/lgpl-2.1.php
+ * ISS Player Stylesheet
+ * Copyright Michael Boccara, Blueturn - 2017-2024
+ */
+
+.buttons {
+	display: flex;
+	flex-direction: row;
+	gap: 10px;
+	align-items: center;
+	justify-content: center;
+	z-index: 4;
+}
+
+/* Parent container: stack divs vertically */
+.buttonsContainer {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	align-items: center;
+	justify-content: center;
+	z-index: 4;
+}
+
+/* Each row: place buttons horizontally */
+.buttonsRow {
+	display: flex;
+	flex-direction: row;
+	gap: 10px;
+	align-items: center;
+	justify-content: center;
+	z-index: 4;
+}
+
+@media (min-aspect-ratio: 1/1) or (orientation: landscape) {
+	#YTPlayer
+	{
+		position: fixed;
+		height: 100%;
+		width: 100%;
+		z-index: 1;
+	} 
+
+	.iss-tracker
+	{
+		position: fixed;
+		z-index: 3;
+		top: 0;
+		right: 0;
+		
+		transform: translate(0, 0) scale(1);
+		transform-origin: top right;
+	}
+
+	.buttonsContainer {
+		position: fixed;
+		z-index: 4;
+		top: 0;
+		right: 0;
+		width: 49.5%;
+		height: 60px;
+		font-size: 14px;
+		background-color: rgba(255, 255, 255, 0.8);
+		border: none;
+		border-radius: 5px;
+		cursor: pointer;
+		transition: background-color 0.3s ease;
+	}
+}
+
+/* in portrait split screen vertically, typlayer top half, iss-tracker bottom half */
+@media (max-aspect-ratio: 1/1) or (orientation: portrait) {
+	#YTPlayer {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 50%;
+		z-index: 1;
+	}
+	.iss-tracker {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		transform-origin: bottom left;
+		z-index: 3;
+	}
+	.buttonsContainer {
+		position: fixed;
+		z-index: 4;
+		bottom: 42%;
+		left: 0;
+		width: 100%;
+		height: 60px;
+		font-size: 14px;
+		background-color: rgba(255, 255, 255, 0.8);
+		border: none;
+		border-radius: 5px;
+		cursor: pointer;
+		transition: background-color 0.3s ease;
+	}
+}

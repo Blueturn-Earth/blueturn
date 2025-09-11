@@ -1,0 +1,39 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+    <title>Test for Timer.js</title>
+    <meta name="copyrights" content="Michael Boccara @Blueturn 2024" />
+    </head>
+    <body">
+        <button type="button" onclick="timer.live()">Live</button>
+        <button type="button" onclick="timer.play()">Play</button>
+        <button type="button" onclick="timer.pause()">Pause</button>
+        <input style="width:100%" type="range" min='-120' max='0' value='0' name="liveTimeDelay" id="liveTimeDelayRangeInput">
+        <div id="text" />
+        <script src="../Timer.js"></script>
+        <script>
+            // global single instance
+            var timer = new Timer();
+
+            var text = document.getElementById("text");
+            [2000, 3000, 5000].forEach(interval => {
+                timer.addTimeCallback(t => {
+                    text.innerHTML = t.date;
+                    let delayInMinutes = (t.date - Date.now()) / 1000 / 60;
+                    liveTimeDelayRangeInput.value = delayInMinutes;
+                }, interval);
+            });
+            timer.addPlayCallback(t => {
+                message = "play state " + t.playState + " at date " + t.date;
+                console.log(message);
+            });
+            liveTimeDelayRangeInput.oninput = function() {
+                let date = new Date();
+                // May not work across Daylight Saving Time (DST)
+                date.setMinutes(date.getMinutes() + Number(this.value));
+                timer.date = date;
+            }
+        </script>
+    </body>
+</html>

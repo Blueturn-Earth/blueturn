@@ -1,0 +1,94 @@
+/*
+ * http://www.opensource.org/licenses/lgpl-2.1.php
+ * Dual ISS Player Stylesheet
+ * Copyright Michael Boccara, Blueturn - 2017-2024
+ */
+
+ .videoArea
+{
+	height: 100%;
+	width: 100%;
+}
+
+.halfPaneArea
+{
+	height: 100%;
+	width: 50%;
+	position: fixed;
+	top: 0;
+	overflow-x: hidden;
+	overflow-y: hidden;
+	padding-top: 20px;
+}
+
+.videoContainer 
+{ 
+	z-index: 1;
+	overflow-x: hidden;
+	overflow-y: hidden;
+} 
+
+.videoContainer iframe, .videoContainer object, .videoContainer embed 
+{ 
+	position: absolute; 
+	top: 0; 
+	width: 100%; 
+	height: 100%; 
+}
+
+.left {
+	left: 0; 
+	-moz-transform-origin: left top;
+	-o-transform-origin: left top;
+	-webkit-transform-origin: left top;
+}
+
+.right {
+	right: 0; 
+	-moz-transform-origin: right top;
+	-o-transform-origin: right top;
+	-webkit-transform-origin: right top;
+}
+
+#UI {
+    display: block;
+    z-index: 4;
+    position: fixed;
+	background: rgba(255, 255, 255, 0.5);
+	float: right;
+	right: 0px;
+	top: 0px;
+}
+
+#advanced-controls {
+    display: block;
+    z-index: 4;
+    position: fixed;
+	background: rgba(255, 255, 255, 0.5);
+	float: right;
+	right: 0px;
+	top: 30px;
+}
+
+#issTrackerScaleRangeInput {
+  /* direction: rtl */
+}
+
+#monoValueRangeInput {
+  /* direction: rtl */
+}
+
+.iss-pos {
+    position: fixed;
+	z-index: 3;
+	top: 0;
+	-moz-transform: scale(1);
+	-o-transform: scale(1);
+	-webkit-transform: scale(1);
+}
+
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+  #iss-pos {
+    zoom: 1;
+  }
+}
