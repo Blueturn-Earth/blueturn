@@ -1,0 +1,28 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+    <title>Test for ISS.js</title>
+    <meta name="copyrights" content="Michael Boccara @Blueturn 2024" />
+    </head>
+    <body">
+        <div id="text" />
+        <script src="../SGP4.js"></script>
+        <script src="../Satellite.js"></script>
+        <script src="../ISS.js"></script>
+        <script>
+            var text = document.getElementById("text");
+            text.innerHTML = "Loading...";
+            // global single instance
+            var iss = new ISS(sat => {
+                INPUT_DATE = "Sat Oct 19 2024 21:51:20 GMT+0300";
+                OUTPUT_LONGITUDE = 108.0685742287374;
+                OUTPUT_LATITUDE = 1.7702815624895842;
+                date = new Date(INPUT_DATE);
+                sat.setDate(date);
+                ok = sat.Longitude == OUTPUT_LONGITUDE && sat.Latitude == OUTPUT_LATITUDE;
+                text.innerHTML = "Date: " + date + "<br>Longitude=" + sat.Longitude + "°, Latitude=" + sat.Latitude + "°<br>OK=" + ok;
+            });
+        </script>
+    </body>
+</html>

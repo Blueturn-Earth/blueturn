@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<!-- saved from url=(0054)http://app.blueturn.earth/stereosat/headset/index.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+  <title>Florence in stereo</title>
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="copyrights" content="Michael Boccara @Blueturn 2018-2019">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+  body {
+      font-family: Arial;
+      color: black;
+  }
+
+  .copyright {
+       font-family: Arial;
+     color:   #DCDCDC;
+  }
+
+  .split {
+      height: 100%;
+      width: 50%;
+      position: fixed;
+      top: 50;
+      overflow-x: hidden;
+      padding-top: 20px;
+  }
+
+  .left {
+      left: 0;
+  }
+
+  .right {
+      right: 0;
+  }
+
+  .centered {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+  }
+
+  .centered img {
+      width: 100%;
+      border-radius: 50%;
+  }
+
+  .container {
+      position: relative;
+      width: 100%;
+      height: 0;
+      padding-bottom: 56.25%;
+  }
+
+  .video {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      //pointer-events: none;
+  }
+
+  </style>
+  </head>
+ <body>
+  <div class="copyright">
+    Single Camera Stereo Imaging - © Kevin Kelley 2018-2019
+    <br>
+    Concept: Kevin Kelley - Software: Michael Boccara / Blueturn
+  </div>
+  <div class="videoArea">
+    <div class="split left">
+      <div class="container">
+        <div id="playerLeft"></div>
+      </div>
+    </div>
+
+    <div class="split right">
+      <div class="container">
+        <div id="playerRight"></div>
+      </div>
+    </div>
+  </div>
+
+  </script><script>
+    var playerLeft;
+    var playerRight;
+    var interval = 1000;
+    var parallaxTimeOffset = 15;
+    var startTime = 0;
+    var endTime = 143;
+
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    var firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    var controlsLeft = parallaxTimeOffset >= 0 ? 1 : 0;
+    var controlsRight = parallaxTimeOffset <= 0 ? 1 : 0;
+
+    function onYouTubePlayerAPIReady() {
+      playerLeft = new YT.Player('playerLeft', {
+        videoId: 'IJ2HKIoYln0',
+        playerVars: { 'autoplay': 1, 'controls': controlsLeft, 'autohide': 1, 'showinfo': 0, 'wmode':'opaque','end':endTime },
+        events: {
+          'onReady': onPlayerReady,
+          'onStateChange': onPlayerStateChange
+        }
+      });
+      playerRight = new YT.Player('playerRight', {
+        videoId: 'IJ2HKIoYln0',
+        playerVars: { 'autoplay': 1, 'controls': controlsRight, 'autohide': 1, 'showinfo': 0, 'wmode':'opaque','end':endTime },
+        events: {
+          'onReady': onPlayerReady,
+          'onStateChange': onPlayerStateChange
+        }
+      });
+
+/*
+      if (controlsLeft == 0) {
+        document.getElementById("playerLeft").style.pointerEvents = "none";
+      }
+      if (controlsRight == 0) {
+        document.getElementById("playerRight").style.pointerEvents = "none";
+      }
+*/
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data == YT.PlayerState.PLAYING) {
+        console.log("Play video");
+        playerLeft.playVideo();
+        playerRight.playVideo();
+      }
+      if (event.data == YT.PlayerState.PAUSED) {
+        console.log("Pause video");
+        playerLeft.pauseVideo();
+        playerRight.pauseVideo();
+      }
+    }
+
+    function onPlayerReady(event) {
+      event.target.playVideo();
+      /// Time tracking starting here
+
+      var checkPlayerTime = function (player, lastTime) {
+          var t = player.getCurrentTime();
+
+          if (lastTime < 0 || Math.abs(t - lastTime - 1) >  0.5) {
+              onSeek({'target': player, 't': t});
+          }
+          
+          if (player.getPlayerState() == YT.PlayerState.ENDED ||
+              t > endTime) {
+            console.log("Reached end time: " + t);
+            onVideoEnd(player);
+          }
+
+          lastTime = t;
+          setTimeout(checkPlayerTime, interval, player, lastTime); /// repeat function call in 1 second
+      }
+
+      // call in one sec
+      setTimeout(checkPlayerTime, interval, event.target, -1); 
+    }
+
+    function onSeek(event)
+    {
+      if (event.target == playerLeft && controlsLeft == 1) {
+        console.log("seek left: " + event.t); /// fire your event here !
+        playerRight.seekTo(event.t + parallaxTimeOffset);
+      }
+      if (event.target == playerRight && controlsRight == 1) {
+        console.log("seek right: " + event.t); /// fire your event here !
+        playerLeft.seekTo(event.t - parallaxTimeOffset);
+      }
+    }
+
+    function onVideoEnd(player)
+    {
+      if (player == playerLeft && controlsRight == 1) {
+        console.log("restart");
+        playerRight.seekTo(startTime);
+        playerRight.playVideo();
+        playerLeft.playVideo();
+      }
+      if (player == playerRight && controlsLeft == 1) {
+        console.log("restart");
+        playerLeft.seekTo(startTime);
+        playerLeft.playVideo();
+        playerRight.playVideo();
+      }
+    }
+
+  </script>  
+
+
+</body></html>

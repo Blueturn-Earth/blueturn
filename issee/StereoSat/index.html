@@ -1,0 +1,96 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>Stereo Player</title>
+  <META NAME="robots" CONTENT="noindex,nofollow">
+  <meta name="copyrights" content="Michael Boccara @Blueturn 2018-2024" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="stylesheet" href="style.css">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-142422076-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'UA-142422076-1');
+  </script>
+  </head>
+  <body style="background-color:black;" onresize="resync()">
+	<div class="videoArea">
+		<div class="halfPaneArea left">
+			<div class="videoContainer left">
+				<div id="playerLeft"></div>
+			</div>
+			<div class="iss-pos left">
+				<iframe 
+					class="iss-tracker" 
+					src="../ESA_ISSTracker/index.html" 
+					scrolling="no" 
+					allowfullscreen="" 
+					width="625" 
+					height="352"></iframe>
+			</div>
+		</div>
+		<div class="halfPaneArea right">
+			<div class="videoContainer right">
+				<div id="playerRight"></div>
+			</div>      
+			<div class="iss-pos right">
+				<iframe 
+					class="iss-tracker" 
+					src="../ESA_ISSTracker/index.html" 
+					scrolling="no" 
+					allowfullscreen="" 
+					width="625" 
+					height="352"></iframe>
+			</div>
+		</div>      
+		<div style="
+			position: fixed;
+			left: 50%;
+			margin-left: -2px;
+			top: 0;
+			bottom: 0;
+			width: 5px;
+			background-color: black;
+			z-index:1">
+		</div>      
+	</div>
+    <div id="UI">
+	<table>
+		<tr>
+		  <td onclick="toggleISSTracker()">
+			ISS:
+		  </td>
+		  <td>
+			<input type="range" min='0.01' max='4.36' step='.01' value='1' name="issTrackerScaleValue" id="issTrackerScaleRangeInput" oninput="setISSTrackerScale(Number(this.value));">
+		  </td> 
+		  <td onclick="toggleUI()">
+			2D:
+		  </td>
+		  <td>
+			<input type="range" min='0' max='1' step='.01' value='1' name="monoValue" id="monoValueRangeInput" oninput="setMonoValue(Number(this.value));">
+		  </td> 
+		  <td>
+			<button type="button" id="resyncButton" onclick="resync()">Resync</button>
+		  </td>
+		  <td>
+			<button type="button" id="goLiveButton" onclick="golive()">Live</button>
+		  </td>
+		  <td>
+			<button type="button" id="goBckwdButton" onclick="gobackward()"><< 5mn</button>
+		  </td>
+		  <td>
+			<button type="button" id="goFwdButton" onclick="goforward()">>> 5mn</button>
+		  </td>
+		</tr>
+	</table>
+    </div>
+  <script src="../Lib/Timer.js"></script>
+  <script src="../Lib/MultiPlayer.js"></script>
+<script src="player.js"></script>
+ </body>
+</html>

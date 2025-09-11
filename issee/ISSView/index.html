@@ -1,0 +1,51 @@
+
+<!DOCTYPE html>
+<html>
+  <head>
+  <title>ISS View</title>
+  <META NAME="robots" CONTENT="noindex,nofollow">
+  <meta name="copyrights" content="Michael Boccara @Blueturn 2018-2025" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="stylesheet" href="style.css">
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-142422076-1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'UA-142422076-1');
+  </script>
+  </head>
+  <body style="background-color:black;" onresize="resize()">
+    <div id="YTPlayer"></div>
+    <iframe 
+      class="iss-tracker" 
+      src="../ESA_ISSTracker/index.html" 
+      scrolling="no" 
+      allowfullscreen="" 
+      width="625" 
+      height="352">
+    </iframe>
+    <div class="buttonsContainer">
+      <div class="buttonsRow">
+        <button onclick="gobackward(300)">-5min</button>
+        <button onclick="gobackward(60)">-1min</button>
+        <button onclick="gobackward(5)">-5sec</button>
+        <button onclick="golive()">Live</button>
+        <button onclick="goforward(5)">+5sec</button>
+        <button onclick="goforward(60)">+1min</button>
+        <button onclick="goforward(300)">+5min</button>
+      </div>
+      <div class="buttonsRow">
+        <button class="prevPassBtn" onclick="gotoPrevPass()">Last Pass</button>
+        <button id="locateBtn" onclick="locate()">When will it pass over me?</button>
+        <button class="nextPassBtn" onclick="remindNextPass()">Next Pass</button>
+      </div>
+    </div>
+    <script src="../Lib/Timer.js"></script>
+    <script src="../Lib/MultiPlayer.js"></script>
+    <script src="player.js"></script>
+ </body>
+</html>
