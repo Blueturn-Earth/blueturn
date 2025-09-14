@@ -38,16 +38,16 @@
 
 .left {
 	left: 0; 
-	-moz-transform-origin: left bottom;
-	-o-transform-origin: left bottom;
-	-webkit-transform-origin: left bottom;
+	-moz-transform-origin: left top;
+	-o-transform-origin: left top;
+	-webkit-transform-origin: left top;
 }
 
 .right {
 	right: 0; 
-	-moz-transform-origin: right bottom;
-	-o-transform-origin: right bottom;
-	-webkit-transform-origin: right bottom;
+	-moz-transform-origin: right top;
+	-o-transform-origin: right top;
+	-webkit-transform-origin: right top;
 }
 
 #UI {
@@ -67,7 +67,7 @@
 	background: rgba(255, 255, 255, 0.5);
 	float: right;
 	right: 0px;
-	bottom: 0;
+	top: 30px;
 }
 
 #issTrackerScaleRangeInput {
@@ -81,7 +81,7 @@
 .iss-pos {
     position: fixed;
 	z-index: 3;
-	bottom: 0;
+	top: 0;
 	-moz-transform: scale(1);
 	-o-transform: scale(1);
 	-webkit-transform: scale(1);
