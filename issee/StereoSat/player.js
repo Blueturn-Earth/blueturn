@@ -23,7 +23,7 @@ let DELAY_S = 15;
 var multiPlayer = new MultiPlayer(
 	VIDEO_ID, 
 	timer, 
-	[playerLeft, playerRight], 
+	[playerLeft, playerRight],
 	DELAY_S,
 	function() {UpdateISSTracker();});
 
@@ -33,7 +33,7 @@ document.addEventListener("visibilitychange", function() {
 
 const DEFAULT_MONO_VALUE = 0;
 const DEFAULT_PARALLAX_TIME_OFFSET = -14;
-const DEFAULT_ROTATION_ANGLE = -6;
+const DEFAULT_ROTATION_ANGLE = -186;
 const DEFAULT_HORIZONTAL_PAN = 20;
 const DEFAULT_SCALE = 11;
 const DEFAULT_ISS_TRACKER_SCALE = 1;
@@ -196,6 +196,7 @@ function setTimeOffset(val) {
 }
 
 function setVideoRotation(val) {
+	val += 180; // they made the video upside down
 	if (val != videoRotationAngle) {       
 		console.log("Set video rotation: " + val + "deg");      
 		videoRotationAngle=val; 
