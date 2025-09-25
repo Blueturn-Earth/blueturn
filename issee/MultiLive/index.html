@@ -7,17 +7,29 @@
     </head>
     <body>
         <div>
-            <div id="player1">Loading Player 1...</div>
-            <div id="player2">Loading Player 2...</div>
-            <div id="player3">Loading Player 3...</div>
+            <div id="ytPlayer1">Loading YouTube Player 1...</div>
+            <div id="ytPlayer2">Loading YouTube Player 2...</div>
+            <div id="ytPlayer3">Loading YouTube Player 3...</div>
+            <iframe 
+                id="issTracker" 
+                src="../ESA_ISSTracker/index.html" 
+                scrolling="no" 
+                width="625" 
+                height="352">
+            </iframe>
         </div>
         <script type="module">
             import YouTubeLivePlayerNode from '../Lib/YouTubeLivePlayerNode.js';
-            var player1 = new YouTubeLivePlayerNode("yf5cEJULZXk", "player1"); // ISS topdown
-            var player2 = new YouTubeLivePlayerNode("iYmvCUonukw", "player2"); // ISS front
-            var player3 = new YouTubeLivePlayerNode("fO9e9jnhYK8", "player3"); // afarTV
-            player1.addEdge(player2);
-            player2.addEdge(player3);
+            import ISSTrackerNode from '../Lib/ISSTrackerNode.js';
+
+            var ytPlayer1 = new YouTubeLivePlayerNode("yf5cEJULZXk", "ytPlayer1"); // ISS topdown
+            var ytPlayer2 = new YouTubeLivePlayerNode("iYmvCUonukw", "ytPlayer2"); // ISS front
+            var ytPlayer3 = new YouTubeLivePlayerNode("fO9e9jnhYK8", "ytPlayer3"); // afarTV
+            ytPlayer1.addEdge(ytPlayer2);
+            ytPlayer2.addEdge(ytPlayer3);
+
+            var issTracker = new ISSTrackerNode("issTracker");
+            ytPlayer1.addEdge(issTracker);
         </script>
     </body>
 </html>

@@ -1,7 +1,7 @@
 /*
  * http://www.opensource.org/licenses/lgpl-2.1.php
- * Stereo YouTube Live Player
- * Copyright Michael Boccara, Blueturn - 2017-2024
+ * YouTube Live Player Node
+ * Copyright Michael Boccara, Blueturn - 2025
  */
 
 import LivePlayerNode from "./LivePlayerNode.js"

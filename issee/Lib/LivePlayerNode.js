@@ -22,6 +22,10 @@ export default class LivePlayerNode extends ILivePlayer {
         this.#name = name;
     }
 
+    get name() {
+        return this.#name;
+    }
+    
     addEdge(edge) {
         if (this.#edges.includes(edge))
         {
@@ -46,6 +50,10 @@ export default class LivePlayerNode extends ILivePlayer {
         return true;
     }
 
+    getPlayState() {
+        return this.#playing;
+    }
+
     setDelay(delaySec) {
         if (this.#delaySec == delaySec)
             return false;
@@ -55,5 +63,9 @@ export default class LivePlayerNode extends ILivePlayer {
             edge.setDelay(delaySec);
         }
         return true;
+    }
+
+    getDelay() {
+        return this.#delaySec;
     }
 }
