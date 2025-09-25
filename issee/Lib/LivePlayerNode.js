@@ -36,7 +36,7 @@ class LivePlayerNode extends ILivePlayer {
     setPlayState(playing) {
         if (this.#playing == playing)
             return false;
-        console.log(this.#name + ": playing=" + playing);
+        console.log(this.#name + ": setPlayState(" + playing + ")");
         this.#playing = playing;
         for (let edge of this.#edges) {
             edge.setPlayState(playing);
@@ -47,7 +47,7 @@ class LivePlayerNode extends ILivePlayer {
     setDelay(delaySec) {
         if (this.#delaySec == delaySec)
             return false;
-        console.log(this.#name + ": delay=" + delaySec + " s");
+        console.log(this.#name + ": setDelay(" + delaySec + ")");
         this.#delaySec = delaySec;
         for (let edge of this.#edges) {
             edge.setDelay(delaySec);

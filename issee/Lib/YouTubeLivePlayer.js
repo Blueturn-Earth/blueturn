@@ -147,8 +147,42 @@ class YouTubeLivePlayer extends LivePlayerNode
     setDelay(delaySec) {
         if (!super.setDelay(delaySec))
             return false;
-        this.#ytPlayer.seekTo(this.#ytPlayer.getDuration() - delaySec);
+        const seek = this.#ytPlayer.getDuration() - delaySec;
+        //this.#next_expected_seek = seek;
+        console.log(this.#elementId + ": seekTo(" + seek + ")");
+        this.#ytPlayer.seekTo(seek);
         return true;
+    }
+
+    _onYTPlayerStateChange(event)
+    {
+        console.assert(this.#ytPlayer == event.target);
+
+        switch  (event.data) {
+          case YT.PlayerState.PLAYING:
+            console.log("EVENT: " + this.#elementId + " PLAYING");
+            this.setPlayState(true);
+            break;
+          case YT.PlayerState.PAUSED:
+            console.log("EVENT: " + this.#elementId + " PAUSED");
+            this.setPlayState(false);
+            break;
+          case YT.PlayerState.BUFFERING:
+            console.log("EVENT: " + this.#elementId + " BUFFERING");
+            break;
+          case YT.PlayerState.UNSTARTED:
+            console.debug("EVENT: " + this.#elementId + " UNSTARTED");
+            break;
+          case YT.PlayerState.ENDED:
+            console.debug("EVENT: " + this.#elementId + " ENDED");
+            break;
+          case YT.PlayerState.CUED:
+            console.debug("EVENT: " + this.#elementId + " CUED");
+            break;
+          default:
+            console.warn("Unrecognized EVENT on player " + this.#elementId + ": " + event.data);
+            break;
+          }
     }
 
     #startSeekJob()
@@ -167,7 +201,7 @@ class YouTubeLivePlayer extends LivePlayerNode
         if (this.#seekIntervalId)
         {
             clearInterval(this.#seekIntervalId); 
-            this.#seekIntervalId = 0;
+            this.#seekIntervalId = undefined;
         }
     }    
 
@@ -204,37 +238,6 @@ class YouTubeLivePlayer extends LivePlayerNode
         {
             this.#next_expected_seek += this.SEEK_PERIOD_MS / 1000;
         }
-    }
-
-    _onYTPlayerStateChange(event)
-    {
-        console.assert(this.#ytPlayer == event.target);
-
-        switch  (event.data) {
-          case YT.PlayerState.PLAYING:
-            console.log("EVENT: " + this.#elementId + " PLAYING");
-            this.setPlayState(true);
-            break;
-          case YT.PlayerState.PAUSED:
-            console.log("EVENT: " + this.#elementId + " PAUSED");
-            this.setPlayState(false);
-            break;
-          case YT.PlayerState.BUFFERING:
-            console.log("EVENT: " + this.#elementId + " BUFFERING");
-            break;
-          case YT.PlayerState.UNSTARTED:
-            console.debug("EVENT: " + this.#elementId + " UNSTARTED");
-            break;
-          case YT.PlayerState.ENDED:
-            console.debug("EVENT: " + this.#elementId + " ENDED");
-            break;
-          case YT.PlayerState.CUED:
-            console.debug("EVENT: " + this.#elementId + " CUED");
-            break;
-          default:
-            console.warn("Unrecognized EVENT on player " + this.#elementId + ": " + event.data);
-            break;
-          }
     }
 }
 
