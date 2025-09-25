@@ -19,17 +19,13 @@
             </iframe>
         </div>
         <script type="module">
-            import YouTubeLivePlayerNode from '../Lib/YouTubeLivePlayerNode.js';
+            import YouTubeLivePlayer from '../Lib/YouTubeLivePlayer.js';
             import ISSTrackerNode from '../Lib/ISSTrackerNode.js';
 
-            var ytPlayer1 = new YouTubeLivePlayerNode("yf5cEJULZXk", "ytPlayer1"); // ISS topdown
-            var ytPlayer2 = new YouTubeLivePlayerNode("iYmvCUonukw", "ytPlayer2"); // ISS front
-            var ytPlayer3 = new YouTubeLivePlayerNode("fO9e9jnhYK8", "ytPlayer3"); // afarTV
-            ytPlayer1.addEdge(ytPlayer2);
-            ytPlayer2.addEdge(ytPlayer3);
-
-            var issTracker = new ISSTrackerNode("issTracker");
-            ytPlayer1.addEdge(issTracker);
+            new YouTubeLivePlayer("yf5cEJULZXk", "ytPlayer1"); // ISS topdown
+            new YouTubeLivePlayer("iYmvCUonukw", "ytPlayer2"); // ISS front
+            new YouTubeLivePlayer("fO9e9jnhYK8", "ytPlayer3"); // afarTV
+            new ISSTrackerNode("issTracker");
         </script>
     </body>
 </html>

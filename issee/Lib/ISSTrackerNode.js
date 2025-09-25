@@ -4,9 +4,9 @@
  * Copyright Michael Boccara, Blueturn - 2025
  */
 
-import LivePlayerNode from "./LivePlayerNode.js"
+import LivePlayer from "./LivePlayer.js"
 
-export default class ISSTrackerNode extends LivePlayerNode
+export default class ISSTrackerNode extends LivePlayer
 {
     #issTracker;
 
@@ -17,34 +17,27 @@ export default class ISSTrackerNode extends LivePlayerNode
         window.addEventListener("message", (event)=>{
             if (event.data.type === "issDelay")
             {
-                this.setDelay(event.data.delay);
+                this.onDelayChange(event.data.delay);
             }
         });
     }
 
     setPlayState(playing) {
-        if (!super.setPlayState(playing))
-            return false;
-
-        this.#updateISSTracker();
-
-        return true;
-    }
-
-    setDelay(delaySec) {
-        if (!super.setDelay(delaySec))
-            return false;
-
-        this.#updateISSTracker();
-
-        return true;
-    }
-
-    #updateISSTracker() {
         this.#issTracker.contentWindow.postMessage(
             {
                 type: "delay",
                 delay: this.getDelay(), 
+                play: playing, 
+                map_scale: 1
+            }, '*'
+        );
+    }
+
+    setDelay(delaySec) {
+        this.#issTracker.contentWindow.postMessage(
+            {
+                type: "delay",
+                delay: delaySec, 
                 play: this.getPlayState(), 
                 map_scale: 1
             }, '*'
