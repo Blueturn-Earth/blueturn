@@ -4,14 +4,16 @@
     <head>
         <title>Multi Live Player</title>
         <meta name="copyrights" content="Michael Boccara @Blueturn 2025" />
+        <link rel="stylesheet" href="style.css">
     </head>
     <body>
-        <div>
-            <div id="ytPlayer1">Loading YouTube Player 1...</div>
-            <div id="ytPlayer2">Loading YouTube Player 2...</div>
-            <div id="ytPlayer3">Loading YouTube Player 3...</div>
+        <div class="mosaic">
+            <div class="tile" id="ytPlayer1">Loading YouTube Player 1...</div>
+            <div class="tile" id="ytPlayer2">Loading YouTube Player 2...</div>
+            <div class="tile" id="ytPlayer3">Loading YouTube Player 3...</div>
             <iframe 
-                id="issTracker" 
+                id="issTracker"
+                class="tile"  
                 src="../ESA_ISSTracker/index.html" 
                 scrolling="no" 
                 width="625" 
@@ -23,8 +25,10 @@
             import ISSTrackerNode from '../Lib/ISSTrackerNode.js';
 
             new YouTubeLivePlayer("yf5cEJULZXk", "ytPlayer1"); // ISS topdown
+            // TODO: http://127.0.0.1:8080/blueturn/issee/StereoSat/?v=yf5cEJULZXk&timeOffset=-14&videoRotation=-3&videoPanXpc=22&videoScale=10
             new YouTubeLivePlayer("iYmvCUonukw", "ytPlayer2"); // ISS front
-            new YouTubeLivePlayer("fO9e9jnhYK8", "ytPlayer3"); // afarTV
+            new YouTubeLivePlayer("fO9e9jnhYK8", "ytPlayer3"); // Sen camera
+            // TODO: http://127.0.0.1:8080/blueturn/issee/StereoSat/?v=fO9e9jnhYK8&timeOffset=7&videoRotation=90&videoPanXpc=19&videoScale=10
             new ISSTrackerNode("issTracker");
         </script>
     </body>
