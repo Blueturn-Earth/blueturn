@@ -19,6 +19,9 @@ if (videoIdParam)
 	console.log("Using video ID from URL param: " + VIDEO_ID);
 }
 
+var inputs = document.getElementById("inputForm").elements;
+var numInputs = inputs.length;
+
 let DELAY_S = 15;
 var multiPlayer = new MultiPlayer(
 	VIDEO_ID, 
@@ -33,7 +36,7 @@ document.addEventListener("visibilitychange", function() {
 
 const DEFAULT_MONO_VALUE = 0;
 const DEFAULT_PARALLAX_TIME_OFFSET = -14;
-const DEFAULT_ROTATION_ANGLE = -186;
+const DEFAULT_ROTATION_ANGLE = -6;
 const DEFAULT_HORIZONTAL_PAN = 20;
 const DEFAULT_SCALE = 11;
 const DEFAULT_ISS_TRACKER_SCALE = 1;
@@ -46,12 +49,36 @@ var videoScale = DEFAULT_SCALE;
 var issTrackerScale = DEFAULT_ISS_TRACKER_SCALE;
 var issTrackerDelay = 0;
 
-var startTime = -1;
-var endTime = -1;
-var showUI = true;
-var showISSTracker = true;
+for (i = 0; i < numInputs; i++) {
+  input = inputs[i];
+  if (input.name) {
+	value = urlParams.get(input.name);
+	if (!value) {
+	  switch (input.name) {
+		case 'timeOffset':
+		  value = parallaxTimeOffset;
+		  break;
+		case 'videoRotation':
+		  value = videoRotationAngle;
+		  break;
+		case 'videoPanXpc':
+		  value = videoPanXpc;
+		  break;
+		case 'videoScale':
+		  value = videoScale;
+		  break;
+	  }
+	}
+	console.log("input: " + input.name + "=" + value);
+	input.value = value;
+	if (input.oninput) input.oninput();
+	if (input.onchange) input.onchange();
+  }
+}
 
-var urlParams = new URLSearchParams(window.location.search);
+var showUI = true;
+var showAdvancedUI = false;
+var showISSTracker = true;
 
 var monoInput = document.getElementById("monoValueRangeInput");
 monoInput.value = monoValue;
@@ -151,20 +178,20 @@ function setValue(id, val) {
 }
 
 function toggleUI() {
-	showUI = !showUI;
+	showAdvancedUI = !showAdvancedUI;
 	
 	applyShowUI();
 }
 
 function applyShowUI()
 {
-	var uiDiv = document.getElementById("UI");
+	var uiDiv = document.getElementById("AdvancedUI");
 
-	if (showUI) {
-		console.log("Show UI");
+	if (showAdvancedUI) {
+		console.log("Show Advanced UI");
 		uiDiv.style.display = "block";
 	} else {
-		console.log("Hide UI");
+		console.log("Hide Advanced UI");
 		uiDiv.style.display = "none";
 	}
 }
@@ -191,17 +218,24 @@ function applyShowISSTracker() {
 	});
 }
 
+function setElementValue(id, val) {
+  document.getElementById(id).value=val; 
+}
+
 function setTimeOffset(val) {
 	multiPlayer.delay_s = val;
+	setElementValue('timeOffsetTextInput', val); 
+	setElementValue('timeOffsetRangeInput', val);
 }
 
 function setVideoRotation(val) {
-	val += 180; // they made the video upside down
 	if (val != videoRotationAngle) {       
 		console.log("Set video rotation: " + val + "deg");      
 		videoRotationAngle=val; 
 		UpdateVideoTransform();
 	}
+	setElementValue('videoRotationTextInput', val); 
+	setElementValue('videoRotationRangeInput', val); 
 }
 
 function setVideoPanX(val) {
@@ -210,6 +244,8 @@ function setVideoPanX(val) {
 		videoPanXpc=val; 
 		UpdateVideoTransform();
 	}
+	setElementValue('videoPanXpcTextInput', val); 
+	setElementValue('videoPanXpcRangeInput', val);
 }
 
 function setVideoScale(val) {
@@ -218,6 +254,8 @@ function setVideoScale(val) {
 		videoScale=val; 
 		UpdateVideoTransform();
 	}
+	setElementValue('videoScaleTextInput', val); 
+	setElementValue('videoScaleRangeInput', val);
 }
   
 function setFullISSTrackerScale()
