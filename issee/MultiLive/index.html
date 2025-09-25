@@ -11,10 +11,8 @@
             <div id="player2">Loading Player 2...</div>
             <div id="player3">Loading Player 3...</div>
         </div>
-        <script src="../Lib/ILivePlayer.js"></script>
-        <script src="../Lib/LivePlayerNode.js"></script>
-        <script src="../Lib/YouTubeLivePlayer.js"></script>
-        <script>
+        <script type="module">
+            import YouTubeLivePlayer from '../Lib/YouTubeLivePlayer.js';
             var player1 = new YouTubeLivePlayer("yf5cEJULZXk", "player1"); // ISS topdown
             var player2 = new YouTubeLivePlayer("iYmvCUonukw", "player2"); // ISS front
             var player3 = new YouTubeLivePlayer("fO9e9jnhYK8", "player3"); // afarTV

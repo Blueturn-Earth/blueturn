@@ -4,6 +4,8 @@
  * Copyright Michael Boccara, Blueturn - 2017-2024
  */
 
+import LivePlayerNode from "./LivePlayerNode.js"
+
 // If running in a browser, ensure your script tag uses type="module":
 // <script type="module" src="Lib/YouTubeLivePlayer.js"></script>
 function InitYoutubePlayerAPI() 
@@ -32,13 +34,15 @@ function onYouTubeIframeAPIReady()
     });
 }
 
+window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+
 function secStr(s, decimals = 3) 
 {
     let thousands = Math.pow(10, decimals);
     return Math.round(s * thousands) / thousands;
 };
 
-class YouTubeLivePlayer extends LivePlayerNode
+export default class YouTubeLivePlayer extends LivePlayerNode
 {
     static instances = [];
     static apiReady;

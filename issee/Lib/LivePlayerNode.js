@@ -3,12 +3,14 @@
  * Copyright Michael Boccara, Blueturn - 2025
  */
 
+import ILivePlayer from "./ILivePlayer.js";
+
 // LivePlayerNode class
 // A node in a graph of ILivePlayer instances
 // It has a list of outgoing edges to other LivePlayerNode instances
 // For example, when play() is called, it calls play() on its impl and on all its edges
 // Takes care of avoiding edging cycles
-class LivePlayerNode extends ILivePlayer {
+export default class LivePlayerNode extends ILivePlayer {
     #name;
     #edges = [];
     #playing = false;
