@@ -1,0 +1,25 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Multi Live Player</title>
+        <meta name="copyrights" content="Michael Boccara @Blueturn 2025" />
+    </head>
+    <body>
+        <div>
+            <div id="player1">Loading Player 1...</div>
+            <div id="player2">Loading Player 2...</div>
+            <div id="player3">Loading Player 3...</div>
+        </div>
+        <script src="../Lib/ILivePlayer.js"></script>
+        <script src="../Lib/LivePlayerNode.js"></script>
+        <script src="../Lib/YouTubeLivePlayer.js"></script>
+        <script>
+            var player1 = new YouTubeLivePlayer("yf5cEJULZXk", "player1"); // ISS topdown
+            var player2 = new YouTubeLivePlayer("iYmvCUonukw", "player2"); // ISS front
+            var player3 = new YouTubeLivePlayer("fO9e9jnhYK8", "player3"); // afarTV
+            player1.addEdge(player2);
+            player2.addEdge(player3);
+        </script>
+    </body>
+</html>
