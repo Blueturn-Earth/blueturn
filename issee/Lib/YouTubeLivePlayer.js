@@ -4,10 +4,10 @@
  * Copyright Michael Boccara, Blueturn - 2025
  */
 
-import LivePlayerNode from "./LivePlayerNode.js"
+import LivePlayer from "./LivePlayer.js"
 
 // If running in a browser, ensure your script tag uses type="module":
-// <script type="module" src="Lib/YouTubeLivePlayerNode.js"></script>
+// <script type="module" src="Lib/YouTubeLivePlayer.js"></script>
 function InitYoutubePlayerAPI() 
 {
     console.log("Waiting for Youtube Player API...");
@@ -28,8 +28,8 @@ function InitYoutubePlayerAPI()
 function onYouTubeIframeAPIReady() 
 {
     console.log("EVENT: YouTube I-Frame API Ready");
-    YouTubeLivePlayerNode.apiReady = true;
-    YouTubeLivePlayerNode.instances.forEach(instance => {
+    YouTubeLivePlayer.apiReady = true;
+    YouTubeLivePlayer.instances.forEach(instance => {
         instance._init();
     });
 }
@@ -42,7 +42,7 @@ function secStr(s, decimals = 3)
     return Math.round(s * thousands) / thousands;
 };
 
-export default class YouTubeLivePlayerNode extends LivePlayerNode
+export default class YouTubeLivePlayer extends LivePlayer
 {
     static instances = [];
     static apiReady;
@@ -52,10 +52,8 @@ export default class YouTubeLivePlayerNode extends LivePlayerNode
     #readyCheckIntervalId;
     #seekIntervalId;
     #next_expected_seek;
+    #liveSeek;
 
-    // 300ms to consider it a jump, 
-    // 300ms gets to be the max variance between players seek time 
-    SEEK_THRESHOLD_MS = 300;
     SEEK_PERIOD_MS = 100;
 
     constructor(videoId, element)
@@ -63,13 +61,13 @@ export default class YouTubeLivePlayerNode extends LivePlayerNode
         super(element);
         this.#videoId = videoId;
         this.#elementId = element;
-        const firstInstance = !YouTubeLivePlayerNode.instances.length;
-        YouTubeLivePlayerNode.instances.push(this);
+        const firstInstance = !YouTubeLivePlayer.instances.length;
+        YouTubeLivePlayer.instances.push(this);
         if (firstInstance)
         {
             InitYoutubePlayerAPI();
         }
-        else if(YouTubeLivePlayerNode.apiReady)
+        else if(YouTubeLivePlayer.apiReady)
         {
             this._init();
         }
@@ -132,30 +130,25 @@ export default class YouTubeLivePlayerNode extends LivePlayerNode
             return;
         }
 
-        console.log("this " + this.#elementId + ": Duration=" + this.#ytPlayer.getDuration() + "s, Current=" + this.#ytPlayer.getCurrentTime() + "s");
+        console.log("this " + this.#elementId + ": Duration=" + this.#ytPlayer.getDuration() + "s, Live=" + this.#ytPlayer.getCurrentTime() + "s");
+        this.#liveSeek = this.#ytPlayer.getCurrentTime();
         clearInterval(this.#readyCheckIntervalId);
         this.#readyCheckIntervalId = 0;
         this.#startSeekJob();
     }
 
     setPlayState(playing) {
-        if (!super.setPlayState(playing))
-            return false;
         if (playing)
             this.#ytPlayer.playVideo();
         else
             this.#ytPlayer.pauseVideo();
-        return true;
     }
 
     setDelay(delaySec) {
-        if (!super.setDelay(delaySec))
-            return false;
-        const seek = this.#ytPlayer.getDuration() - delaySec;
+        const seek = this.#liveSeek - delaySec;
         //this.#next_expected_seek = seek;
         console.log(this.#elementId + ": seekTo(" + seek + ")");
         this.#ytPlayer.seekTo(seek);
-        return true;
     }
 
     _onYTPlayerStateChange(event)
@@ -165,11 +158,11 @@ export default class YouTubeLivePlayerNode extends LivePlayerNode
         switch  (event.data) {
           case YT.PlayerState.PLAYING:
             console.log("EVENT: " + this.#elementId + " PLAYING");
-            this.setPlayState(true);
+            this.onPlayStateChange(true);
             break;
           case YT.PlayerState.PAUSED:
             console.log("EVENT: " + this.#elementId + " PAUSED");
-            this.setPlayState(false);
+            this.onPlayStateChange(false);
             break;
           case YT.PlayerState.BUFFERING:
             console.log("EVENT: " + this.#elementId + " BUFFERING");
@@ -233,7 +226,7 @@ export default class YouTubeLivePlayerNode extends LivePlayerNode
             else
             {
                 console.log("EVENT: " + this.#elementId + " Detected Seek " + secStr(current_seek) + ", a jump of " + secStr(diffSec) + "s from " + secStr(this.#next_expected_seek));
-                this.setDelay(this.#ytPlayer.getDuration() - current_seek);
+                this.onDelayChange(this.#liveSeek - current_seek);
             }
         }
 
@@ -242,6 +235,7 @@ export default class YouTubeLivePlayerNode extends LivePlayerNode
         {
             this.#next_expected_seek += this.SEEK_PERIOD_MS / 1000;
         }
+        this.#liveSeek += this.SEEK_PERIOD_MS / 1000;
     }
 }
 
