@@ -1,0 +1,35 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Multi Live Player</title>
+        <meta name="copyrights" content="Michael Boccara @Blueturn 2025" />
+    </head>
+    <body>
+        <div>
+            <div id="ytPlayer1">Loading YouTube Player 1...</div>
+            <div id="ytPlayer2">Loading YouTube Player 2...</div>
+            <div id="ytPlayer3">Loading YouTube Player 3...</div>
+            <iframe 
+                id="issTracker" 
+                src="../ESA_ISSTracker/index.html" 
+                scrolling="no" 
+                width="625" 
+                height="352">
+            </iframe>
+        </div>
+        <script type="module">
+            import YouTubeLivePlayerNode from '../Lib/YouTubeLivePlayerNode.js';
+            import ISSTrackerNode from '../Lib/ISSTrackerNode.js';
+
+            var ytPlayer1 = new YouTubeLivePlayerNode("yf5cEJULZXk", "ytPlayer1"); // ISS topdown
+            var ytPlayer2 = new YouTubeLivePlayerNode("iYmvCUonukw", "ytPlayer2"); // ISS front
+            var ytPlayer3 = new YouTubeLivePlayerNode("fO9e9jnhYK8", "ytPlayer3"); // afarTV
+            ytPlayer1.addEdge(ytPlayer2);
+            ytPlayer2.addEdge(ytPlayer3);
+
+            var issTracker = new ISSTrackerNode("issTracker");
+            ytPlayer1.addEdge(issTracker);
+        </script>
+    </body>
+</html>
