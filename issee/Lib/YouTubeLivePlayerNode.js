@@ -7,7 +7,7 @@
 import LivePlayerNode from "./LivePlayerNode.js"
 
 // If running in a browser, ensure your script tag uses type="module":
-// <script type="module" src="Lib/YouTubeLivePlayer.js"></script>
+// <script type="module" src="Lib/YouTubeLivePlayerNode.js"></script>
 function InitYoutubePlayerAPI() 
 {
     console.log("Waiting for Youtube Player API...");
@@ -28,8 +28,8 @@ function InitYoutubePlayerAPI()
 function onYouTubeIframeAPIReady() 
 {
     console.log("EVENT: YouTube I-Frame API Ready");
-    YouTubeLivePlayer.apiReady = true;
-    YouTubeLivePlayer.instances.forEach(instance => {
+    YouTubeLivePlayerNode.apiReady = true;
+    YouTubeLivePlayerNode.instances.forEach(instance => {
         instance._init();
     });
 }
@@ -42,7 +42,7 @@ function secStr(s, decimals = 3)
     return Math.round(s * thousands) / thousands;
 };
 
-export default class YouTubeLivePlayer extends LivePlayerNode
+export default class YouTubeLivePlayerNode extends LivePlayerNode
 {
     static instances = [];
     static apiReady;
@@ -63,13 +63,13 @@ export default class YouTubeLivePlayer extends LivePlayerNode
         super(element);
         this.#videoId = videoId;
         this.#elementId = element;
-        const firstInstance = !YouTubeLivePlayer.instances.length;
-        YouTubeLivePlayer.instances.push(this);
+        const firstInstance = !YouTubeLivePlayerNode.instances.length;
+        YouTubeLivePlayerNode.instances.push(this);
         if (firstInstance)
         {
             InitYoutubePlayerAPI();
         }
-        else if(YouTubeLivePlayer.apiReady)
+        else if(YouTubeLivePlayerNode.apiReady)
         {
             this._init();
         }
