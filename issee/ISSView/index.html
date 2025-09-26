@@ -39,13 +39,21 @@
         <button onclick="goforward(300)">+5min</button>
       </div>
       <div class="buttonsRow">
-        <button class="prevPassBtn" onclick="gotoPrevPass()">Last Pass</button>
-        <button id="locateBtn" onclick="locate()">When will it pass over me?</button>
-        <button class="nextPassBtn" onclick="remindNextPass()">Next Pass</button>
+        <button class="prevPassBtn">Last Pass</button>
+        <button id="locateBtn">When will it pass over me?</button>
+        <button class="nextPassBtn">Next Pass</button>
       </div>
     </div>
     <script src="../Lib/Timer.js"></script>
     <script src="../Lib/MultiPlayer.js"></script>
     <script src="player.js"></script>
+    <script type="module">
+        import ISSLocator from '../Lib/ISSLocator.js';
+        new ISSLocator(
+          "locateBtn", 
+          "prevPassBtn", 
+          "nextPassBtn", 
+          "iss-tracker");
+    </script>
  </body>
 </html>
