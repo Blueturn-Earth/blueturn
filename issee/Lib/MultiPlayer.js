@@ -288,6 +288,9 @@ class MultiPlayer
 
     #onSeek(sourcePlayer)
     {
+        if (!sourcePlayer.ytPlayer)
+            return;
+        
         let currentTime = sourcePlayer.ytPlayer.getCurrentTime();
 
         if (currentTime == 0)
@@ -459,6 +462,7 @@ class MultiPlayer
         this.#players.forEach(player => {
             player.delay_s = self.#delay_s * player.index;
         });
+        this.#onSeek(this.#players[0]);
     }
 
     get delay_s()
