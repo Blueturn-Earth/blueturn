@@ -8,13 +8,15 @@ export default class ISSLocator
     prevPassBtns;
     nextPassBtns;
     issTrackers;
+    lastPassCallback;
 
-    constructor(locateButtonId, prevPassButtonClassName, nextPassButtonClassName, issTrackerClassName)
+    constructor(locateButtonId, prevPassButtonClassName, nextPassButtonClassName, issTrackerClassName, lastPassCallback)
     {
         this.issTrackers = document.querySelectorAll("." + issTrackerClassName);
         this.locateBtn = document.getElementById(locateButtonId);
         this.prevPassBtns = document.getElementsByClassName(prevPassButtonClassName);
         this.nextPassBtns = document.getElementsByClassName(nextPassButtonClassName);
+        this.lastPassCallback = lastPassCallback;
 
         let self = this;
 
@@ -72,8 +74,8 @@ export default class ISSLocator
         console.log("Fetching geocode for lat:", lat, "lon:", lon);
         this.getCityCountry(lat, lon)
         .then(data => {
-            localLocation = {lat: lat, lon: lon, name: `${data.city}, ${data.country}`};
-            this.locateBtn.innerHTML = localLocation.name;
+            this.localLocation = {lat: lat, lon: lon, name: `${data.city}, ${data.country}`};
+            this.locateBtn.innerHTML = this.localLocation.name;
         })
         .catch(err => {
             console.error("Geo API error:", err);
@@ -111,16 +113,17 @@ export default class ISSLocator
         return { city, country };
     }
 
-    handlePrevPassesInfo(prevPasses)
+    handlePrevPassesInfo(passes)
     {
         const prevPassBtn = this.prevPassBtns[0];
-        if (!prevPasses || prevPasses.length == 0)
+        if (!passes || passes.length == 0)
         {
             prevPassBtn.innerHTML = "No prev pass found";
             prevPassBtn.disabled = true;
             return;
         }
-        const prevPass = prevPasses[0];
+        this.prevPasses = passes;
+        const prevPass = this.prevPasses[0];
         const prevDate = new Date(Date.now() - prevPass.delay * 1000);
         prevPass.timeAtLocation = prevDate;
         const label = this.getTimeString(prevDate);
@@ -128,28 +131,29 @@ export default class ISSLocator
         prevPassBtn.disabled = false;
     }
 
-    handleNextPassesInfo(nextPasses)
+    handleNextPassesInfo(passes)
     {
         const nextPassBtn = this.nextPassBtns[0];
-        if (!nextPasses || nextPasses.length == 0)
+        if (!passes || passes.length == 0)
         {
             nextPassBtn.innerHTML = "No next pass found";
             nextPassBtn.disabled = true;
             return;
         }
+        this.nextPasses = passes;
         // duplicate nextPassBtn for every pass, or remove it
-        for (let i = 1; i < nextPasses.length; i++) {
+        for (let i = 1; i < this.nextPasses.length; i++) {
             const newBtn = nextPassBtn.cloneNode(true);
             this.nextPassBtns[0].parentNode.insertBefore(newBtn, this.nextPassBtns[0].nextSibling);
         }
         // remove extra buttons
-        while (this.nextPassBtns.length > nextPasses.length) {
+        while (this.nextPassBtns.length > this.nextPasses.length) {
             this.nextPassBtns[this.nextPassBtns.length - 1].remove();
         }
         // for each next-btn set the corresponding pass
-        for (let i = 0; i < nextPasses.length; i++) {
+        for (let i = 0; i < this.nextPasses.length; i++) {
             const nextPassBtn = this.nextPassBtns[i];
-            const nextPass = nextPasses[i];
+            const nextPass = this.nextPasses[i];
             const nextDate = new Date(Date.now() - nextPass.delay * 1000);
             nextPass.timeAtLocation = nextDate;
             const label = this.getTimeString(nextDate);
@@ -194,10 +198,9 @@ export default class ISSLocator
 
     getLocalURL(time, location)
     {
-        let currentURLWithoutQuery = window.location.origin + window.location.pathname;
-        currentURLWithoutQuery = window.location.origin + window.location.pathname;
-        locationNameURI = encodeURIComponent(location.name);
-        let url = `${currentURLWithoutQuery}?date=${time.toISOString()}&loc=${location.lat},${location.lon}&locName=${locationNameURI}`;
+        const currentURLWithoutQuery = window.location.origin + window.location.pathname;
+        const locationNameURI = encodeURIComponent(location.name);
+        const url = `${currentURLWithoutQuery}?date=${time.toISOString()}&loc=${location.lat},${location.lon}&locName=${locationNameURI}`;
         return url;
     }
 
@@ -221,14 +224,14 @@ export default class ISSLocator
 
     gotoPrevPass()
     {
-        if (!prevPasses || prevPasses.length == 0)
+        if (!this.prevPasses || this.prevPasses.length == 0)
             return;
-        const prevPass = prevPasses[0];
+        const prevPass = this.prevPasses[0];
         const now = new Date();
         const delay = (now - prevPass.timeAtLocation) / 1000;
-        multiPlayer.setLiveDelay(delay);
+        this.lastPassCallback(delay);
 
-        //let localURL = this.getLocalURL(prevPass.timeAtLocation, localLocation);
+        //let localURL = this.getLocalURL(prevPass.timeAtLocation, this.localLocation);
         //this.openURL(localURL, true);
     }
 
@@ -238,7 +241,7 @@ export default class ISSLocator
         var nextPass;
         for (let i = 0; i < this.nextPassBtns.length; i++) {
             if (this.nextPassBtns[i] === document.activeElement) {
-                nextPass = nextPasses[i];
+                nextPass = this.nextPasses[i];
                 break;
             }
         }
@@ -247,7 +250,7 @@ export default class ISSLocator
             console.error("remindNextPass: No next pass found");
             return;
         }
-        let summary = `See ${localLocation.name} from the ISS now!`;
+        let summary = `See ${this.localLocation.name} from the ISS now!`;
         summary = encodeURIComponent(summary);
         // set `start` as date as 5 min before pass in Iso 8601	
         let startDate = new Date(nextPass.timeAtLocation.getTime() - 5 * 60 * 1000);
@@ -259,16 +262,14 @@ export default class ISSLocator
         endDate = endDate.toISOString();
         endDate = endDate.replace(/\.\d{3}Z$/, 'Z');
         endDate = endDate.replace(/-|:/g,'');
-        let currentURLWithoutQuery = window.location.origin + window.location.pathname;
-        currentURLWithoutQuery = window.location.origin + window.location.pathname;
-        localLocationNameURI = encodeURIComponent(localLocation.name);
-        let localURL = this.getLocalURL(nextPass.timeAtLocation, localLocation);
+        const localLocationNameURI = encodeURIComponent(this.localLocation.name);
+        const localURL = this.getLocalURL(nextPass.timeAtLocation, this.localLocation);
         const accuracyKm = nextPass.accuracyKm;
-        let descriptionHtml = `The International Space Station will fly over ${localLocation.name} at ${nextPass.timeAtLocation.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} on ${nextPass.timeAtLocation.toLocaleDateString()}.\n\nAccuracy: ${accuracyKm} km\n\nWatch the live video stream from the ISS here:\n\n${localURL}\n\n(You may need to copy and paste the link in your browser.)`;
-        let description = encodeURIComponent(descriptionHtml);
+        const descriptionHtml = `The International Space Station will fly over ${this.localLocation.name} at ${nextPass.timeAtLocation.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} on ${nextPass.timeAtLocation.toLocaleDateString()}.\n\nAccuracy: ${accuracyKm} km\n\nWatch the live video stream from the ISS here:\n\n${localURL}\n\n(You may need to copy and paste the link in your browser.)`;
+        const description = encodeURIComponent(descriptionHtml);
         // https://www.google.com/calendar/render?action=TEMPLATE&text=Your+Event+Name&dates=20140127T224000Z/20140320T221500Z&details=For+details,+link+here:+http://www.example.com&location=Waldorf+Astoria,+301+Park+Ave+,+New+York,+NY+10022&sf=true&output=xml
         // https://www.google.com/calendar/event?action=TEMPLATE&text=Your+Event+Name&dates=20140127T224000Z/20140320T221500Z&details=For+details,+link+here:+http://www.example.com&location=Waldorf+Astoria,+301+Park+Ave+,+New+York,+NY+10022&sf=true&output=xml
-        let googleCalendarUrl = `http://www.google.com/calendar/render?action=TEMPLATE&text=${summary}&dates=${startDate}/${endDate}&details=${description}&location=${localLocation.name}&trp=false`;
+        const googleCalendarUrl = `http://www.google.com/calendar/render?action=TEMPLATE&text=${summary}&dates=${startDate}/${endDate}&details=${description}&location=${this.localLocation.name}&trp=false`;
         console.log(googleCalendarUrl);
         this.openURL(googleCalendarUrl);
     };
