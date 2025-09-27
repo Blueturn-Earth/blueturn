@@ -158,11 +158,11 @@ export default class YouTubeLivePlayer extends LivePlayer
         switch  (event.data) {
           case YT.PlayerState.PLAYING:
             console.log("EVENT: " + this.#elementId + " PLAYING");
-            this.onPlayStateChange(true);
+            LivePlayer.group.setPlayState(true);
             break;
           case YT.PlayerState.PAUSED:
             console.log("EVENT: " + this.#elementId + " PAUSED");
-            this.onPlayStateChange(false);
+            LivePlayer.group.setPlayState(false);
             break;
           case YT.PlayerState.BUFFERING:
             console.log("EVENT: " + this.#elementId + " BUFFERING");
@@ -226,7 +226,7 @@ export default class YouTubeLivePlayer extends LivePlayer
             else
             {
                 console.log("EVENT: " + this.#elementId + " Detected Seek " + secStr(current_seek) + ", a jump of " + secStr(diffSec) + "s from " + secStr(this.#next_expected_seek));
-                this.onDelayChange(this.#liveSeek - current_seek);
+                LivePlayer.group.setDelay(this.#liveSeek - current_seek);
             }
         }
 

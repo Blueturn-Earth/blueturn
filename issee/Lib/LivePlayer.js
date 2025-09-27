@@ -3,66 +3,29 @@
  * Copyright Michael Boccara, Blueturn - 2025
  */
 
+import ILivePlayer from './ILivePlayer.js'
+import LiveGroup from './LiveGroup.js'
+
 // LivePlayer class
 // A node in a group of LivePlayer instances
 // It has a static list of other LivePlayer instances
 // For example, when play() is called, it calls play() on all other nodes
 // Takes care of avoiding edging cycles
-export default class LivePlayer {
-    static #allNodes = [];
+export default class LivePlayer extends ILivePlayer {
+    static group = new LiveGroup;
     #name;
-    #playing = false;
-    #delaySec = 0;
-
-    // 300ms to consider it a jump, 
-    // 300ms gets to be the max variance between players seek time 
-    SEEK_THRESHOLD_MS = 300;
 
     constructor(name)
     {
+        super();
         this.#name = name;
-        LivePlayer.#allNodes.push(this);
+        LivePlayer.group.addNode(this);
     }
 
     get name() {
         return this.#name;
     }
-    
-    setPlayState(playing) {throw "Not implemented";}
-
-    setDelay(delaySec) {throw "Not implemented";}
-    
-    onPlayStateChange(playing) {
-        if (this.#playing == playing)
-            return;
-        this.#playing = playing;
-        for (let node of LivePlayer.#allNodes) {
-            if (node != this)
-            {
-                node.#playing = playing;
-                node.setPlayState(playing);
-            }
-        }
-    }
-
-    getPlayState() {
-        return this.#playing;
-    }
-
-    onDelayChange(delaySec) {
-        if (Math.abs(this.#delaySec - delaySec)*1000 < this.SEEK_THRESHOLD_MS)
-            return;
-        this.#delaySec = delaySec;
-        for (let node of LivePlayer.#allNodes) {
-            if (node != this)
-            {
-                node.#delaySec = delaySec;
-                node.setDelay(delaySec);
-            }
-        }
-    }
-
-    getDelay() {
-        return this.#delaySec;
-    }
 }
+
+window.addDelay = (delaySec) => {LivePlayer.group.addDelay(delaySec);}
+window.goLive = () => {LivePlayer.group.goLive();}

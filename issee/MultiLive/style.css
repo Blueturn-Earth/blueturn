@@ -3,7 +3,7 @@ html, body {
     margin: 0;
 }
 
-.locationButtons {
+#locationButtons {
     position: absolute;
     top: 0;
     right: 0;
@@ -15,17 +15,26 @@ html, body {
     z-index: 5;
 }
 
+.locationButtons > * {
+    width: 190px;
+    font-size: 1.2em; 
+    padding: 6px 12px;
+}
+
+#timeButtons {
+	display: flex;
+	flex-direction: row;
+	gap: 10px;
+	align-items: center;
+	justify-content: left;
+	z-index: 4;
+}
+
 #issTracker {
     position: relative;
     top: 0;
     left: 0;
     z-index: 4;
-}
-
-.locationButtons > * {
-    width: 190px;
-    font-size: 1.2em; 
-    padding: 6px 12px;
 }
 
 @media (min-aspect-ratio: 1/1) or (orientation: landscape) {
