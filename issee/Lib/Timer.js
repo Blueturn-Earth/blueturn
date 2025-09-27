@@ -4,7 +4,7 @@
  * Copyright Michael Boccara, Blueturn - 2017-2024
  */
 
-class Timer {
+export default class Timer {
     // private
     #date = new Date(Date.now());
     #dateWhenTaken = new Date(Date.now());
