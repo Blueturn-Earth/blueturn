@@ -16,6 +16,7 @@ export default class ISSLocator
         this.locateBtn = document.getElementById(locateButtonId);
         this.prevPassBtns = document.getElementsByClassName(prevPassButtonClassName);
         this.nextPassBtns = document.getElementsByClassName(nextPassButtonClassName);
+
         this.lastPassCallback = lastPassCallback;
 
         let self = this;
@@ -127,7 +128,7 @@ export default class ISSLocator
         const prevDate = new Date(Date.now() - prevPass.delay * 1000);
         prevPass.timeAtLocation = prevDate;
         const label = this.getTimeString(prevDate);
-        prevPassBtn.innerHTML = label;
+        prevPassBtn.innerHTML = "Last pass:\n" + label;
         prevPassBtn.disabled = false;
     }
 
@@ -157,7 +158,7 @@ export default class ISSLocator
             const nextDate = new Date(Date.now() - nextPass.delay * 1000);
             nextPass.timeAtLocation = nextDate;
             const label = this.getTimeString(nextDate);
-            nextPassBtn.innerHTML = label;
+            nextPassBtn.innerHTML = "Next pass:\n" + label;
             nextPassBtn.disabled = false;
         }
     }
@@ -225,7 +226,10 @@ export default class ISSLocator
     gotoPrevPass()
     {
         if (!this.prevPasses || this.prevPasses.length == 0)
+        {
+            this.locate();
             return;
+        }
         const prevPass = this.prevPasses[0];
         const now = new Date();
         const delay = (now - prevPass.timeAtLocation) / 1000;
@@ -237,6 +241,12 @@ export default class ISSLocator
 
     remindNextPass()
     {
+        if (!this.nextPasses || this.nextPasses.length == 0)
+        {
+            this.locate();
+            return;
+        }
+
         // find out which one of the buttons of class nextPassBtn was clicked
         var nextPass;
         for (let i = 0; i < this.nextPassBtns.length; i++) {

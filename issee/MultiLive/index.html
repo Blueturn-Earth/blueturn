@@ -17,10 +17,19 @@
                     width="625" 
                     height="352">
                 </iframe>
-                <div class="locationButtons">
+                <div id="locationButtons">
                     <button class="prevPassBtn">Last Pass</button>
                     <button id="locateBtn">When will it pass over me?</button>
                     <button class="nextPassBtn">Next Pass</button>
+                </div>
+                <div id="timeButtons">
+                    <button onclick="addDelay(300)">-5min</button>
+                    <button onclick="addDelay(60)">-1min</button>
+                    <button onclick="addDelay(5)">-5sec</button>
+                    <button onclick="goLive()">Live</button>
+                    <button onclick="addDelay(-5)">+5sec</button>
+                    <button onclick="addDelay(-60)">+1min</button>
+                    <button onclick="addDelay(-300)">+5min</button>
                 </div>
             </div>
             <div class="tile" id="ytPlayer1">Loading YouTube Player 1...</div>
@@ -28,16 +37,17 @@
             <div class="tile" id="ytPlayer3">Loading YouTube Player 3...</div>
         </div>
         <script type="module">
+            import LivePlayer from '../Lib/LivePlayer.js';
             import YouTubeLivePlayer from '../Lib/YouTubeLivePlayer.js';
             import ISSTrackerNode from '../Lib/ISSTrackerNode.js';
             import ISSLocator from '../Lib/ISSLocator.js';
 
-            let ytPlayer1 = new YouTubeLivePlayer("yf5cEJULZXk", "ytPlayer1"); // ISS topdown
+            new YouTubeLivePlayer("yf5cEJULZXk", "ytPlayer1"); // ISS topdown
             // TODO: http://127.0.0.1:8080/blueturn/issee/StereoSat/?v=yf5cEJULZXk&timeOffset=-14&videoRotation=-3&videoPanXpc=22&videoScale=10
-            let ytPlayer2 = new YouTubeLivePlayer("iYmvCUonukw", "ytPlayer2"); // ISS front
-            let ytPlayer3 = new YouTubeLivePlayer("fO9e9jnhYK8", "ytPlayer3"); // Sen camera
+            new YouTubeLivePlayer("iYmvCUonukw", "ytPlayer2"); // ISS front
+            new YouTubeLivePlayer("fO9e9jnhYK8", "ytPlayer3"); // Sen camera
             // TODO: http://127.0.0.1:8080/blueturn/issee/StereoSat/?v=fO9e9jnhYK8&timeOffset=7&videoRotation=90&videoPanXpc=19&videoScale=10
-            let issTracker = new ISSTrackerNode("issTracker");
+            new ISSTrackerNode("issTracker");
             // TODO: Add Windy + Webcam
             // TODO: Add 3D Cesium
 
@@ -47,7 +57,7 @@
                 "nextPassBtn", 
                 "iss-tracker",
                 (lastPassDelay) => {
-                    ytPlayer1.setDelay(lastPassDelay);
+                    LivePlayer.group.setDelay(lastPassDelay);
                 });
 
         </script>

@@ -17,7 +17,7 @@ export default class ISSTrackerNode extends LivePlayer
         window.addEventListener("message", (event)=>{
             if (event.data.type === "issDelay")
             {
-                this.onDelayChange(event.data.delay);
+                LivePlayer.group.setDelay(event.data.delay);
             }
         });
     }
