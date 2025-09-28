@@ -1,3 +1,5 @@
+import {iMouseInit} from './iMouse.js'
+
 const canvas = document.createElement('canvas');
 canvas.width = 512;
 canvas.height = 512;
@@ -85,6 +87,9 @@ let time = 0;
 let frame = 0;
 let resolution = {w:512, h:512};
 let renderPingPongIndex = 0;
+
+let iMouse = iMouseInit(canvas);
+
 function render() {
     let ping = pingpong[renderPingPongIndex];
     let pong = pingpong[1 - renderPingPongIndex];
@@ -98,6 +103,7 @@ function render() {
     gl.uniform1f(gl.getUniformLocation(simProgram, 'u_time'), time);
     gl.uniform1i(gl.getUniformLocation(simProgram, 'u_frame'), frame);
     gl.uniform2f(gl.getUniformLocation(simProgram, 'u_resolution'), resolution.w, resolution.h);
+    gl.uniform4f(gl.getUniformLocation(simProgram, 'u_mouse'), iMouse.x, iMouse.y, iMouse.z, iMouse.w);
     // Read from pong
     gl.uniform1i(gl.getUniformLocation(simProgram, 'u_texture'), 0);
     gl.activeTexture(gl.TEXTURE0);
@@ -109,6 +115,10 @@ function render() {
     gl.viewport(0,0,canvas.width,canvas.height);
     gl.useProgram(dispProgram);
     setupAttributes(dispProgram);
+    gl.uniform1f(gl.getUniformLocation(dispProgram, 'u_time'), time);
+    gl.uniform1i(gl.getUniformLocation(dispProgram, 'u_frame'), frame);
+    gl.uniform2f(gl.getUniformLocation(dispProgram, 'u_resolution'), resolution.w, resolution.h);
+    gl.uniform4f(gl.getUniformLocation(dispProgram, 'u_mouse'), iMouse.x, iMouse.y, iMouse.z, iMouse.w);
     // Read from ping
     gl.uniform1i(gl.getUniformLocation(dispProgram, 'u_texture'), 0);
     gl.activeTexture(gl.TEXTURE0);
