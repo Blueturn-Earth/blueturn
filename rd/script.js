@@ -113,56 +113,10 @@ const ping = createFBOTexture();
 const pong = createFBOTexture();
 const framebuffer = gl.createFramebuffer();
 
-// =====================
-// Tentative WebCL
-// =====================
-let useWebCL = false;
-try {
-    const webcl = window.WebCL;
-    if (webcl) {
-        const platforms = webcl.getPlatformIDs();
-        const devices = webcl.getDeviceIDs(platforms[0], webcl.DEVICE_TYPE_GPU);
-        const contextCL = webcl.createContext({ devices: devices, sharedGroup: gl });
-        const queue = contextCL.createCommandQueue(devices[0]);
-
-        const kernelSource = `
-            __kernel void reaction_diffusion(__write_only image2d_t output) {
-                int2 gid = (int2)(get_global_id(0), get_global_id(1));
-                float4 color = (float4)(0.5f, 0.5f, 0.5f, 1.0f);
-                color.r = 0.5f + 0.5f * sin((float)(gid.x + gid.y) * 0.1f);
-                write_imagef(output, gid, color);
-            }
-        `;
-        const programCL = contextCL.createProgramWithSource(kernelSource);
-        programCL.build([devices[0]]);
-        const kernel = programCL.createKernel('reaction_diffusion');
-
-        const clTexture = contextCL.createFromGLTexture(webcl.MEM_WRITE_ONLY, ping, 0);
-        kernel.setArg(0, clTexture);
-
-        function computeNextIteration() {
-            queue.enqueueAcquireGLObjects([clTexture]);
-            queue.enqueueNDRangeKernel(kernel, 2, null, [512, 512]);
-            queue.enqueueReleaseGLObjects([clTexture]);
-            queue.finish();
-            setTimeout(computeNextIteration, 0);
-        }
-        computeNextIteration();
-        useWebCL = true;
-    }
-    else {
-        console.warn('WebCL non supporté, fallback WebGL-only utilisé.');
-    }
-} catch (e) {
-    console.warn('WebCL failed, fallback WebGL-only utilisé: ' + e);
-}
-
 let time = 0;
 function render() {
+    // --- Simulation pass (rend dans ping) ---
     time += 0.02;
-
-    if (!useWebCL) {
-        // --- Simulation pass (rend dans ping) ---
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ping, 0);
         gl.viewport(0,0,512,512);
@@ -171,7 +125,6 @@ function render() {
         const timeLoc = gl.getUniformLocation(simProgram, 'u_time');
         gl.uniform1f(timeLoc, time);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
-    }
 
     // --- Display pass (affiche ping) ---
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
