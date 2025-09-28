@@ -76,33 +76,48 @@ function createFBOTexture() {
     return tex;
 }
 
-const ping = createFBOTexture();
-const pong = createFBOTexture();
+let pingpong = [];
+pingpong.push(createFBOTexture());
+pingpong.push(createFBOTexture());
 const framebuffer = gl.createFramebuffer();
 
 let time = 0;
+let frame = 0;
+let resolution = {w:512, h:512};
+let renderPingPongIndex = 0;
 function render() {
-    // --- Simulation pass (rend dans ping) ---
-    time += 0.02;
-        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ping, 0);
-        gl.viewport(0,0,512,512);
-        gl.useProgram(simProgram);
-        setupAttributes(simProgram);
-        const timeLoc = gl.getUniformLocation(simProgram, 'u_time');
-        gl.uniform1f(timeLoc, time);
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
+    let ping = pingpong[renderPingPongIndex];
+    let pong = pingpong[1 - renderPingPongIndex];
+
+    // --- Simulation pass (render to ping) ---
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ping, 0);
+    gl.viewport(0,0,512,512);
+    gl.useProgram(simProgram);
+    setupAttributes(simProgram);
+    gl.uniform1f(gl.getUniformLocation(simProgram, 'u_time'), time);
+    gl.uniform1i(gl.getUniformLocation(simProgram, 'u_frame'), frame);
+    gl.uniform2f(gl.getUniformLocation(simProgram, 'u_resolution'), resolution.w, resolution.h);
+    // Read from pong
+    gl.uniform1i(gl.getUniformLocation(simProgram, 'u_texture'), 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, pong);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     // --- Display pass (affiche ping) ---
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0,0,canvas.width,canvas.height);
     gl.useProgram(dispProgram);
     setupAttributes(dispProgram);
-    const texLoc = gl.getUniformLocation(dispProgram, 'u_texture');
-    gl.uniform1i(texLoc, 0);
+    // Read from ping
+    gl.uniform1i(gl.getUniformLocation(dispProgram, 'u_texture'), 0);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, ping);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+    time += 0.02;
+    frame++;
+    renderPingPongIndex = 1 - renderPingPongIndex;
 
     requestAnimationFrame(render);
 }
