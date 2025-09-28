@@ -81,6 +81,9 @@ function createFBOTexture() {
 let pingpong = [];
 pingpong.push(createFBOTexture());
 pingpong.push(createFBOTexture());
+let ping = pingpong[0];
+let pong = pingpong[1];
+
 const framebuffer = gl.createFramebuffer();
 
 let time = 0;
@@ -90,25 +93,33 @@ let renderPingPongIndex = 0;
 
 let iMouse = iMouseInit(canvas);
 
-function render() {
-    let ping = pingpong[renderPingPongIndex];
-    let pong = pingpong[1 - renderPingPongIndex];
+let nIterations = 100;
 
-    // --- Simulation pass (render to ping) ---
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ping, 0);
-    gl.viewport(0,0,512,512);
-    gl.useProgram(simProgram);
-    setupAttributes(simProgram);
-    gl.uniform1f(gl.getUniformLocation(simProgram, 'u_time'), time);
-    gl.uniform1i(gl.getUniformLocation(simProgram, 'u_frame'), frame);
-    gl.uniform2f(gl.getUniformLocation(simProgram, 'u_resolution'), resolution.w, resolution.h);
-    gl.uniform4f(gl.getUniformLocation(simProgram, 'u_mouse'), iMouse.x, iMouse.y, iMouse.z, iMouse.w);
-    // Read from pong
-    gl.uniform1i(gl.getUniformLocation(simProgram, 'u_texture'), 0);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, pong);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+function render() {
+    for (let i = 0; i < nIterations; i++)
+    {
+        ping = pingpong[renderPingPongIndex];
+        pong = pingpong[1 - renderPingPongIndex];
+
+        // --- Simulation pass (render to ping) ---
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ping, 0);
+        gl.viewport(0,0,512,512);
+        gl.useProgram(simProgram);
+        setupAttributes(simProgram);
+        gl.uniform1f(gl.getUniformLocation(simProgram, 'u_time'), time);
+        gl.uniform1i(gl.getUniformLocation(simProgram, 'u_frame'), frame);
+        gl.uniform2f(gl.getUniformLocation(simProgram, 'u_resolution'), resolution.w, resolution.h);
+        gl.uniform4f(gl.getUniformLocation(simProgram, 'u_mouse'), iMouse.x, iMouse.y, iMouse.z, iMouse.w);
+        // Read from pong
+        gl.uniform1i(gl.getUniformLocation(simProgram, 'u_texture'), 0);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, pong);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        time += 0.02;
+        frame++;
+        renderPingPongIndex = 1 - renderPingPongIndex;
+    }
 
     // --- Display pass (affiche ping) ---
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -125,9 +136,6 @@ function render() {
     gl.bindTexture(gl.TEXTURE_2D, ping);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-    time += 0.02;
-    frame++;
-    renderPingPongIndex = 1 - renderPingPongIndex;
 
     requestAnimationFrame(render);
 }
