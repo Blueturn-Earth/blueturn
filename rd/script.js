@@ -1,8 +1,8 @@
 import {iMouseInit} from './iMouse.js'
 
 const canvas = document.createElement('canvas');
-canvas.width = 512;
-canvas.height = 512;
+canvas.width = 1024;
+canvas.height = 1024;
 document.body.appendChild(canvas);
 const gl = canvas.getContext('webgl2');
 
@@ -70,7 +70,7 @@ function setupAttributes(program) {
 function createFBOTexture() {
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 512, 512, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas.width, canvas.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -88,12 +88,12 @@ const framebuffer = gl.createFramebuffer();
 
 let time = 0;
 let frame = 0;
-let resolution = {w:512, h:512};
+let resolution = {w:canvas.width, h:canvas.height};
 let renderPingPongIndex = 0;
 
 let iMouse = iMouseInit(canvas);
 
-let nIterations = 100;
+let nIterations = 50;
 
 function render() {
     for (let i = 0; i < nIterations; i++)
@@ -104,7 +104,7 @@ function render() {
         // --- Simulation pass (render to ping) ---
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, ping, 0);
-        gl.viewport(0,0,512,512);
+        gl.viewport(0, 0, canvas.width, canvas.height);
         gl.useProgram(simProgram);
         setupAttributes(simProgram);
         gl.uniform1f(gl.getUniformLocation(simProgram, 'u_time'), time);
