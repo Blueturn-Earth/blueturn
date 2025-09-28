@@ -2,43 +2,11 @@ const canvas = document.createElement('canvas');
 canvas.width = 512;
 canvas.height = 512;
 document.body.appendChild(canvas);
-const gl = canvas.getContext('webgl');
+const gl = canvas.getContext('webgl2');
 
 if (!gl) {
     alert('WebGL non supporté.');
 }
-
-// Shaders GLSL : un shader d'affichage + un shader de simulation simple
-const vertexShaderSource = `
-    attribute vec4 a_position;
-    attribute vec2 a_texCoord;
-    varying vec2 v_texCoord;
-    void main() {
-        gl_Position = a_position;
-        v_texCoord = a_texCoord;
-    }
-`;
-
-// Shader pour la simulation (sinusoïdale simple pour voir quelque chose bouger)
-const simulationFragmentSource = `
-    precision highp float;
-    varying vec2 v_texCoord;
-    uniform float u_time;
-    void main() {
-        float c = 0.5 + 0.5 * sin(20.0 * v_texCoord.x + u_time);
-        gl_FragColor = vec4(c, 0.2, 1.0-c, 1.0);
-    }
-`;
-
-// Shader pour affichage (recopie texture)
-const displayFragmentSource = `
-    precision highp float;
-    varying vec2 v_texCoord;
-    uniform sampler2D u_texture;
-    void main() {
-        gl_FragColor = texture2D(u_texture, v_texCoord);
-    }
-`;
 
 function createShader(gl, type, source) {
     const shader = gl.createShader(type);
@@ -80,9 +48,8 @@ gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
     0,1, 1,0, 1,1
 ]), gl.STATIC_DRAW);
 
-// Programmes
-const simProgram = createProgram(gl, vertexShaderSource, simulationFragmentSource);
-const dispProgram = createProgram(gl, vertexShaderSource, displayFragmentSource);
+var simProgram;
+var dispProgram;
 
 // Localisation attributs
 function setupAttributes(program) {
@@ -139,4 +106,21 @@ function render() {
 
     requestAnimationFrame(render);
 }
-render();
+
+async function loadShaderSource(url) {
+    const res = await fetch(url);
+    return res.text();
+}
+
+async function runGraphics() {
+    const vertexShaderSource = await loadShaderSource('./vertex.glsl');
+    const simulationFragmentSource = await loadShaderSource('./sim.frag.glsl');
+    const displayFragmentSource = await loadShaderSource('./display.frag.glsl');
+
+    simProgram = createProgram(gl, vertexShaderSource, simulationFragmentSource);
+    dispProgram = createProgram(gl, vertexShaderSource, displayFragmentSource);
+
+    render();
+}
+
+Promise.all([runGraphics()]);
