@@ -69,6 +69,15 @@
                 );
             }
 
+            function sendISSLatLonToParent(lat, lon)
+            {
+                // send message to parent
+                window.parent.postMessage(
+                    { type: "issLatLon", lat: lat, lon: lon },
+                    "*" // ⚠️ use "*" for demo; in production, specify parent's origin
+                );
+            }
+
             var isst_tle = {
                 sat : "",
                 L1 : "",
@@ -1374,6 +1383,7 @@
                 SGP4.propagate();
                 redrawTracker();
                 printData();
+                sendISSLatLonToParent(SGP4.Latitude, SGP4.Longitude);
                 if (isst_play)
                 {
                     tc = setTimeout(redrawTrackerTimed, 5000);

@@ -18,10 +18,11 @@
                     height="352">
                 </iframe>
                 <div id="locationButtons">
+                    <button id="myLocBtn">My location</button>
                     <button class="prevPassBtn">Last Pass</button>
-                    <button id="locateBtn">When will it pass over me?</button>
                     <button class="nextPassBtn">Next Pass</button>
                 </div>
+                <div id="curLocBtn">Current location</div>
                 <div id="timeButtons">
                     <button onclick="addDelay(300)">-5min</button>
                     <button onclick="addDelay(60)">-1min</button>
@@ -51,13 +52,17 @@
             // TODO: Add Windy + Webcam
             // TODO: Add 3D Cesium
 
+            const curLocBtn = document.getElementById("curLocBtn");
             new ISSLocator(
-                "locateBtn", 
+                "myLocBtn", 
                 "prevPassBtn", 
                 "nextPassBtn", 
                 "iss-tracker",
                 (lastPassDelay) => {
                     LivePlayer.group.setDelay(lastPassDelay);
+                },
+                (lat, lon, city, country) => {
+                    curLocBtn.innerHTML = "Current location:<br>" + city + ", " + country;
                 });
 
         </script>

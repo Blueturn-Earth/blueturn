@@ -1,19 +1,22 @@
-
 export default class ISSLocator
 {
     localLocation = {};// = {lat: 48.8584, lon: 2.2945, name="Paris, France"}; // Paris
     prevPasses; // timestamp of previous pass at location
     nextPasses; // timestamp of next pass at location
-    locateBtn;
+    myLocBtn;
     prevPassBtns;
     nextPassBtns;
     issTrackers;
     lastPassCallback;
 
-    constructor(locateButtonId, prevPassButtonClassName, nextPassButtonClassName, issTrackerClassName, lastPassCallback)
+    #issLat;
+    #issLon;
+    #curLocCallback;
+
+    constructor(locateButtonId, prevPassButtonClassName, nextPassButtonClassName, issTrackerClassName, lastPassCallback, curLocCallback)
     {
         this.issTrackers = document.querySelectorAll("." + issTrackerClassName);
-        this.locateBtn = document.getElementById(locateButtonId);
+        this.myLocBtn = document.getElementById(locateButtonId);
         this.prevPassBtns = document.getElementsByClassName(prevPassButtonClassName);
         this.nextPassBtns = document.getElementsByClassName(nextPassButtonClassName);
 
@@ -21,9 +24,11 @@ export default class ISSLocator
 
         let self = this;
 
-        this.locateBtn.addEventListener("click", () => {self.locate();});
+        this.myLocBtn.addEventListener("click", () => {self.locate();});
         this.prevPassBtns[0].addEventListener("click", () => {self.gotoPrevPass();});
         this.nextPassBtns[0].addEventListener("click", () => {self.remindNextPass();});
+
+        this.#curLocCallback = curLocCallback;
 
         window.addEventListener("message", (event)=>{
             if (event.data.type === "prevPassTimeDiffAtLocation")
@@ -34,7 +39,23 @@ export default class ISSLocator
             {
                 self.handleNextPassesInfo(event.data.passes);
             }
+            if (event.data.type === "issLatLon")
+            {
+                self.#issLat = event.data.lat;
+                self.#issLon = event.data.lon;
+            }
         });
+
+        setInterval(() => {
+            this.getCityCountry(this.#issLat, this.#issLon)
+            .then(data => {
+                if (this.#curLocCallback)
+                    this.#curLocCallback(this.#issLat, this.#issLon, data.city, data.country);
+            })
+            .catch(err => {
+                console.error("Geo API error:", err);
+            });
+        }, 5000);
     }
 
     locate() 
@@ -46,7 +67,7 @@ export default class ISSLocator
                 () => {self.locateError();}
             );
         } else {
-            this.locateBtn.innerHTML = "Geolocation is not supported by this browser.";
+            this.myLocBtn.innerHTML = "Geolocation is not supported by this browser.";
         }
     }
 
@@ -55,7 +76,7 @@ export default class ISSLocator
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
 
-        this.locateBtn.innerHTML = "Latitude: " + lat + ", Longitude: " + lon;
+        this.myLocBtn.innerHTML = "My location:<br>Latitude: " + lat + ", Longitude: " + lon;
 
         // send msg to iss tracker with lat lon
         console.log("Sending location to ISS Trackers:", lat, lon);
@@ -76,7 +97,7 @@ export default class ISSLocator
         this.getCityCountry(lat, lon)
         .then(data => {
             this.localLocation = {lat: lat, lon: lon, name: `${data.city}, ${data.country}`};
-            this.locateBtn.innerHTML = this.localLocation.name;
+            this.myLocBtn.innerHTML = "My location:<br>" + this.localLocation.name;
         })
         .catch(err => {
             console.error("Geo API error:", err);
@@ -128,7 +149,7 @@ export default class ISSLocator
         const prevDate = new Date(Date.now() - prevPass.delay * 1000);
         prevPass.timeAtLocation = prevDate;
         const label = this.getTimeString(prevDate);
-        prevPassBtn.innerHTML = "Last pass:\n" + label;
+        prevPassBtn.innerHTML = "Last pass:<br>" + label;
         prevPassBtn.disabled = false;
     }
 
@@ -142,23 +163,26 @@ export default class ISSLocator
             return;
         }
         this.nextPasses = passes;
+        
+        const maxNextPasses = 1; //this.nextPasses.length;
+
         // duplicate nextPassBtn for every pass, or remove it
-        for (let i = 1; i < this.nextPasses.length; i++) {
+        for (let i = 1; i < maxNextPasses; i++) {
             const newBtn = nextPassBtn.cloneNode(true);
             this.nextPassBtns[0].parentNode.insertBefore(newBtn, this.nextPassBtns[0].nextSibling);
         }
         // remove extra buttons
-        while (this.nextPassBtns.length > this.nextPasses.length) {
+        while (this.nextPassBtns.length > maxNextPasses) {
             this.nextPassBtns[this.nextPassBtns.length - 1].remove();
         }
         // for each next-btn set the corresponding pass
-        for (let i = 0; i < this.nextPasses.length; i++) {
+        for (let i = 0; i < maxNextPasses; i++) {
             const nextPassBtn = this.nextPassBtns[i];
             const nextPass = this.nextPasses[i];
             const nextDate = new Date(Date.now() - nextPass.delay * 1000);
             nextPass.timeAtLocation = nextDate;
             const label = this.getTimeString(nextDate);
-            nextPassBtn.innerHTML = "Next pass:\n" + label;
+            nextPassBtn.innerHTML = "Next pass:<br>" + label;
             nextPassBtn.disabled = false;
         }
     }
