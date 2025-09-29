@@ -43,14 +43,17 @@ export default class ISSLocator
             {
                 self.#issLat = event.data.lat;
                 self.#issLon = event.data.lon;
+                console.log("Received ISS lat:", this.#issLat, "lon:", this.#issLon);
             }
         });
 
         setInterval(() => {
+            console.log("Fetching geocode for lat:", this.#issLat, "lon:", this.#issLon);
             this.getCityCountry(this.#issLat, this.#issLon)
             .then(data => {
+               console.log("Got geocode data:", JSON.stringify(data));
                 if (this.#curLocCallback)
-                    this.#curLocCallback(this.#issLat, this.#issLon, data.city, data.country);
+                    this.#curLocCallback(this.#issLat, this.#issLon, data);
             })
             .catch(err => {
                 console.error("Geo API error:", err);
@@ -60,6 +63,7 @@ export default class ISSLocator
 
     locate() 
     {
+        this.myLocBtn.innerHTML = "Localizing...";
         let self = this;
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
@@ -96,8 +100,16 @@ export default class ISSLocator
         console.log("Fetching geocode for lat:", lat, "lon:", lon);
         this.getCityCountry(lat, lon)
         .then(data => {
-            this.localLocation = {lat: lat, lon: lon, name: `${data.city}, ${data.country}`};
-            this.myLocBtn.innerHTML = "My location:<br>" + this.localLocation.name;
+            if (data.country)
+            {
+                let locationName;
+                if (data.administrative_area_level_1)
+                    locationName = data.administrative_area_level_1 + ', ' + data.country;
+                else
+                    locationName = data.country;
+                this.localLocation = {lat: lat, lon: lon, name: locationName};
+                this.myLocBtn.innerHTML = "My location:<br>" + this.localLocation.name;
+            }
         })
         .catch(err => {
             console.error("Geo API error:", err);
@@ -118,21 +130,30 @@ export default class ISSLocator
 
         if (data.status !== "OK") throw new Error("Geocoding failed: " + data.status);
 
-        let city = null, country = null;
+        let 
+            city = null, 
+            country = null,
+            natural_feature = null,
+            administrative_area_level_1 = null;
 
         for (const result of data.results) {
             for (const comp of result.address_components) {
-            if (comp.types.includes("locality")) {
-                city = comp.long_name;
+                if (comp.types.includes("locality")) {
+                    city = comp.long_name;
+                }
+                if (comp.types.includes("country")) {
+                    country = comp.long_name;
+                }
+                if (comp.types.includes("natural_feature")) {
+                    natural_feature = comp.long_name;
+                }
+                if (comp.types.includes("administrative_area_level_1")) {
+                    administrative_area_level_1 = comp.long_name;
+                }
             }
-            if (comp.types.includes("country")) {
-                country = comp.long_name;
-            }
-            }
-            if (city && country) break;
         }
 
-        return { city, country };
+        return { city, country, natural_feature, administrative_area_level_1 };
     }
 
     handlePrevPassesInfo(passes)

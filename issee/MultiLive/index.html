@@ -61,8 +61,18 @@
                 (lastPassDelay) => {
                     LivePlayer.group.setDelay(lastPassDelay);
                 },
-                (lat, lon, city, country) => {
-                    curLocBtn.innerHTML = "Current location:<br>" + city + ", " + country;
+                (lat, lon, data) => {
+                    let locationName = "Unknown";
+                    if (data.country)
+                    {
+                        if (data.natural_feature)
+                            locationName = data.natural_feature + ', ' + data.country;
+                        else if (data.administrative_area_level_1)
+                            locationName = data.administrative_area_level_1 + ', ' + data.country;
+                        else
+                            locationName = data.country;
+                    }
+                    curLocBtn.innerHTML = "Current location:<br>" + locationName;
                 });
 
         </script>
