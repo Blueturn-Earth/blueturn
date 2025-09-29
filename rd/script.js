@@ -93,7 +93,7 @@ let renderPingPongIndex = 0;
 
 let iMouse = iMouseInit(canvas);
 
-let nIterations = 50;
+let nIterations = 30;
 
 function render() {
     for (let i = 0; i < nIterations; i++)
