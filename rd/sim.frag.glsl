@@ -72,15 +72,17 @@ void main() {
         
     vec2 fragCoord = v_texCoord.xy * u_resolution.xy;
 
-    F = v_texCoord.y * 0.1;
-    k = v_texCoord.x * 0.1;
+    float Fk_factor = 0.1;
+
+    F = v_texCoord.y * Fk_factor;
+    k = v_texCoord.x * Fk_factor;
     if (u_mouse.z > 0.0)
     {
         float lensRadius = lensRadiusFactor * u_resolution.y;
         float lensStep = 1.0 - smoothstep(lensRadius * 0.9, lensRadius + 1.1f, distance(u_mouse.xy, fragCoord.xy));
         vec2 mousePos = u_mouse.xy / u_resolution.xy;
-        float uniform_F = mousePos.y * 0.1;
-        float uniform_k = mousePos.x * 0.1;
+        float uniform_F = mousePos.y * Fk_factor;
+        float uniform_k = mousePos.x * Fk_factor;
         F = mix(F, uniform_F, lensStep);
         k = mix(k, uniform_k, lensStep);
     }
