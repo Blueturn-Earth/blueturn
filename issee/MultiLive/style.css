@@ -1,6 +1,7 @@
 html, body {
     height: 100%;
     margin: 0;
+    font-size: 16px;
 }
 
 /* Right-side vertical button group */
@@ -8,31 +9,66 @@ html, body {
   position: absolute;
   top: 0;
   right: 0;
-  bottom: 40px;          /* leave space for bottom buttons */
-  width: 140px;          /* choose width */
+  bottom: 50%;          /* leave space for bottom buttons */
+  width: 20%;
+  max-width: 300px;          /* choose width */
   display: flex;
   flex-direction: column;
+  z-index: 5
 }
 
-#locationButtons button {
+#locationButtons > * {
   flex: 1;
   width: 100%;
+  font-size: clamp(1.2rem, 1.2vw, 2rem);
+}
+
+#curLocBtn {
+  position: absolute;
+  bottom: 10%;
+  right: 0;
+  height: 40%;
+  width: 20%;
+  max-width: 300px;          /* choose width */
+  z-index: 5;
+  text-align: center;
+  align-content: center;
+  font-size: clamp(1.5rem, 1.5vw, 2.5rem);
+}
+
+#myLocBtn {
+  background-color: brown; 
+  color: white;
+}
+
+.prevPassBtn
+{
+  background-color: blue; 
+  color: white;
+}
+
+.nextPassBtn
+{
+  background-color: darkgreen; 
+  color: white;
 }
 
 /* Bottom horizontal button group */
 #timeButtons {
   position: absolute;
   left: 0;
-  right: 140px;
+  right: 0;
   bottom: 0;
-  height: 40px;          /* choose height */
+  height: 10%;          /* choose height */
   display: flex;
   flex-direction: row;
+  z-index: 5
 }
 
-#timeButtons button {
+#timeButtons > * {
   flex: 1;               /* all buttons same width */
   height: 100%;
+  font-size: clamp(1.2rem, 1.2vw, 2rem);
 }
 
 #issTracker {
