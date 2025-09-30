@@ -22,7 +22,7 @@ export default class ISSTrackerNode extends LivePlayer
         });
     }
 
-    setPlayState(playing) {
+    _setPlayState(playing) {
         this.#issTracker.contentWindow.postMessage(
             {
                 type: "delay",
@@ -33,7 +33,7 @@ export default class ISSTrackerNode extends LivePlayer
         );
     }
 
-    setDelay(delaySec) {
+    _setDelay(delaySec) {
         this.#issTracker.contentWindow.postMessage(
             {
                 type: "delay",

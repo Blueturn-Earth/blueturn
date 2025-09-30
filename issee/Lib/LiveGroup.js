@@ -23,20 +23,24 @@ export default class LiveGroup extends ILivePlayer {
     }
 
     setPlayState(playing) {
-        if (!super.setPlayState(playing))
-            return false;
         for (let node of this.#nodes) {
             node.setPlayState(playing);
         }
-        return true;
     }
 
     setDelay(delaySec) {
-        if (!super.setDelay(delaySec))
-            return false;
         for (let node of this.#nodes) {
             node.setDelay(delaySec);
         }
-        return true;
+    }
+    addDelay(delayOffsetSec) {
+        for (let node of this.#nodes) {
+            node.addDelay(delayOffsetSec);
+        }
+    }
+    goLive() {
+        for (let node of this.#nodes) {
+            node.goLive();
+        }
     }
 }
