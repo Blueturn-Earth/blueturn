@@ -6,7 +6,7 @@
         <meta name="copyrights" content="Michael Boccara @Blueturn 2025" />
         <link rel="stylesheet" href="style.css">
     </head>
-    <body>
+    <body style="background-color:black;" onresize="resize()">
         <div class="mosaic">
             <div class="tile">
                 <iframe 
@@ -62,7 +62,7 @@
                     LivePlayer.group.setDelay(lastPassDelay);
                 },
                 (lat, lon, data) => {
-                    let locationName = "Unknown";
+                    let locationName = "Unknown location";
                     if (data.country)
                     {
                         if (data.natural_feature)
@@ -72,8 +72,22 @@
                         else
                             locationName = data.country;
                     }
-                    curLocLabel.innerHTML = "Current location:<br><br>" + locationName;
+                    curLocLabel.innerHTML = locationName;
                 });
+
+            export function resize() {
+                const issDiv = document.getElementById("issTracker");
+                const issTrackerWidth = 0.83;
+                const issTrackerMaxHeight = 0.8;
+                let issTrackerScale = issDiv.parentNode.offsetWidth / issDiv.offsetWidth * issTrackerWidth;
+                const issTrackerHeight = issDiv.offsetHeight * issTrackerScale / issDiv.parentNode.offsetHeight; 
+                if (issTrackerHeight > issTrackerMaxHeight)
+                    issTrackerScale = issDiv.parentNode.offsetHeight / issDiv.offsetHeight * issTrackerMaxHeight;
+                console.log("issTrackerScale=" + issTrackerScale);
+                issDiv.style.transform =  "scale(" + issTrackerScale + ")";
+            }
+            window.resize = resize;
+            resize();
 
         </script>
     </body>

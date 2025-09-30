@@ -26,11 +26,10 @@ html, body {
 
 #curLocLabel {
   position: absolute;
-  top: 0;
+  left: 17%;
   right: 0;
-  height: 352px;
-  width: 17%;
-  max-width: 300px;          /* choose width */
+  bottom: 10%;
+  height: 10%;
   z-index: 5;
   text-align: center;
   align-content: center;
@@ -74,11 +73,11 @@ html, body {
 }
 
 #issTracker {
-    position: absolute;
-    top: 0;
-  left: 50%;
-  transform: translate(-50%, 0); /* Adjusts for the child's own dimensions */
-    z-index: 4;
+  position: absolute;
+  right: 0;
+  top: 0;
+  transform-origin: top right;
+  z-index: 4;
 }
 
 @media (min-aspect-ratio: 1/1) or (orientation: landscape) {
