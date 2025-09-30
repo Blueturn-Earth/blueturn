@@ -41,9 +41,12 @@ export default class ISSLocator
             }
             if (event.data.type === "issLatLon")
             {
+                const firstime = (self.#issLat === undefined);
                 self.#issLat = event.data.lat;
                 self.#issLon = event.data.lon;
                 console.log("Received ISS lat:", this.#issLat, "lon:", this.#issLon);
+                if (firstime)
+                    this.checkGeolocationPermission();
             }
         });
 
@@ -59,6 +62,44 @@ export default class ISSLocator
                 console.error("Geo API error:", err);
             });
         }, 5000);
+    }
+
+    // Feature-detect Permissions API and handle states
+    async checkGeolocationPermission() {
+      // geolocation support check
+      if (!('geolocation' in navigator)) {
+        this.myLocBtn.innerHTML = "Geolocation is not supported";
+        return;
+      }
+
+      // If Permissions API exists, query it
+      if (navigator.permissions && navigator.permissions.query) {
+        try {
+          const permStatus = await navigator.permissions.query({ name: 'geolocation' });
+          // possible values: "granted", "prompt", "denied"
+          this.handlePermissionState(permStatus.state);
+
+          // listen for future changes (optional)
+          permStatus.onchange = () => {
+            this.handlePermissionState(permStatus.state);
+          };
+        } catch (e) {
+          // Some browsers (older Safari) may throw / not fully support geolocation in Permissions API
+        }
+      } else {
+        // No Permissions API: show button and require explicit click
+      }
+    }
+
+    handlePermissionState(state) {
+      if (state === 'granted') {
+        // we already have permission: safe to request immediately (no user gesture required)
+        this.locate();
+      } else if (state === 'denied') {
+        this.myLocBtn.innerHTML = "Geolocation permission denied";
+      } else {
+        // unknown state fallback
+      }
     }
 
     locate() 
@@ -80,7 +121,7 @@ export default class ISSLocator
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
 
-        this.myLocBtn.innerHTML = "My location:<br>Latitude: " + lat + ", Longitude: " + lon;
+        this.myLocBtn.innerHTML = "My location:<br><br>Latitude: " + lat + ", Longitude: " + lon;
 
         // send msg to iss tracker with lat lon
         console.log("Sending location to ISS Trackers:", lat, lon);
@@ -108,7 +149,7 @@ export default class ISSLocator
                 else
                     locationName = data.country;
                 this.localLocation = {lat: lat, lon: lon, name: locationName};
-                this.myLocBtn.innerHTML = "My location:<br>" + this.localLocation.name;
+                this.myLocBtn.innerHTML = "My location:<br><br>" + this.localLocation.name;
             }
         })
         .catch(err => {
@@ -170,7 +211,7 @@ export default class ISSLocator
         const prevDate = new Date(Date.now() - prevPass.delay * 1000);
         prevPass.timeAtLocation = prevDate;
         const label = this.getTimeString(prevDate);
-        prevPassBtn.innerHTML = "Last pass:<br>" + label;
+        prevPassBtn.innerHTML = "Last pass:<br><br>" + label;
         prevPassBtn.disabled = false;
     }
 
@@ -203,7 +244,7 @@ export default class ISSLocator
             const nextDate = new Date(Date.now() - nextPass.delay * 1000);
             nextPass.timeAtLocation = nextDate;
             const label = this.getTimeString(nextDate);
-            nextPassBtn.innerHTML = "Next pass:<br>" + label;
+            nextPassBtn.innerHTML = "Next pass:<br><br>" + label;
             nextPassBtn.disabled = false;
         }
     }
@@ -277,7 +318,10 @@ export default class ISSLocator
         }
         const prevPass = this.prevPasses[0];
         const now = new Date();
-        const delay = (now - prevPass.timeAtLocation) / 1000;
+        let delay = (now - prevPass.timeAtLocation) / 1000;
+        delay -= 60;    // go 1 minute before the pass
+        if (delay < 0)
+            delay = 0;
         this.lastPassCallback(delay);
 
         //let localURL = this.getLocalURL(prevPass.timeAtLocation, this.localLocation);
@@ -307,13 +351,13 @@ export default class ISSLocator
         }
         let summary = `See ${this.localLocation.name} from the ISS now!`;
         summary = encodeURIComponent(summary);
-        // set `start` as date as 5 min before pass in Iso 8601	
-        let startDate = new Date(nextPass.timeAtLocation.getTime() - 5 * 60 * 1000);
+        // set `start` as date as 10 minutes after pass in Iso 8601 (to cope with notification 10mn before)	
+        let startDate = new Date(nextPass.timeAtLocation.getTime() +10 * 60 * 1000);
         startDate = startDate.toISOString();
         startDate = startDate.replace(/\.\d{3}Z$/, 'Z');
         startDate = startDate.replace(/-|:/g,'');
-        // set `end` as date as 5 min after pass in Iso 8601
-        let endDate = new Date(nextPass.timeAtLocation.getTime() + 5 * 60 * 1000);
+        // set `end` as date as 20 min after pass in Iso 8601
+        let endDate = new Date(nextPass.timeAtLocation.getTime() + 20 * 60 * 1000);
         endDate = endDate.toISOString();
         endDate = endDate.replace(/\.\d{3}Z$/, 'Z');
         endDate = endDate.replace(/-|:/g,'');
