@@ -22,7 +22,7 @@
                     <button class="prevPassBtn">Last Pass</button>
                     <button class="nextPassBtn">Next Pass</button>
                 </div>
-                <div id="curLocBtn">Current location</div>
+                <div id="curLocLabel">Current location</div>
                 <div id="timeButtons">
                     <button onclick="addDelay(300)">-5min</button>
                     <button onclick="addDelay(60)">-1min</button>
@@ -43,16 +43,16 @@
             import ISSTrackerNode from '../Lib/ISSTrackerNode.js';
             import ISSLocator from '../Lib/ISSLocator.js';
 
-            new YouTubeLivePlayer("yf5cEJULZXk", "ytPlayer1"); // ISS topdown
-            // TODO: http://127.0.0.1:8080/blueturn/issee/StereoSat/?v=yf5cEJULZXk&timeOffset=-14&videoRotation=-3&videoPanXpc=22&videoScale=10
+            new YouTubeLivePlayer("fO9e9jnhYK8", "ytPlayer1"); // Sen camera
+            // TODO: https://app.blueturn.earth/issee/StereoSat/?v=fO9e9jnhYK8&timeOffset=7&videoRotation=90&videoPanXpc=19&videoScale=10
             new YouTubeLivePlayer("iYmvCUonukw", "ytPlayer2"); // ISS front
-            new YouTubeLivePlayer("fO9e9jnhYK8", "ytPlayer3"); // Sen camera
-            // TODO: http://127.0.0.1:8080/blueturn/issee/StereoSat/?v=fO9e9jnhYK8&timeOffset=7&videoRotation=90&videoPanXpc=19&videoScale=10
+            new YouTubeLivePlayer("yf5cEJULZXk", "ytPlayer3"); // ISS topdown
+            // TODO: https://app.blueturn.earth/issee/StereoSat/?v=yf5cEJULZXk&timeOffset=-14&videoRotation=-3&videoPanXpc=22&videoScale=10
             new ISSTrackerNode("issTracker");
             // TODO: Add Windy + Webcam
             // TODO: Add 3D Cesium
 
-            const curLocBtn = document.getElementById("curLocBtn");
+            const curLocLabel = document.getElementById("curLocLabel");
             new ISSLocator(
                 "myLocBtn", 
                 "prevPassBtn", 
@@ -72,7 +72,7 @@
                         else
                             locationName = data.country;
                     }
-                    curLocBtn.innerHTML = "Current location:<br>" + locationName;
+                    curLocLabel.innerHTML = "Current location:<br>" + locationName;
                 });
 
         </script>
