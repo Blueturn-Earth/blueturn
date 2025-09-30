@@ -8,10 +8,10 @@ html, body {
 #locationButtons {
   position: absolute;
   top: 0;
-  right: 0;
+  left: 0;
   bottom: 50%;          /* leave space for bottom buttons */
   width: 17%;
-  height: 352px;
+  height: 100%;
   max-width: 300px;          /* choose width */
   display: flex;
   flex-direction: column;
@@ -27,7 +27,7 @@ html, body {
 #curLocLabel {
   position: absolute;
   top: 0;
-  left: 0;
+  right: 0;
   height: 352px;
   width: 17%;
   max-width: 300px;          /* choose width */
@@ -58,7 +58,7 @@ html, body {
 /* Bottom horizontal button group */
 #timeButtons {
   position: absolute;
-  left: 0;
+  left: 17%;
   right: 0;
   bottom: 0;
   height: 10%;          /* choose height */
