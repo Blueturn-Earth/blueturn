@@ -13,6 +13,8 @@
             var nextUpdateStep = 60000.0 * 1440.0; // min 
             var isst_delay = 0;
             var isst_play = true;
+            var isst_timeAtPause;
+            var isst_delayAtPause;
             var isst_map_scale = 1;
 			
 			var urlParams = new URLSearchParams(window.location.search);
@@ -32,7 +34,17 @@
                     console.log("ISS Tracker: Received message: delay=" + event.data.delay + ", play=" + event.data.play + ", map_scale=" + event.data.map_scale);
                     isst_delay = event.data.delay;
                     isst_play = event.data.play;
-                    redrawTrackerTimed(true);
+                    if (isst_play)
+                    {
+                        isst_timeAtPause = undefined;
+                        isst_delayAtPause = undefined;
+                    }
+                    else
+                    {
+                        isst_timeAtPause = Date.now();
+                        isst_delayAtPause = isst_delay;
+                    }
+                    redrawTrackerTimed();
                 }
                 if (event.data.type === "location")
                 {
@@ -752,7 +764,7 @@
                 document.getElementById('isst').style.display = "block";
                 document.getElementById('cover').style.display = "none";
                 issTrackerResize();
-                redrawTrackerTimed(true);
+                redrawTrackerTimed();
             }
             
             function printData() {
@@ -840,7 +852,7 @@
                     }
                     isst_delay = passes[0].delay;
                     sendDelayToParent();
-                    redrawTrackerTimed(true);
+                    redrawTrackerTimed();
                 });
 
                 redrawTracker();
@@ -1363,7 +1375,7 @@
             
             var tc = -1;
             const redrawPeriodMs = 5000; // ms
-            function redrawTrackerTimed(forcePropagate = false) {
+            function redrawTrackerTimed() {
                 if (tc != -1) clearTimeout(tc);
                 if (document.getElementById("isst").style.display == "none") return;
                 var t = (new Date()).getTime(); 
@@ -1372,14 +1384,12 @@
                     issTracker_init();
                     return;
                 }
-                if (isst_play || forcePropagate)
+                if (!isst_play)
                 {
-                    SGP4.propagate();
+                    isst_delay = isst_delayAtPause + (t - isst_timeAtPause) / 1000.0;
+                    //sendDelayToParent();
                 }
-                else
-                {
-                    isst_delay += redrawPeriodMs / 1000;
-                }
+                SGP4.propagate();
                 redrawTracker();
                 printData();
                 sendISSLatLonToParent(SGP4.Latitude, SGP4.Longitude);
