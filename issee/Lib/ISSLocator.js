@@ -44,17 +44,17 @@ export default class ISSLocator
                 const firstime = (self.#issLat === undefined);
                 self.#issLat = event.data.lat;
                 self.#issLon = event.data.lon;
-                console.log("Received ISS lat:", this.#issLat, "lon:", this.#issLon);
+                //console.log("Received ISS lat:", this.#issLat, "lon:", this.#issLon);
                 if (firstime)
                     this.checkGeolocationPermission();
             }
         });
 
         setInterval(() => {
-            console.log("Fetching geocode for lat:", this.#issLat, "lon:", this.#issLon);
+            //console.log("Fetching geocode for lat:", this.#issLat, "lon:", this.#issLon);
             this.getCityCountry(this.#issLat, this.#issLon)
             .then(data => {
-               console.log("Got geocode data:", JSON.stringify(data));
+               //console.log("Got geocode data:", JSON.stringify(data));
                 if (this.#curLocCallback)
                     this.#curLocCallback(this.#issLat, this.#issLon, data);
             })

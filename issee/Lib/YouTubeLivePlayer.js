@@ -137,14 +137,14 @@ export default class YouTubeLivePlayer extends LivePlayer
         this.#startSeekJob();
     }
 
-    setPlayState(playing) {
+    _setPlayState(playing) {
         if (playing)
             this.#ytPlayer.playVideo();
         else
             this.#ytPlayer.pauseVideo();
     }
 
-    setDelay(delaySec) {
+    _setDelay(delaySec) {
         const seek = this.#liveSeek - delaySec;
         //this.#next_expected_seek = seek;
         console.log(this.#elementId + ": seekTo(" + seek + ")");

@@ -32,7 +32,7 @@
                     console.log("ISS Tracker: Received message: delay=" + event.data.delay + ", play=" + event.data.play + ", map_scale=" + event.data.map_scale);
                     isst_delay = event.data.delay;
                     isst_play = event.data.play;
-                    redrawTrackerTimed();
+                    redrawTrackerTimed(true);
                 }
                 if (event.data.type === "location")
                 {
@@ -229,17 +229,7 @@
                 propagate           : function() {
                     if (!this.CanPropagate) return;
                     var Now = new Date();
-                    this.EpochNow = Now.getTime() / this.TIMCON;
-					let delay = 0;
-					//delay = parent.live_delay;
-					if (!delay)
-					{
-						delay = isst_delay;
-					}
-					if (delay)
-					{
-						this.EpochNow -= delay * this.MSS / this.TIMCON;
-					}
+                    this.EpochNow = (Now.getTime() - isst_delay * this.MSS) / this.TIMCON;
                     this._propagate(this.EpochNow);
                 },
                 
@@ -762,7 +752,7 @@
                 document.getElementById('isst').style.display = "block";
                 document.getElementById('cover').style.display = "none";
                 issTrackerResize();
-                tc = setTimeout(redrawTrackerTimed, 10);
+                redrawTrackerTimed(true);
             }
             
             function printData() {
@@ -836,9 +826,11 @@
                 const map_canvas = document.getElementById("isst_map");
                 ctx = map_canvas.getContext("2d");
                 map_canvas.addEventListener("mouseup", e => {
+                    const map_mouse_x = e.clientX - map_canvas.getBoundingClientRect().left;
+                    const map_mouse_y = e.clientY - map_canvas.getBoundingClientRect().top;
                     const selection = {
-                        lon: ((e.clientX / map_canvas.offsetWidth) * 360 - 180),
-                        lat: -((e.clientY / map_canvas.offsetHeight) * 180 - 90)
+                        lon: ((map_mouse_x / map_canvas.offsetWidth) * 360 - 180),
+                        lat: -((map_mouse_y / map_canvas.offsetHeight) * 180 - 90)
                     };
                     console.log("Selection: ", selection);
                     const passes = searchPasses(selection.lon, selection.lat, 1, 3600 * 12, 500);
@@ -848,10 +840,10 @@
                     }
                     isst_delay = passes[0].delay;
                     sendDelayToParent();
-                    redrawTrackerTimed();
+                    redrawTrackerTimed(true);
                 });
 
-                redrawTracker(true);
+                redrawTracker();
             }
             
             var iss_old_x = 0;
@@ -1370,8 +1362,8 @@
             }
             
             var tc = -1;
-            
-            function redrawTrackerTimed() {
+            const redrawPeriodMs = 5000; // ms
+            function redrawTrackerTimed(forcePropagate = false) {
                 if (tc != -1) clearTimeout(tc);
                 if (document.getElementById("isst").style.display == "none") return;
                 var t = (new Date()).getTime(); 
@@ -1380,14 +1372,18 @@
                     issTracker_init();
                     return;
                 }
-                SGP4.propagate();
+                if (isst_play || forcePropagate)
+                {
+                    SGP4.propagate();
+                }
+                else
+                {
+                    isst_delay += redrawPeriodMs / 1000;
+                }
                 redrawTracker();
                 printData();
                 sendISSLatLonToParent(SGP4.Latitude, SGP4.Longitude);
-                if (isst_play)
-                {
-                    tc = setTimeout(redrawTrackerTimed, 5000);
-                }
+                tc = setTimeout(redrawTrackerTimed, redrawPeriodMs);
             }
 
             function changeMetric() {
