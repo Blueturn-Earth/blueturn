@@ -79,7 +79,7 @@ void main() {
     if (u_mouse.z > 0.0)
     {
         float lensRadius = lensRadiusFactor * u_resolution.y;
-        float lensStep = 1.0 - smoothstep(lensRadius * 0.9, lensRadius + 1.1f, distance(u_mouse.xy, fragCoord.xy));
+        float lensStep = 1.0 - step(lensRadius, distance(u_mouse.xy, fragCoord.xy));
         vec2 mousePos = u_mouse.xy / u_resolution.xy;
         float uniform_F = mousePos.y * Fk_factor;
         float uniform_k = mousePos.x * Fk_factor;
