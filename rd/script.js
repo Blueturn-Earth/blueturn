@@ -1,4 +1,4 @@
-import {iMouseInit} from './iMouse.js'
+import { Screen } from './screen_events.js'
 import {drawAxesAroundCanvas} from './axis.js'
 
 const canvas = document.getElementById("canvas");
@@ -66,9 +66,13 @@ function setupAttributes(program) {
 }
 
 let frame = 0;
+var resolution;
+
 var pingpong;
 var ping;
 var pong;
+let renderPingPongIndex = 0;
+
 
 
 // Création textures ping-pong
@@ -150,9 +154,44 @@ window.addEventListener('load', resize);
 
 const framebuffer = gl.createFramebuffer();
 
-let renderPingPongIndex = 0;
+let iMouse = {x:undefined, y:undefined, z:undefined, w:undefined};
+let isMouseDown = false;
+const screen = new Screen(canvas);
 
-let iMouse = iMouseInit(canvas);
+screen.addEventListener('move', (e) => {
+    iMouse.x = e.movePos.x;
+    iMouse.y = screen.getCanvasHeight() - e.movePos.y;
+    if (isMouseDown) {
+        iMouse.z = iMouse.x;
+        iMouse.w = iMouse.y;
+    }
+    else {
+        iMouse.z = 0;
+        iMouse.w = 0;
+    }
+});
+
+screen.addEventListener('down', (e) => {
+    isMouseDown = true;
+    iMouse.z = e.startPos.x;
+    iMouse.w = e.startPos.y;
+});
+
+screen.addEventListener('up', () => {
+    isMouseDown = false;
+    iMouse.z = 0;
+    iMouse.w = 0;
+});
+
+/*
+screen.addEventListener('out', () => {
+    isMouseDown = false;
+    iMouse.x = 0;
+    iMouse.y = 0;
+    iMouse.z = 0;
+    iMouse.w = 0;
+});
+*/
 
 let nIterations = 30;
 
@@ -211,6 +250,10 @@ async function runGraphics() {
 
     simProgram = createProgram(gl, vertexShaderSource, simulationFragmentSource);
     dispProgram = createProgram(gl, vertexShaderSource, displayFragmentSource);
+    if (!simProgram || !dispProgram) {
+        alert("Failed to create shader program");
+        return;
+    }
 
     render();
 }
