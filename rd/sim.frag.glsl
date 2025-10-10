@@ -4,7 +4,6 @@ precision highp float;
 in vec2 v_texCoord;
 uniform sampler2D u_texture;
 uniform vec2 u_resolution;
-uniform float u_time;
 uniform int u_frame;
 uniform vec4 u_mouse;
 out vec4 fragColor;
@@ -28,7 +27,11 @@ vec2 laplacian4(vec2 position, sampler2D image, vec2 resolution)
 
 vec2 laplacian9(vec2 position, sampler2D image, vec2 resolution) 
 {
-    vec3 e = vec3(vec2(1., -1.) / resolution.yy, 0.);
+    vec2 aspect_ratio_factor = u_resolution.x < u_resolution.y ?
+        vec2(1.0, u_resolution.y / u_resolution.x) :
+        vec2(u_resolution.x / u_resolution.y, 1.0);
+
+    vec3 e = vec3(vec2(1., -1.) / resolution.xy / aspect_ratio_factor, 0.);
 	return vec2(0., 0.) 
 	+ texture( image,  position - e.xz ).xy
 	+ texture( image,  position + e.xz ).xy
@@ -63,26 +66,31 @@ vec2 ReactionDiffusion(vec2 position, sampler2D image, vec2 resolution)
 }
 
 void main() {    
+    vec2 aspect_ratio_factor = u_resolution.x < u_resolution.y ?
+        vec2(1.0, u_resolution.y / u_resolution.x) :
+        vec2(u_resolution.x / u_resolution.y, 1.0);
+
     fragColor.ba = vec2(0.0, 1.0);
     if (u_frame == 0)
     {
-        fragColor.rg = sin(300.0 * v_texCoord);
+        fragColor.rg = sin(300.0 * v_texCoord * aspect_ratio_factor);
         return;
     }
         
     vec2 fragCoord = v_texCoord.xy * u_resolution.xy;
 
     float Fk_factor = 0.1;
-
-    F = v_texCoord.y * Fk_factor;
-    k = v_texCoord.x * Fk_factor;
+    vec2 kF = v_texCoord * aspect_ratio_factor * Fk_factor;
+    F = kF.y;
+    k = kF.x;
     if (u_mouse.z > 0.0)
     {
         float lensRadius = lensRadiusFactor * u_resolution.y;
         float lensStep = 1.0 - step(lensRadius, distance(u_mouse.xy, fragCoord.xy));
         vec2 mousePos = u_mouse.xy / u_resolution.xy;
-        float uniform_F = mousePos.y * Fk_factor;
-        float uniform_k = mousePos.x * Fk_factor;
+        vec2 circle_kF = mousePos * aspect_ratio_factor * Fk_factor;
+        float uniform_F = circle_kF.y;
+        float uniform_k = circle_kF.x;
         F = mix(F, uniform_F, lensStep);
         k = mix(k, uniform_k, lensStep);
     }

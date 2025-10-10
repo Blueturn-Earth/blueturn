@@ -141,9 +141,6 @@ export class Screen
         this.addEventListener("swype-up", logEvent);
         this.addEventListener("swype-down", logEvent);
         //
-
-        window.addEventListener('resize', () => {self.resize();});
-
     }
 
     #MIN_DRAG_DISTANCE = 50;
@@ -473,20 +470,6 @@ export class Screen
             modifiers: getModifierMask(e)
         });
     }
-
-    resize()
-    {
-        const dpr = window.devicePixelRatio || 1;
-        const width = window.innerWidth * dpr;
-        const height = window.innerHeight * dpr;
-
-        if (width != this.#canvas.width ||
-            height != this.#canvas.height)
-        {
-            this.#canvas.width = width;
-            this.#canvas.height = height;
-        }
-    };
 
     getCanvasWidth() {return this.#canvas.width;}
     getCanvasHeight() {return this.#canvas.height;}
