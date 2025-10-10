@@ -1,4 +1,5 @@
 import {iMouseInit} from './iMouse.js'
+import {drawAxesAroundCanvas} from './axis.js'
 
 const canvas = document.getElementById("canvas");
 
@@ -107,6 +108,17 @@ var resolution;
 
 function resize()
 {
+    const axisCanvas = document.getElementById("axisCanvas");
+    const aspectRatio = axisCanvas.clientWidth / axisCanvas.clientHeight;
+    drawAxesAroundCanvas(axisCanvas, {
+        xMax: aspectRatio < 1.0 ? 0.1 : 0.1 * aspectRatio,
+        yMax: aspectRatio > 1.0 ? 0.1 : 0.1 / aspectRatio,
+        xTickStep: 0.01,
+        yTickStep: 0.01,
+        xName: "k",
+        yName: "F"
+    });
+
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
     console.log(`resize ${width}x${height}`);
