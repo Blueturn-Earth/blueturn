@@ -4,7 +4,20 @@
   <title>Reaction-Diffusion</title>
 </head>
 <body>
-  <canvas id="canvas" style="width:100vw; height:100vh;"></canvas>
+  <style>
+    body { margin: 0; background: #111; }
+    .canvas {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+    }
+    #axisCanvas {
+      pointer-events: none;
+    }
+  </style>
+
+  <canvas id="canvas" class="canvas"></canvas>
+  <canvas id="axisCanvas" class="canvas"></canvas>
   <script type="module" src="./script.js"></script>
 </body>
 </html>
