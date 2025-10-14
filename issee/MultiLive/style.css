@@ -82,9 +82,8 @@ html, body {
 
 @media (min-aspect-ratio: 1/1) or (orientation: landscape) {
   .mosaic {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr; /* 3 columns */
-    grid-template-rows: 1fr;    /* 2 rows */
+    display: flex;
+    flex-direction: row;
     width: 100%;
     height: 30%;
   }
