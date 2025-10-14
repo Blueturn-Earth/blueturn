@@ -33,9 +33,9 @@
                     <button onclick="addDelay(-300)">+5min</button>
                 </div>
             </div>
-            <div class="tile" id="ytPlayer1">Loading YouTube Player 1...</div>
-            <div class="tile" id="ytPlayer2">Loading YouTube Player 2...</div>
-            <div class="tile" id="ytPlayer3">Loading YouTube Player 3...</div>
+            <div class="tile" id="yt_NasaFront">Loading YouTube Player 2...</div>
+            <div class="tile" id="yt_NasaTopDown">Loading YouTube Player 3...</div>
+            <div class="tile" id="yt_Sen">Loading YouTube Player 1...</div>
         </div>
         <script type="module">
             import LivePlayer from '../Lib/LivePlayer.js';
@@ -43,10 +43,10 @@
             import ISSTrackerNode from '../Lib/ISSTrackerNode.js';
             import ISSLocator from '../Lib/ISSLocator.js';
 
-            new YouTubeLivePlayer("fO9e9jnhYK8", "ytPlayer1"); // Sen camera
+            new YouTubeLivePlayer("fO9e9jnhYK8", "yt_Sen"); // Sen camera
             // TODO: https://app.blueturn.earth/issee/StereoSat/?v=fO9e9jnhYK8&timeOffset=7&videoRotation=90&videoPanXpc=19&videoScale=10
-            new YouTubeLivePlayer("iYmvCUonukw", "ytPlayer2"); // ISS front
-            new YouTubeLivePlayer("yf5cEJULZXk", "ytPlayer3"); // ISS topdown
+            new YouTubeLivePlayer("iYmvCUonukw", "yt_NasaFront"); // ISS front
+            new YouTubeLivePlayer("yf5cEJULZXk", "yt_NasaTopDown"); // ISS topdown
             // TODO: https://app.blueturn.earth/issee/StereoSat/?v=yf5cEJULZXk&timeOffset=-14&videoRotation=-3&videoPanXpc=22&videoScale=10
             new ISSTrackerNode("issTracker");
             // TODO: Add Windy + Webcam
@@ -77,7 +77,7 @@
 
             export function resize() {
                 const issDiv = document.getElementById("issTracker");
-                const issTrackerWidth = 0.83;
+                const issTrackerWidth = 1;
                 const issTrackerMaxHeight = 0.8;
                 let issTrackerScale = issDiv.parentNode.offsetWidth / issDiv.offsetWidth * issTrackerWidth;
                 const issTrackerHeight = issDiv.offsetHeight * issTrackerScale / issDiv.parentNode.offsetHeight; 
