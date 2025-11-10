@@ -51,6 +51,11 @@ export default class ISSLocator
         });
 
         setInterval(() => {
+            if (this.#issLat === undefined || this.#issLon === undefined)
+            {
+                console.warn("ISS position not available");
+                return;
+            }
             //console.log("Fetching geocode for lat:", this.#issLat, "lon:", this.#issLon);
             this.getCityCountry(this.#issLat, this.#issLon)
             .then(data => {

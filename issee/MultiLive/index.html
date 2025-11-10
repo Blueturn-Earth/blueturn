@@ -38,15 +38,16 @@
             <div class="tile" id="yt_Sen">Loading YouTube Player 1...</div>
             <div class="tile" id="windyTile">
                 <iframe id="windyIFrame" width="440" height="300" src="https://embed.windy.com/embed.html?type=map&zoom=2&overlay=satellite" frameborder="0"></iframe>
-                <!-- <iframe width="440" height="300" src="https://www.windy.com/-Satellite-satellite?satellite,32.080,34.781,5,p:cams" frameborder="0"></iframe> -->
                 <button id="windyRecenterBtn" onclick="rencenterWindyToISS()">ISS</button>
             </div>
         </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/satellite.js/4.0.0/satellite.min.js"></script>
         <script type="module">
             import LivePlayer from '../Lib/LivePlayer.js';
             import YouTubeLivePlayer from '../Lib/YouTubeLivePlayer.js';
             import ISSTrackerNode from '../Lib/ISSTrackerNode.js';
             import ISSLocator from '../Lib/ISSLocator.js';
+            import WindyUpdater from '../Lib/WindyUpdater.js';
 
             new YouTubeLivePlayer("fO9e9jnhYK8", "yt_Sen"); // Sen camera
             // TODO: https://app.blueturn.earth/issee/StereoSat/?v=fO9e9jnhYK8&timeOffset=7&videoRotation=90&videoPanXpc=19&videoScale=10
@@ -61,7 +62,6 @@
             const windyIFrame = document.getElementById("windyIFrame");
             let lastWindyLat;
             let lastWindyLon;
-            const windyThresLatLon = 10; // degrees
             new ISSLocator(
                 "myLocBtn", 
                 "prevPassBtn", 
@@ -82,26 +82,16 @@
                             locationName = data.country;
                     }
                     curLocLabel.innerHTML = locationName;
-                    // Update Windy only if moved enough
-                    if (!lastWindyLat || !lastWindyLon || Math.abs(lat - lastWindyLat) > windyThresLatLon || Math.abs(lon - lastWindyLon) > windyThresLatLon)
-                    {
-                        lastWindyLat = lat;
-                        lastWindyLon = lon;
-                        //console.log("Updating Windy to lat=" + lat + " lon=" + lon);
-                        windyIFrame.src = "https://embed.windy.com/embed.html?lat=" + lat + "&lon=" + lon + "&zoom=2&type=map&overlay=satellite";
-                    }
                 });
-            
+
+            let windy = new WindyUpdater(windyIFrame);
             function rencenterWindyToISS() {
-                if (lastWindyLat && lastWindyLon) {
-                    console.log("Re-centering Windy to lat=" + lastWindyLat + " lon=" + lastWindyLon);
-                    windyIFrame.src = "https://embed.windy.com/embed.html?lat=" + lastWindyLat + "&lon=" + lastWindyLon + "&zoom=2&type=map&overlay=satellite";
-                }
+                windy.update();
             }
 
             window.rencenterWindyToISS = rencenterWindyToISS;
 
-            export function resize() {
+            function resize() {
                 const issDiv = document.getElementById("issTracker");
                 const issTrackerWidth = 1;
                 const issTrackerMaxHeight = 0.8;
