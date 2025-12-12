@@ -1,4 +1,5 @@
-export default class BtEpicAPI 
+import BaseEpicAPI from './epic_base_api.js';
+export default class BtEpicAPI extends BaseEpicAPI
 {
     _EPIC_IMAGES_S3_URL = "https://storage.googleapis.com/content.blueturn.earth/images/";
     _EPIC_IMAGES_CDN_URL = "https://content.blueturn.earth/images/";

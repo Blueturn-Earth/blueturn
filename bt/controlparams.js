@@ -4,6 +4,7 @@
 
 export let gControlState = {
     source: 'bt-s3',
+    colors: 'natural',
     speed: 3600,
     play: true,
     day: undefined,
@@ -21,6 +22,7 @@ export let gControlState = {
 
 export let gControlMap = new Map();
 gControlMap.set('source', (v) => {gControlState.source = v;}); // 'nasa', 'bt-s3', 'bt-cdn'
+gControlMap.set('colors', (v) => {gControlState.colors = v;}); // 'natural', 'enhanced'
 gControlMap.set('speed', (v) => {gControlState.speed = parseInt(v);});
 gControlMap.set('play', (v) => {gControlState.play = parseInt(v) != 0;});
 gControlMap.set('day', (v) => {gControlState.day = v; gControlState.jump = true;});

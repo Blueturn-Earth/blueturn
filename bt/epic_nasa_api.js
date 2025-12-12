@@ -1,9 +1,13 @@
-export default class NasaEpicAPI 
+import BaseEpicAPI from './epic_base_api.js';
+import { gControlState } from './controlparams.js';
+export default class NasaEpicAPI extends BaseEpicAPI
 {
     _NASA_API_KEY = "mkFSJvkb5TdUAEUtdWpAwPDEJxicFOCmuKuht0q4";
     //_NASA_API_KEY = "DEMO_KEY";
-    _EPIC_JSON_URL = "https://epic.gsfc.nasa.gov/api/natural/";
-    _EPIC_IMAGE_URL = "https://api.nasa.gov/EPIC/archive/natural/";
+    _EPIC_NATURAL_COLORS = "natural";
+    _EPIC_ENHANCED_COLORS = "enhanced";
+    _EPIC_JSON_URL = "https://epic.gsfc.nasa.gov/api/";
+    _EPIC_IMAGE_URL = "https://api.nasa.gov/EPIC/archive/";
     _IMAGE_FORMAT = 'jpg';
     _NO_CACHE = false;
 
@@ -31,7 +35,7 @@ export default class NasaEpicAPI
 
     getEpicCallURL(call)
     {
-        return this._EPIC_JSON_URL + call;
+        return this._EPIC_JSON_URL + gControlState.colors + "/" + call;
     }
 
     getEpicCallURLSecretQuery(nocache = false)

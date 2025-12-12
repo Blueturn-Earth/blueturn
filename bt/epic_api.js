@@ -2,7 +2,9 @@ import { gControlState } from './controlparams.js';
 import NasaEpicAPI from './epic_nasa_api.js';
 import BtEpicAPI from './epic_bt_api.js';
 
+// Complies to BaseEpicAPI interface
 let gEpicAPI;
+
 switch (gControlState.source) 
 {
     case 'nasa':
