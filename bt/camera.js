@@ -5,6 +5,7 @@ const modalGPS = document.getElementById('modalGPS');
 const modalOrientation = document.getElementById('modalOrientation');
 const modalSky = document.getElementById('modalSkyCoverage');
 const closeModal = document.getElementById('closeModal');
+const loading = document.getElementById("loadingOverlay");
 
 let latestOrientation = { alpha: 0, beta: 0, gamma: 0 };
 
@@ -89,6 +90,9 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
   const file = event.target.files[0];
   if (!file) return;
 
+  // Show loading spinner immediately after accepting the photo
+  loading.style.display = "flex";
+
   // Request GPS NOW
   let gps = null;
   if ("geolocation" in navigator) {
@@ -146,6 +150,9 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
     console.log("Sky photo analysis:", isSky);
   };
   img.src = URL.createObjectURL(file);
+
+  // All ready → Hide spinner + show modal
+  loading.style.display = "none";
 
   modal.style.display = 'flex';
 });
