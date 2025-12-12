@@ -35,7 +35,8 @@
     <button onclick="share()" class="share-button">
       <img src="bt/images/icons/share.png" alt="Share"/>
     </button>
-    <input type="date" id="date-picker" onclick="this.showPicker && this.showPicker()">
+    <input type="date" id="date-picker" onclick="this.showDatePicker && this.showDatePicker()">
+    <input type="file" id="camera-button" accept="image/*" capture="environment" onchange="this.cameraShot && this.cameraShot(event)">
   </div>
   <script type="module">
     import * as glMatrix from "https://esm.sh/gl-matrix";

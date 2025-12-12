@@ -43,6 +43,15 @@ html, body, canvas {
     cursor: pointer;
 }
 
+#camera-button {
+  position: absolute;
+  top: 10px;              /* adjust spacing from the top */
+  left: 50%;
+  transform: translateX(-50%);   /* true centering */
+  text-align: center;
+  white-space: nowrap;
+}
+
 #loading-text {
     position: absolute;
     top: 20px;
