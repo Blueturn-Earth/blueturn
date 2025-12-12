@@ -8,6 +8,7 @@ export default class BtEpicAPI extends BaseEpicAPI
 
     constructor(useCDN = false, noCache = false)
     {
+        super();
         this._EPIC_IMAGES_URL = useCDN ? this._EPIC_IMAGES_CDN_URL : this._EPIC_IMAGES_S3_URL;
         this._NO_CACHE = noCache;
     }
