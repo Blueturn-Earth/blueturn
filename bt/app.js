@@ -29,6 +29,10 @@ document.getElementById('btLogo').addEventListener('click', function() {
   });
 });
 
+document.getElementById("camera-button").onclick = function () {
+  document.getElementById("camera-input").click();
+};
+
 const canvas = document.getElementById('glcanvas');
 
 let epicPressTime = undefined;

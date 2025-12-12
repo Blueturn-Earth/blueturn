@@ -45,11 +45,18 @@ html, body, canvas {
 
 #camera-button {
   position: absolute;
-  top: 10px;              /* adjust spacing from the top */
+  top: 10px;
   left: 50%;
-  transform: translateX(-50%);   /* true centering */
-  text-align: center;
-  white-space: nowrap;
+  transform: translateX(-50%);
+  background: transparent;   /* no background so the SVG shape is visible */
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  z-index: 10;
+}
+
+.camera-white {
+  color: white;     /* makes SVG white */
 }
 
 #loading-text {
