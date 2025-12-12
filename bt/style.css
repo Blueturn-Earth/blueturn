@@ -166,8 +166,6 @@ html, body, canvas {
   flex-direction: column;
   align-items: center;
   position: relative;
-  line-height: 0.6; /* tighter spacing, default is ~1.4 */
-  margin: 4px 0;    /* optional: reduce spacing between paragraphs */
 }
 
 .modal-content img {
