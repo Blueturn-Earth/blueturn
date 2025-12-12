@@ -43,7 +43,7 @@ html, body, canvas {
     cursor: pointer;
 }
 
-#camera-button {
+#cameraButton {
   position: absolute;
   top: 10px;
   left: 50%;

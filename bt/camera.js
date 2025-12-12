@@ -1,4 +1,4 @@
-document.getElementById("camera-button").addEventListener("click", async () => {
+document.getElementById("cameraButton").addEventListener("click", async () => {
   let coords = null;
 
   if ("geolocation" in navigator) {
@@ -14,10 +14,10 @@ document.getElementById("camera-button").addEventListener("click", async () => {
   }
 
   // Trigger camera input
-  document.getElementById("camera-input").click();
+  document.getElementById("cameraInput").click();
 });
 
-document.getElementById("camera-input").addEventListener("change", (event) => {
+document.getElementById("cameraInput").addEventListener("change", (event) => {
   const file = event.target.files[0];
   if (!file) return;
 
