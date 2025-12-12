@@ -49,6 +49,19 @@
       </svg>
     </button>
   </div>
+
+  <!-- Modal container -->
+  <div id="photoModal" class="modal">
+    <div class="modal-content">
+      <span id="closeModal" class="close">&times;</span>
+      <img id="modalImage" src="" alt="Photo">
+      <p id="modalTimestamp"></p>
+      <p id="modalGPS"></p>
+      <p id="modalOrientation"></p>
+      <p id="modalSkyCoverage"></p>
+    </div>
+  </div>
+
   <script type="module">
     import * as glMatrix from "https://esm.sh/gl-matrix";
     window.glMatrix = glMatrix;

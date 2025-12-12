@@ -1,3 +1,11 @@
+const modal = document.getElementById('photoModal');
+const modalImage = document.getElementById('modalImage');
+const modalTimestamp = document.getElementById('modalTimestamp');
+const modalGPS = document.getElementById('modalGPS');
+const modalOrientation = document.getElementById('modalOrientation');
+const modalSky = document.getElementById('modalSkyCoverage');
+const closeModal = document.getElementById('closeModal');
+
 let latestOrientation = { alpha: 0, beta: 0, gamma: 0 };
 
 // Ask for DeviceOrientation permission on iOS
@@ -27,6 +35,55 @@ document.getElementById("cameraButton").addEventListener("click", async () => {
   document.getElementById("cameraInput").click();
 });
 
+function analyzeSky(ctx, width, height, gps, orientation) {
+  const imageData = ctx.getImageData(0, 0, width, height);
+  let skyPixels = 0;
+  const totalPixels = imageData.data.length / 4;
+
+  for (let i = 0; i < imageData.data.length; i += 4) {
+    const r = imageData.data[i];
+    const g = imageData.data[i+1];
+    const b = imageData.data[i+2];
+    const luminance = 0.299*r + 0.587*g + 0.114*b;
+
+    // Accept bright pixels or lightly saturated (white/gray clouds)
+    const maxColor = Math.max(r,g,b);
+    const minColor = Math.min(r,g,b);
+    const saturation = (maxColor - minColor)/255;
+
+    if (luminance > 150 && saturation < 0.7) skyPixels++;
+    else if (b > r && b > g) skyPixels++;
+  }
+
+  const skyRatio = skyPixels / totalPixels;
+
+  let useTilt = true;
+
+  if (gps && gps.alt != null) {
+    if (gps.alt > 1500) {
+      // High altitude: mountain or plane → ignore tilt
+      useTilt = false;
+    } else if (gps.alt < 50) {
+      // Low altitude: use tilt normally
+      useTilt = true;
+    }
+    // Middle altitudes: optional threshold
+  }
+
+  let isSkyPhoto = 
+    skyRatio > 0.2 && 
+    (!useTilt || !orientation || orientation.beta < -20);
+
+    modalSky.textContent = 
+        "Sky photo: " + (isSkyPhoto ? 'Likely' : 'Unlikely') + " (" + 
+        "Sky ratio: " + skyRatio.toFixed(2) + ", " + 
+        "Tilt: " + (orientation ? orientation.beta.toFixed(1) : 'N/A') + ", " + 
+        "Alt: " + (gps && gps.alt != null ? gps.alt.toFixed(1) + 'm' : 'N/A') + ")";
+    
+  return isSkyPhoto;
+
+}
+
 // When the user takes a picture
 document.getElementById("cameraInput").addEventListener("change", async (event) => {
   const file = event.target.files[0];
@@ -39,7 +96,7 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
       const pos = await new Promise((resolve, reject) =>
         navigator.geolocation.getCurrentPosition(resolve, reject)
       );
-      gps = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+      gps = { lat: pos.coords.latitude, lon: pos.coords.longitude, alt: pos.coords.altitude };
     } catch (err) {
       console.warn("GPS not available:", err.message);
     }
@@ -71,15 +128,32 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
   const beta = latestOrientation.beta;
   const gamma = latestOrientation.gamma;
 
-  // Display popup with photo + GPS + timestamp + orientation
-  const imgURL = URL.createObjectURL(file);
-  const popup = window.open("", "_blank", "width=400,height=600");
-  popup.document.write(`<h2>Photo Preview</h2>`);
-  popup.document.write(`<img src="${imgURL}" style="max-width:100%;"><br>`);
-  popup.document.write(`<p>Timestamp: ${timestamp}</p>`);
-  if (gps) popup.document.write(`<p>GPS: ${gps.lat.toFixed(6)}, ${gps.lon.toFixed(6)}</p>`);
-  popup.document.write(`<p>Orientation (degrees):<br>Yaw/Alpha: ${alpha.toFixed(1)}<br>Pitch/Beta: ${beta.toFixed(1)}<br>Roll/Gamma: ${gamma.toFixed(1)}</p>`);
+ // Show modal
+  modalImage.src = URL.createObjectURL(file);
+  modalTimestamp.textContent = `Timestamp: ${timestamp}`;
+  modalGPS.textContent = gps ? `GPS: ${gps.lat.toFixed(6)}, ${gps.lon.toFixed(6)}` : "GPS: unavailable";
+  modalOrientation.textContent = `Orientation: yaw/alpha ${alpha.toFixed(1)}, pitch/beta ${beta.toFixed(1)}, roll/gamma ${gamma.toFixed(1)}`;
 
-  // Close popup when clicking anywhere
-  popup.document.body.addEventListener('click', () => popup.close());
+  // Sky coverage
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img,0,0);
+    const isSky = analyzeSky(ctx, canvas.width, canvas.height, gps, latestOrientation);
+    console.log("Sky photo analysis:", isSky);
+  };
+  img.src = URL.createObjectURL(file);
+
+  modal.style.display = 'flex';
 });
+
+
+// Close modal when clicking outside or on close button
+closeModal.addEventListener('click', () => modal.style.display='none');
+modal.addEventListener('click', e => {
+  if(e.target === modal) modal.style.display='none';
+});
+
