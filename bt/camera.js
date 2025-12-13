@@ -58,7 +58,8 @@ function analyzeSky(ctx, width, height, gps, orientation) {
 
   const skyRatio = skyPixels / totalPixels;
 
-  let isSkyPhoto = skyRatio > 0.2;
+  const MIN_SKY_RATIO = 0.55;
+  let isSkyPhoto = skyRatio > MIN_SKY_RATIO;
 
     modalSky.textContent = 
         "Sky photo: " + (isSkyPhoto ? 'Likely' : 'Unlikely') + " (" + 
