@@ -58,28 +58,11 @@ function analyzeSky(ctx, width, height, gps, orientation) {
 
   const skyRatio = skyPixels / totalPixels;
 
-  let useTilt = true;
-
-  if (gps && gps.alt != null) {
-    if (gps.alt > 1500) {
-      // High altitude: mountain or plane → ignore tilt
-      useTilt = false;
-    } else if (gps.alt < 50) {
-      // Low altitude: use tilt normally
-      useTilt = true;
-    }
-    // Middle altitudes: optional threshold
-  }
-
-  let isSkyPhoto = 
-    skyRatio > 0.2 && 
-    (!useTilt || !orientation || orientation.beta < -20);
+  let isSkyPhoto = skyRatio > 0.2;
 
     modalSky.textContent = 
         "Sky photo: " + (isSkyPhoto ? 'Likely' : 'Unlikely') + " (" + 
-        "Sky ratio: " + skyRatio.toFixed(2) + ", " + 
-        "Tilt: " + (orientation ? orientation.beta.toFixed(1) : 'N/A') + ", " + 
-        "Alt: " + (gps && gps.alt != null ? gps.alt.toFixed(1) + 'm' : 'N/A') + ")";
+        "Sky ratio: " + skyRatio.toFixed(2) + ")";
     
   return isSkyPhoto;
 
