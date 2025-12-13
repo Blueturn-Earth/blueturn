@@ -16,6 +16,7 @@
   <!-- Global site tag (gtag.js) - Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=UA-142372523-1"></script>
   <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/piexifjs"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
@@ -54,11 +55,15 @@
   <div id="photoModal" class="modal">
     <div class="modal-content">
       <span id="closeModal" class="close">&times;</span>
+      <button id="saveImageBtn" class="save-btn">
+        💾 Save to gallery
+      </button>
+      <p id="modalSkyCoverage"></p>
       <img id="modalImage" src="" alt="Photo">
       <p id="modalTimestamp"></p>
       <p id="modalGPS"></p>
       <p id="modalOrientation"></p>
-      <p id="modalSkyCoverage"></p>
+
     </div>
   </div>
 

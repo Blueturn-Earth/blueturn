@@ -62,15 +62,18 @@ function analyzeSky(ctx, width, height, gps, orientation) {
   let isSkyPhoto = skyRatio > MIN_SKY_RATIO;
 
     modalSky.textContent = 
-        "Sky photo: " + (isSkyPhoto ? 'Likely' : 'Unlikely') + " (" + 
-        "Sky ratio: " + skyRatio.toFixed(2) + ")";
+        "Sky photo: " + (isSkyPhoto ? 'Likely' : 'Unlikely') + " (" + skyRatio.toFixed(2) + ")";
     
   return isSkyPhoto;
 
 }
 
+let preparedImageDataURL = null;
+
 // When the user takes a picture
 document.getElementById("cameraInput").addEventListener("change", async (event) => {
+  preparedImageDataURL = null;
+
   const file = event.target.files[0];
   if (!file) return;
 
@@ -135,9 +138,14 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
   };
   img.src = URL.createObjectURL(file);
 
+  preparedImageDataURL = await addExif(
+    file,
+    gps,
+    latestOrientation.alpha
+  );
+
   // All ready → Hide spinner + show modal
   loading.style.display = "none";
-
   modal.style.display = 'flex';
 });
 
@@ -148,3 +156,104 @@ modal.addEventListener('click', e => {
   if(e.target === modal) modal.style.display='none';
 });
 
+function toRational(number) {
+  const denom = 1000000;
+  return [Math.round(number * denom), denom];
+}
+
+function gpsToExif(coord) {
+  const abs = Math.abs(coord);
+  const deg = Math.floor(abs);
+  const minFloat = (abs - deg) * 60;
+  const min = Math.floor(minFloat);
+  const sec = (minFloat - min) * 60;
+  return [[deg,1], [min,1], toRational(sec)];
+}
+
+async function addExif(file, gps, heading) {
+  const dataURL = await fileToDataURL(file);
+  const exifObj = piexif.load(dataURL);
+
+  // Timestamp
+  const now = new Date();
+  const exifDate =
+    now.getFullYear() + ":" +
+    String(now.getMonth()+1).padStart(2,"0") + ":" +
+    String(now.getDate()).padStart(2,"0") + " " +
+    String(now.getHours()).padStart(2,"0") + ":" +
+    String(now.getMinutes()).padStart(2,"0") + ":" +
+    String(now.getSeconds()).padStart(2,"0");
+
+  exifObj["0th"][piexif.ImageIFD.DateTime] = exifDate;
+  exifObj["Exif"][piexif.ExifIFD.DateTimeOriginal] = exifDate;
+
+  // GPS
+  if (gps) {
+    exifObj["GPS"][piexif.GPSIFD.GPSLatitudeRef]  = gps.lat >= 0 ? "N" : "S";
+    exifObj["GPS"][piexif.GPSIFD.GPSLongitudeRef] = gps.lon >= 0 ? "E" : "W";
+    exifObj["GPS"][piexif.GPSIFD.GPSLatitude]  = gpsToExif(gps.lat);
+    exifObj["GPS"][piexif.GPSIFD.GPSLongitude] = gpsToExif(gps.lon);
+
+    if (gps.alt != null) {
+      exifObj["GPS"][piexif.GPSIFD.GPSAltitude] = toRational(Math.abs(gps.alt));
+      exifObj["GPS"][piexif.GPSIFD.GPSAltitudeRef] = gps.alt < 0 ? 1 : 0;
+    }
+
+    if (heading != null) {
+      exifObj["GPS"][piexif.GPSIFD.GPSImgDirection] = toRational(heading);
+      exifObj["GPS"][piexif.GPSIFD.GPSImgDirectionRef] = "T";
+    }
+  }
+
+  const exifBytes = piexif.dump(exifObj);
+  return piexif.insert(exifBytes, dataURL);
+}
+
+function fileToDataURL(file) {
+  return new Promise(res => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.readAsDataURL(file);
+  });
+}
+
+async function saveImage(dataURL) {
+  const isAndroid = /Android/i.test(navigator.userAgent);
+
+  if (isAndroid && window.showSaveFilePicker) {
+    const handle = await showSaveFilePicker({
+      suggestedName: `Blueturn_${Date.now()}.jpg`,
+      types: [{ accept: { "image/jpeg": [".jpg"] } }]
+    });
+    const w = await handle.createWritable();
+    await w.write(await (await fetch(dataURL)).blob());
+    await w.close();
+  } else {
+    const a = document.createElement("a");
+    a.href = dataURL;
+    a.download = `Blueturn_${Date.now()}.jpg`;
+    a.click();
+  }
+
+  showToast("Saved to gallery");
+}
+
+function showToast(text) {
+  let t = document.getElementById("toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toast";
+    t.className = "toast";
+    document.body.appendChild(t);
+  }
+  t.textContent = text;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 2000);
+}
+
+document.getElementById("saveImageBtn").addEventListener("click", async (e) => {
+  e.stopPropagation(); // empêche la popup de se fermer
+  if (!preparedImageDataURL) return;
+
+  await saveImage(preparedImageDataURL);
+});
