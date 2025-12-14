@@ -17,6 +17,7 @@
   <script async src="https://www.googletagmanager.com/gtag/js?id=UA-142372523-1"></script>
   <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
   <script src="https://cdn.jsdelivr.net/npm/piexifjs"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
@@ -56,8 +57,12 @@
     <div class="modal-content">
       <span id="closeModal" class="close">&times;</span>
       <button id="saveImageBtn" class="save-btn">
-        💾 Save to gallery
+        Save in Cloud
       </button>
+      <div id="uploadProgress" class="progress hidden">
+        <div class="bar"></div>
+        <div class="label">Uploading…</div>
+      </div>
       <p id="modalSkyCoverage"></p>
       <img id="modalImage" src="" alt="Photo">
       <p id="modalTimestamp"></p>

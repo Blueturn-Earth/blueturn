@@ -242,3 +242,28 @@ html, body, canvas {
 .save-btn:active {
   transform: scale(0.97);
 }
+
+.progress {
+  width: 80%;
+  max-width: 360px;
+  margin: 16px auto;
+  text-align: center;
+}
+
+.progress .bar {
+  height: 6px;
+  width: 0%;
+  background: #4ea1ff;
+  border-radius: 3px;
+  transition: width 0.15s ease;
+}
+
+.progress .label {
+  margin-top: 6px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.hidden {
+  display: none;
+}

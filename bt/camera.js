@@ -1,3 +1,4 @@
+import GoogleDriveProvider from './gdrive_provider.js';
 const modal = document.getElementById('photoModal');
 const modalImage = document.getElementById('modalImage');
 const modalTimestamp = document.getElementById('modalTimestamp');
@@ -8,6 +9,7 @@ const closeModal = document.getElementById('closeModal');
 const loading = document.getElementById("loadingOverlay");
 
 let latestOrientation = { alpha: 0, beta: 0, gamma: 0 };
+let latestGPS = null;
 
 // Ask for DeviceOrientation permission on iOS
 function enableOrientation() {
@@ -81,29 +83,27 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
   loading.style.display = "flex";
 
   // Request GPS NOW
-  let gps = null;
   if ("geolocation" in navigator) {
     try {
       const pos = await new Promise((resolve, reject) =>
         navigator.geolocation.getCurrentPosition(resolve, reject)
       );
-      gps = { lat: pos.coords.latitude, lon: pos.coords.longitude, alt: pos.coords.altitude };
+      latestGPS = { lat: pos.coords.latitude, lon: pos.coords.longitude, alt: pos.coords.altitude };
     } catch (err) {
       console.warn("GPS not available:", err.message);
     }
   }
 
   // Attempt to get GPS from EXIF (optional, only if stored)
-  if (!gps) {
+  if (!latestGPS) {
     console.log("Trying to get GPS from EXIF");
     EXIF.getData(file, function() {
         const tags = EXIF.getAllTags(this);
-        let gps = null;
         if (tags.GPSLatitude && tags.GPSLongitude) {
             const lat = tags.GPSLatitude[0] + tags.GPSLatitude[1]/60 + tags.GPSLatitude[2]/3600;
             const lon = tags.GPSLongitude[0] + tags.GPSLongitude[1]/60 + tags.GPSLongitude[2]/3600;
-            gps = { lat, lon };
-            console.log("Got GPS from EXIF:", gps);
+            latestGPS = { lat, lon };
+            console.log("Got GPS from EXIF:", latestGPS);
         }
         else {
             console.log("No GPS in EXIF data");
@@ -122,7 +122,7 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
  // Show modal
   modalImage.src = URL.createObjectURL(file);
   modalTimestamp.textContent = `Timestamp: ${timestamp}`;
-  modalGPS.textContent = gps ? `GPS: ${gps.lat.toFixed(6)}, ${gps.lon.toFixed(6)}` : "GPS: unavailable";
+  modalGPS.textContent = latestGPS ? `GPS: ${latestGPS.lat.toFixed(6)}, ${latestGPS.lon.toFixed(6)}` : "GPS: unavailable";
   modalOrientation.textContent = `Orientation: yaw/alpha ${alpha.toFixed(1)}, pitch/beta ${beta.toFixed(1)}, roll/gamma ${gamma.toFixed(1)}`;
 
   // Sky coverage
@@ -133,14 +133,14 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
     canvas.height = img.height;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img,0,0);
-    const isSky = analyzeSky(ctx, canvas.width, canvas.height, gps, latestOrientation);
+    const isSky = analyzeSky(ctx, canvas.width, canvas.height, latestGPS, latestOrientation);
     console.log("Sky photo analysis:", isSky);
   };
   img.src = URL.createObjectURL(file);
 
   preparedImageDataURL = await addExif(
     file,
-    gps,
+    latestGPS,
     latestOrientation.alpha
   );
 
@@ -217,7 +217,22 @@ function fileToDataURL(file) {
   });
 }
 
+const progressEl = document.getElementById("uploadProgress");
+const barEl = progressEl.querySelector(".bar");
+const labelEl = progressEl.querySelector(".label");
+
 async function saveImage(dataURL) {
+  const blob = await (await fetch(dataURL)).blob();
+  progressEl.classList.remove("hidden");
+  barEl.style.width = "0%";
+  labelEl.textContent = "Uploading…";
+
+  try {
+    const uploadProvider = new GoogleDriveProvider();
+    const uploadResult = await uploadProvider.upload(blob, (p) => {
+      barEl.style.width = `${Math.round(p * 100)}%`;
+    });
+
   const isAndroid = /Android/i.test(navigator.userAgent);
 
   if (isAndroid && window.showSaveFilePicker) {
@@ -236,6 +251,14 @@ async function saveImage(dataURL) {
   }
 
   showToast("Saved to gallery");
+    labelEl.textContent = "Done ✓";
+    barEl.style.width = "100%";
+    showToast("Saved to Cloud: " + uploadResult.url);
+  } catch (e) {
+    labelEl.textContent = "Upload failed";
+    barEl.style.width = "0%";
+    console.error(e);
+  }
 }
 
 function showToast(text) {
@@ -257,3 +280,4 @@ document.getElementById("saveImageBtn").addEventListener("click", async (e) => {
 
   await saveImage(preparedImageDataURL);
 });
+
