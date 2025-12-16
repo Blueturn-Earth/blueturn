@@ -1,4 +1,6 @@
 import GoogleDriveProvider from './gdrive_provider.js';
+import saveMetadata from './firebase_io.js';
+
 const modal = document.getElementById('photoModal');
 const modalImage = document.getElementById('modalImage');
 const modalTimestamp = document.getElementById('modalTimestamp');
@@ -30,8 +32,10 @@ function handleOrientation(e) {
   latestOrientation = { alpha: e.alpha, beta: e.beta, gamma: e.gamma };
 }
 
+console.log("Enabling device orientation");
 enableOrientation();
 
+console.log("Add camera button click handler");
 // Capture photo and metadata
 document.getElementById("cameraButton").addEventListener("click", async () => {
   // Trigger camera
@@ -72,6 +76,7 @@ function analyzeSky(ctx, width, height, gps, orientation) {
 
 let preparedImageDataURL = null;
 
+console.log("Add camera input change handler");
 // When the user takes a picture
 document.getElementById("cameraInput").addEventListener("change", async (event) => {
   preparedImageDataURL = null;
@@ -233,24 +238,14 @@ async function saveImage(dataURL) {
       barEl.style.width = `${Math.round(p * 100)}%`;
     });
 
-  const isAndroid = /Android/i.test(navigator.userAgent);
-
-  if (isAndroid && window.showSaveFilePicker) {
-    const handle = await showSaveFilePicker({
-      suggestedName: `Blueturn_${Date.now()}.jpg`,
-      types: [{ accept: { "image/jpeg": [".jpg"] } }]
+    labelEl.textContent = "Finalizing…";
+    await saveMetadata(uploadResult.url, {
+      timestamp: new Date().toISOString(),
+      provider: uploadResult.provider,
+      gps: latestGPS,
+      orientation: latestOrientation,
     });
-    const w = await handle.createWritable();
-    await w.write(await (await fetch(dataURL)).blob());
-    await w.close();
-  } else {
-    const a = document.createElement("a");
-    a.href = dataURL;
-    a.download = `Blueturn_${Date.now()}.jpg`;
-    a.click();
-  }
-
-  showToast("Saved to gallery");
+   
     labelEl.textContent = "Done ✓";
     barEl.style.width = "100%";
     showToast("Saved to Cloud: " + uploadResult.url);
