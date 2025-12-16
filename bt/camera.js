@@ -157,9 +157,6 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
 
 // Close modal when clicking outside or on close button
 closeModal.addEventListener('click', () => modal.style.display='none');
-modal.addEventListener('click', e => {
-  if(e.target === modal) modal.style.display='none';
-});
 
 function toRational(number) {
   const denom = 1000000;
@@ -226,6 +223,13 @@ const progressEl = document.getElementById("uploadProgress");
 const barEl = progressEl.querySelector(".bar");
 const labelEl = progressEl.querySelector(".label");
 
+function decodeJwt(token) {
+  if (!token)
+    return null;
+  const payload = token.split(".")[1];
+  return JSON.parse(atob(payload));
+}
+
 async function saveImage(dataURL) {
   const blob = await (await fetch(dataURL)).blob();
   progressEl.classList.remove("hidden");
@@ -239,13 +243,11 @@ async function saveImage(dataURL) {
     });
 
     labelEl.textContent = "Finalizing…";
-    await saveMetadata(uploadResult.url, {
-      timestamp: new Date().toISOString(),
-      provider: uploadResult.provider,
-      gps: latestGPS,
-      orientation: latestOrientation,
-    });
-   
+
+    const profile = uploadProvider.getProfile();
+
+    await saveMetadata(uploadResult, profile, latestGPS, latestOrientation);
+
     labelEl.textContent = "Done ✓";
     barEl.style.width = "100%";
     showToast("Saved to Cloud: " + uploadResult.url);

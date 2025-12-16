@@ -1,6 +1,6 @@
 import {
-  addDoc,
-  collection,
+  doc,
+  setDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
@@ -41,7 +41,23 @@ export async function ensureAuthReady() {
   });
 }
 
-export default async function saveMetadata(imageUrl, metadata) {
+function makeDocId(userId) {
+  const pad = (n, w = 2) => String(n).padStart(w, "0");
+  const date = new Date();
+  return (
+    date.getFullYear() +
+    pad(date.getMonth() + 1) +
+    pad(date.getDate()) +
+    "_" +
+    pad(date.getHours()) +
+    pad(date.getMinutes()) +
+    pad(date.getSeconds()) +
+    "_" +
+    userId
+  );
+}
+
+export default async function saveMetadata(uploadResult, profile, gps, orientation) {
   if (!db) {
     console.warn("No Firestore DB available, skipping metadata save");
     return;
@@ -60,37 +76,19 @@ export default async function saveMetadata(imageUrl, metadata) {
     return;
   }
 
-/*
-Typical document:
-{
-  imageUrl: "https://drive.google.com/uc?id=...",
-  provider: "drive",
+  const docId = makeDocId(profile.sub);
+  console.log("Generated document ID:", docId);
 
-  createdAt: Timestamp,
-
-  gps: {
-    lat: 48.8566,
-    lon: 2.3522,
-    alt: 1234.5
-  },
-
-  orientation: {
-    yaw: 182.4,
-    pitch: -31.0,
-    roll: 2.1
-  }
-}
-*/
-  const doc = {
-    imageUrl,
-    provider: metadata.provider,
+  const photoDoc = {
     createdAt: serverTimestamp(),
-    gps: metadata.gps,
-    orientation: metadata.orientation
+    image: uploadResult,
+    gps: gps,
+    orientation: orientation,
+    profile: profile
   };
-  console.log("Saving doc to Firestore:", doc);
+  console.log("Saving doc to Firestore:", photoDoc);
   console.log("DB:", db);
   console.log("DB type:", typeof db);
-  await addDoc(collection(db, "images"), doc);
-  console.log("Saved metadata to Firestore:", imageUrl, metadata);
+  await setDoc(doc(db, "images", docId), photoDoc);
+  console.log("Saved document to Firestore:", photoDoc);
 }

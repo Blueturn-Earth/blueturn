@@ -2,15 +2,30 @@ import UploadProvider from './upload_provider.js';
 
 export default class GoogleDriveProvider extends UploadProvider {
   constructor(clientId = '509580731574-fk6ovov57h0b2tq083jv4860qa8ofhqg.apps.googleusercontent.com') {
-    super('drive');
+    super();
     this.clientId = clientId;
     this.accessToken = null;
+    this.profile = null;
     this.tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: this.clientId,
       scope: 
+        "openid " +
+        "profile " +
         "https://www.googleapis.com/auth/drive.file " +
         "https://www.googleapis.com/auth/drive.metadata.readonly"
     });
+  }
+
+  async fetchGoogleProfile(accessToken) {
+    const res = await fetch(
+      "https://www.googleapis.com/oauth2/v3/userinfo",
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      }
+    );
+    return await res.json();
   }
 
   ensureDriveAuth() {
@@ -20,13 +35,15 @@ export default class GoogleDriveProvider extends UploadProvider {
         return resolve();
       }
       console.log("Requesting Drive access token");
-      this.tokenClient.callback = (resp) => {
+      this.tokenClient.callback = async (resp) => {
         if (resp.error) {
           console.error("Error obtaining Drive access token: ", resp);
           reject(resp);
         } else {
           this.accessToken = resp.access_token;
           console.log("Obtained Drive access token: ", this.accessToken);
+          this.profile = await this.fetchGoogleProfile(this.accessToken);
+          console.log("Obtained Google profile: ", this.profile);
           resolve(this.accessToken);
         }
       };
@@ -34,42 +51,12 @@ export default class GoogleDriveProvider extends UploadProvider {
     });
   }
 
-  async uploadToDrive(blob) {
-    await this.ensureDriveAuth();
-    console.log("Uploading to Drive…");
-    const folderId = await this.ensureSkyPhotosFolder();
-
-    const metadata = {
-      name: `Blueturn_${Date.now()}.jpg`,
-      mimeType: "image/jpeg",
-      parents: [folderId]
-    };
-
-    const form = new FormData();
-    form.append("metadata", new Blob(
-      [JSON.stringify(metadata)],
-      { type: "application/json" }
-    ));
-    form.append("file", blob);
-
-    console.log("Sending upload request to Drive API: ", metadata);
-    const res = await fetch(
-      "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.accessToken}`
-        },
-        body: form
-      }
-    );
-
-    const { id } = await res.json();
-    console.log("Extracted file ID from upload response: ", id);
-    return id;
+  getProfile()
+  {
+    return this.profile;
   }
 
-  async uploadToDriveWithProgress(blob, onProgress, onError) {
+  async uploadToDrive(blob, onProgress, onError) {
     console.log("Ensuring Drive auth…");
     await this.ensureDriveAuth();
     if (!this.accessToken) {
@@ -160,10 +147,20 @@ export default class GoogleDriveProvider extends UploadProvider {
     return `https://drive.google.com/uc?id=${fileId}`;
   }
 
+  getThumbnailUrl(fileId) {
+    return `https://drive.google.com/thumbnail?id=${fileId}`; //&sz=w200-h200`;
+  }
+
   async uploadImageToService(blob, onProgress, onError) {
-    const fileId = await this.uploadToDriveWithProgress(blob, onProgress, onError);
+    const fileId = await this.uploadToDrive(blob, onProgress, onError);
     const publicUrl = await this.makeDriveFilePublic(fileId);
-    return publicUrl;
+    const thumbnailUrl = this.getThumbnailUrl(fileId);
+    return {
+      provider: "GoogleDrive",
+      imageUrl: publicUrl,
+      thumbnailUrl: thumbnailUrl,
+      fileId: fileId
+    }
   }
 
   async getOrCreateFolder(name, parentId = "root") {

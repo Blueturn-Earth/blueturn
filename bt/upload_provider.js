@@ -1,20 +1,24 @@
 export default class UploadProvider {
   PATH = "Pictures/Blueturn/SkyPhotos";
 
-  constructor(serviceName) {
-    this.serviceName = serviceName;
+  getIdToken() {
+    throw new Error("unimplemented method");
   }
 
   async upload(blob, onProgress, onError) {
 
-    const url = await this.uploadImageToService(blob, onProgress, onError);
-    return {
-      provider: this.serviceName,
-      url
-    };
+    return await this.uploadImageToService(blob, onProgress, onError);
   }
+
   async uploadImageToService(blob, onProgress, onError) {
-    throw new Error("unimplemented method");
+    console.error("unimplemented method");
+    // That's the format we have to return
+    return {
+      provider: null,
+      imageUrl: null,
+      thumbnailUrl: null,
+      fileId: null
+    }
   }
 }
 
