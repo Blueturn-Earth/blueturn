@@ -42,8 +42,15 @@ document.getElementById("cameraButton").addEventListener("click", async () => {
   document.getElementById("cameraInput").click();
 });
 
-function analyzeSky(ctx, width, height, gps, orientation) {
-  const imageData = ctx.getImageData(0, 0, width, height);
+
+function analyzeSky(img, gps, orientation) {
+  console.log("Analyzing sky coverage…");
+  const canvas = document.createElement('canvas');
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img,0,0);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   let skyPixels = 0;
   const totalPixels = imageData.data.length / 4;
 
@@ -67,8 +74,10 @@ function analyzeSky(ctx, width, height, gps, orientation) {
   const MIN_SKY_RATIO = 0.55;
   let isSkyPhoto = skyRatio > MIN_SKY_RATIO;
 
-    modalSky.textContent = 
+  modalSky.textContent = 
         "Sky photo: " + (isSkyPhoto ? 'Likely' : 'Unlikely') + " (" + skyRatio.toFixed(2) + ")";
+
+  console.log(modalSky.textContent);
     
   return isSkyPhoto;
 
@@ -133,25 +142,25 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
   // Sky coverage
   const img = new Image();
   img.onload = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img,0,0);
-    const isSky = analyzeSky(ctx, canvas.width, canvas.height, latestGPS, latestOrientation);
+    const isSky = analyzeSky(img, latestGPS, latestOrientation);
     console.log("Sky photo analysis:", isSky);
   };
+  console.log("Loading image");
   img.src = URL.createObjectURL(file);
 
+  console.log("Adding EXIF data to image…");
   preparedImageDataURL = await addExif(
     file,
     latestGPS,
     latestOrientation.alpha
   );
 
+  console.log("Show modal");
   // All ready → Hide spinner + show modal
   loading.style.display = "none";
   modal.style.display = 'flex';
+  labelEl.style.display = "none";
+  barEl.style.width = "0%";
 });
 
 
