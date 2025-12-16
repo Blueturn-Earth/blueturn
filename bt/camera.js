@@ -239,14 +239,19 @@ function decodeJwt(token) {
   return JSON.parse(atob(payload));
 }
 
+let uploadProvider = null;
+
 async function saveImage(dataURL) {
   const blob = await (await fetch(dataURL)).blob();
   progressEl.classList.remove("hidden");
   barEl.style.width = "0%";
   labelEl.textContent = "Uploading…";
+  labelEl.style.display = "block";
 
   try {
-    const uploadProvider = new GoogleDriveProvider();
+    if (!uploadProvider) {
+      uploadProvider = new GoogleDriveProvider();
+    }
     const uploadResult = await uploadProvider.upload(blob, (p) => {
       barEl.style.width = `${Math.round(p * 100)}%`;
     });
@@ -257,27 +262,13 @@ async function saveImage(dataURL) {
 
     await saveMetadata(uploadResult, profile, latestGPS, latestOrientation);
 
-    labelEl.textContent = "Done ✓";
+    labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
-    showToast("Saved to Cloud: " + uploadResult.url);
   } catch (e) {
     labelEl.textContent = "Upload failed";
     barEl.style.width = "0%";
     console.error(e);
   }
-}
-
-function showToast(text) {
-  let t = document.getElementById("toast");
-  if (!t) {
-    t = document.createElement("div");
-    t.id = "toast";
-    t.className = "toast";
-    document.body.appendChild(t);
-  }
-  t.textContent = text;
-  t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"), 2000);
 }
 
 document.getElementById("saveImageBtn").addEventListener("click", async (e) => {

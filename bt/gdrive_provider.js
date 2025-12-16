@@ -28,6 +28,12 @@ export default class GoogleDriveProvider extends UploadProvider {
     return await res.json();
   }
 
+  setProfileButton(url, name) {
+    const img = document.getElementById("profileImg");
+    img.src = url;
+    img.alt = name || "Profile";
+  }
+
   ensureDriveAuth() {
     return new Promise((resolve) => {
       if (this.accessToken) {
@@ -44,6 +50,7 @@ export default class GoogleDriveProvider extends UploadProvider {
           console.log("Obtained Drive access token: ", this.accessToken);
           this.profile = await this.fetchGoogleProfile(this.accessToken);
           console.log("Obtained Google profile: ", this.profile);
+          this.setProfileButton(this.profile.picture, this.profile.given_name);
           resolve(this.accessToken);
         }
       };
