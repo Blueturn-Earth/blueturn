@@ -4,42 +4,8 @@ import {
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-import {
-  getAuth,
-  onAuthStateChanged,
-  signInAnonymously
-} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
-
 import { db } from "./firebase_db.js";
-
-let auth;
-
-try {
-  auth = getAuth();
-  console.log("Current Firebase user before signin:", auth ? auth.currentUser : null);
-} catch (e) {
-  console.error("Firebase getAuth error:", e);
-  auth = null;
-}
-
-export async function ensureAuthReady() {
-  if (!auth) {
-    console.warn("No Firebase Auth available");
-    return;
-  }
-  return new Promise((resolve, reject) => {
-    const unsub = onAuthStateChanged(auth, user => {
-      if (user) {
-        unsub();
-        resolve();
-      }
-    });
-
-    if (!auth.currentUser) {
-      signInAnonymously(auth).catch(reject);
-    }
-  });
-}
+import { ensureAuthReady } from "./firebase_auth.js";
 
 function makeDocId(userId) {
   const pad = (n, w = 2) => String(n).padStart(w, "0");
@@ -57,24 +23,13 @@ function makeDocId(userId) {
   );
 }
 
-export default async function saveMetadata(uploadResult, profile, gps, orientation) {
+export async function saveMetadata(uploadResult, profile, gps, orientation) {
   if (!db) {
     console.warn("No Firestore DB available, skipping metadata save");
     return;
   }
 
   await ensureAuthReady();
-
-  let auth;
-
-  try {
-    auth = getAuth();
-    console.log("Firebase User at write time:", auth.currentUser);
-  } catch (e) {
-    console.warn("Abort as no Firebase user at write time:", e);
-    auth = null;
-    return;
-  }
 
   const docId = makeDocId(profile.sub);
   console.log("Generated document ID:", docId);

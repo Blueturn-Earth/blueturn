@@ -1,15 +1,15 @@
-  const ui = document.getElementById("ui");
+  const topUI = document.getElementById("topUI");
   let hideTimeout;
 
   function showUI() {
-    ui.classList.remove("hidden");
+    topUI.classList.remove("hidden");
     clearTimeout(hideTimeout);
     hideTimeout = setTimeout(() => {
-      ui.classList.add("hidden");
+      topUI.classList.add("hidden");
     }, 3000); // Hide after 3 seconds of inactivity
   }
 
-  // User interactions that reset the timer and show the ui again
+  // User interactions that reset the timer and show the topUI again
   ["mousemove", "keydown", "touchstart"].forEach(event =>
     window.addEventListener(event, showUI)
   );

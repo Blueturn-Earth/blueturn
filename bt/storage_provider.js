@@ -1,5 +1,9 @@
-export default class UploadProvider {
+export default class StorageProvider {
   PATH = "Pictures/Blueturn/SkyPhotos";
+
+  ensureAuth() {
+    throw new Error("unimplemented method");
+  }
 
   getIdToken() {
     throw new Error("unimplemented method");
@@ -19,6 +23,10 @@ export default class UploadProvider {
       thumbnailUrl: null,
       fileId: null
     }
+  }
+
+  async deletePhoto(fileId) {
+    console.error("unimplemented method");
   }
 }
 

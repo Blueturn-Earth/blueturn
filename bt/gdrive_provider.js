@@ -1,6 +1,6 @@
-import UploadProvider from './upload_provider.js';
+import StorageProvider from './storage_provider.js';
 
-export default class GoogleDriveProvider extends UploadProvider {
+export default class GoogleDriveProvider extends StorageProvider {
   constructor(clientId = '509580731574-fk6ovov57h0b2tq083jv4860qa8ofhqg.apps.googleusercontent.com') {
     super();
     this.clientId = clientId;
@@ -34,7 +34,7 @@ export default class GoogleDriveProvider extends UploadProvider {
     img.alt = name || "Profile";
   }
 
-  ensureDriveAuth() {
+  ensureAuth() {
     return new Promise((resolve) => {
       if (this.accessToken) {
         console.log("Already have Drive access token");
@@ -65,7 +65,7 @@ export default class GoogleDriveProvider extends UploadProvider {
 
   async uploadToDrive(blob, onProgress, onError) {
     console.log("Ensuring Drive auth…");
-    await this.ensureDriveAuth();
+    await this.ensureAuth();
     if (!this.accessToken) {
       const err = new Error("Failed to obtain Drive access token");
       console.error(err);
@@ -240,5 +240,17 @@ export default class GoogleDriveProvider extends UploadProvider {
       console.error("Error ensuring SkyPhotos folder:", e);
       throw e;
     }
+  }
+
+  async deletePhoto(fileId) {
+    await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${this.accessToken}`
+        }
+      }
+    );
   }
 }

@@ -1,5 +1,6 @@
 import GoogleDriveProvider from './gdrive_provider.js';
-import saveMetadata from './firebase_io.js';
+import {saveMetadata} from './firebase_save.js';
+import {loadGalleryFiltered} from './firebase_gallery.js';
 
 const modal = document.getElementById('photoModal');
 const modalImage = document.getElementById('modalImage');
@@ -137,7 +138,7 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
   modalImage.src = URL.createObjectURL(file);
   modalTimestamp.textContent = `Timestamp: ${timestamp}`;
   modalGPS.textContent = latestGPS ? `GPS: ${latestGPS.lat.toFixed(6)}, ${latestGPS.lon.toFixed(6)}` : "GPS: unavailable";
-  modalOrientation.textContent = `Orientation: yaw/alpha ${alpha.toFixed(1)}, pitch/beta ${beta.toFixed(1)}, roll/gamma ${gamma.toFixed(1)}`;
+  modalOrientation.textContent = `Orientation: yaw/alpha ${alpha?.toFixed(1)}, pitch/beta ${beta?.toFixed(1)}, roll/gamma ${gamma?.toFixed(1)}`;
 
   // Sky coverage
   const img = new Image();
@@ -239,7 +240,22 @@ function decodeJwt(token) {
   return JSON.parse(atob(payload));
 }
 
-let uploadProvider = null;
+let _storageProvider = null;
+
+function getStorageProvider() {
+  if (!_storageProvider) {
+    _storageProvider = new GoogleDriveProvider();
+  }
+  return _storageProvider;
+}
+
+document.getElementById("profileBtn").onclick = async () => {
+  await getStorageProvider().ensureAuth();
+  const driveUserId = getStorageProvider().getProfile()?.sub;
+  loadGalleryFiltered(driveUserId, (fileId) => 
+    getStorageProvider().deletePhoto(fileId)
+  );
+};
 
 async function saveImage(dataURL) {
   const blob = await (await fetch(dataURL)).blob();
@@ -249,16 +265,13 @@ async function saveImage(dataURL) {
   labelEl.style.display = "block";
 
   try {
-    if (!uploadProvider) {
-      uploadProvider = new GoogleDriveProvider();
-    }
-    const uploadResult = await uploadProvider.upload(blob, (p) => {
+    const uploadResult = await getStorageProvider().upload(blob, (p) => {
       barEl.style.width = `${Math.round(p * 100)}%`;
     });
 
     labelEl.textContent = "Finalizing…";
 
-    const profile = uploadProvider.getProfile();
+    const profile = getStorageProvider().getProfile();
 
     await saveMetadata(uploadResult, profile, latestGPS, latestOrientation);
 
