@@ -30,6 +30,7 @@ html, body, canvas {
     font-size: 20px;
     font-family: 'Courier New', monospace;
     z-index: 10;  /* Ensure text stays on top */
+    pointer-events: auto;
 }
 
 #date-picker {
@@ -41,11 +42,12 @@ html, body, canvas {
     opacity: 0; 
     z-index: 20; 
     cursor: pointer;
+    pointer-events: auto;
 }
 
 #cameraButton {
-  position: absolute;
-  top: 10px;
+  position: fixed;
+  bottom: 60px;
   left: 50%;
   transform: translateX(-50%);
   background: transparent;   /* no background so the SVG shape is visible */
@@ -53,6 +55,7 @@ html, body, canvas {
   cursor: pointer;
   padding: 5px;
   z-index: 10;
+  pointer-events: auto;
 }
 
 .camera-white {
@@ -79,6 +82,7 @@ html, body, canvas {
     z-index: 10;
     opacity: 0.3;
     transition: opacity 0.2s;
+    pointer-events: auto;
 }
 
 #btLogo:hover {
@@ -112,6 +116,7 @@ html, body, canvas {
     z-index: 10;
     opacity: 0.3;
     transition: opacity 0.2s ease;
+    pointer-events: auto;
 }
 
 .share-button:hover {
@@ -131,7 +136,7 @@ html, body, canvas {
     height: 10vmin;
     opacity: 1;
     transition: opacity 0.5s ease-in-out;
-    z-index: 9999; /* Ensure it’s on top */
+    z-index: 10; /* Ensure it’s on top */
 }
 
 #topUI.hidden {
@@ -142,7 +147,7 @@ html, body, canvas {
 .modal {
   display: none; /* hidden by default */
   position: fixed;
-  z-index: 1000;
+  z-index: 20;
   left: 0;
   top: 0;
   width: 100%;
@@ -196,7 +201,7 @@ html, body, canvas {
   display: none; /* hidden by default */
   justify-content: center;
   align-items: center;
-  z-index: 9999;
+  z-index: 10;
 }
 
 /* Circle spinner */
@@ -265,6 +270,7 @@ html, body, canvas {
   border: none;
   padding: 0;
   background: transparent;
+  pointer-events: auto;
 }
 
 .profile-btn img {
@@ -279,12 +285,7 @@ html, body, canvas {
   inset: 0;
   z-index: 10;
   pointer-events: none;
-  touch-action: auto;
   overscroll-behavior: auto;
-}
-
-#uiLayer > * {
-  pointer-events: auto;
 }
 
 #gallery {
