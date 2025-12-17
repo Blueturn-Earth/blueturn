@@ -75,10 +75,10 @@ function analyzeSky(img, gps, orientation) {
   const MIN_SKY_RATIO = 0.55;
   let isSkyPhoto = skyRatio > MIN_SKY_RATIO;
 
-  modalSky.textContent = 
-        "Sky photo: " + (isSkyPhoto ? 'Likely' : 'Unlikely') + " (" + skyRatio.toFixed(2) + ")";
+    modalSky.textContent = 
+        "Sky Ratio: " + (skyRatio.toFixed(2)*100) + "%";
 
-  console.log(modalSky.textContent);
+    console.log(modalSky.textContent);
     
   return isSkyPhoto;
 
@@ -136,7 +136,7 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
 
  // Show modal
   modalImage.src = URL.createObjectURL(file);
-  modalTimestamp.textContent = `Timestamp: ${timestamp}`;
+  modalTimestamp.textContent = timestamp;
   modalGPS.textContent = latestGPS ? `GPS: ${latestGPS.lat.toFixed(6)}, ${latestGPS.lon.toFixed(6)}` : "GPS: unavailable";
   modalOrientation.textContent = `Orientation: yaw/alpha ${alpha?.toFixed(1)}, pitch/beta ${beta?.toFixed(1)}, roll/gamma ${gamma?.toFixed(1)}`;
 
