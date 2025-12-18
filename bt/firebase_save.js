@@ -29,12 +29,13 @@ export async function saveMetadata(uploadResult, profile, gps, orientation) {
     return;
   }
 
-  await ensureAuthReady();
+  const auth = await ensureAuthReady();
 
   const docId = makeDocId(profile.sub);
   console.log("Generated document ID:", docId);
 
   const photoDoc = {
+    ownerUid: auth?.currentUser?.uid, // 🔑 used for rules
     createdAt: serverTimestamp(),
     image: uploadResult,
     gps: gps,

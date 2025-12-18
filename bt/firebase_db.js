@@ -1,6 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 import { app } from "./firebase_init.js";
+import { loadGalleryFiltered } from "./firebase_gallery.js";
 
 let db;
 
@@ -15,5 +16,7 @@ catch (e) {
     console.error("Firebase DB initialization error:", e);
     db = null;
 }
+
+//loadGalleryFiltered();
 
 export {db};

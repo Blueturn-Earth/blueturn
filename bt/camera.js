@@ -252,9 +252,11 @@ function getStorageProvider() {
 document.getElementById("profileBtn").onclick = async () => {
   await getStorageProvider().ensureAuth();
   const driveUserId = getStorageProvider().getProfile()?.sub;
+  /*
   loadGalleryFiltered(driveUserId, (fileId) => 
     getStorageProvider().deletePhoto(fileId)
   );
+  */
 };
 
 async function saveImage(dataURL) {

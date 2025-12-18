@@ -17,14 +17,14 @@ try {
 export async function ensureAuthReady() {
   if (!auth) {
     console.warn("No Firebase Auth available");
-    return;
+    return null;
   }
   return new Promise((resolve, reject) => {
     const unsub = onAuthStateChanged(auth, user => {
       console.log("Firebase auth state changed, current user:", user);
       if (user) {
         unsub();
-        resolve();
+        resolve(auth);
       }
     });
 

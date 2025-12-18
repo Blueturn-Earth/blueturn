@@ -90,7 +90,7 @@ export async function loadGalleryFiltered(myStorageUserId, deleteStorageCb) {
 
   let q;
 
-  if (isSuperUser(myStorageUserId)) {
+  if (!myStorageUserId || isSuperUser(myStorageUserId)) {
     q = query(
       collection(db, "images"),
       orderBy("createdAt", "desc")
