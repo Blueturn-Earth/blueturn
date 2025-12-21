@@ -48,18 +48,6 @@ cameraButton.addEventListener("click", async () => {
   cameraInput.click();
 });
 
-const imageFileButton = document.getElementById("imageFileButton");
-const imageFileInput = document.getElementById("imageInput");
-imageFileInput.style.display = "none";
-
-console.log("Add image picker button click handler");
-// Capture photo and metadata
-imageFileButton.addEventListener("click", async () => {
-  // Trigger image file picker
-  imageFileInput.click();
-});
-
-
 function analyzeSky(img) {
   console.log("Analyzing sky coverage…");
   const canvas = document.createElement('canvas');
@@ -127,43 +115,6 @@ function updateModal()
 console.log("Add camera input change handler");
 // When the user takes a picture
 document.getElementById("cameraInput").addEventListener("change", async (event) => {
-  latestImageURL = undefined;
-  latestTakenTime = undefined;
-  latestGPS = undefined;
-
-  const file = event.target.files[0];
-  if (!file) return;
-
-  // Show loading spinner immediately after accepting the photo
-  loading.style.display = "flex";
-
-  // Request GPS NOW
-  if ("geolocation" in navigator) {
-    try {
-      const pos = await new Promise((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(resolve, reject)
-      );
-      latestGPS = { lat: pos.coords.latitude, lon: pos.coords.longitude, alt: pos.coords.altitude };
-    } catch (err) {
-      console.warn("GPS not available:", err.message);
-      return;
-    }
-  }
-
-  // Get createdAt
-  const createdAt = new Date().toISOString();
-  latestTakenTime = createdAt;
-  console.log("Using current time as taken time:", latestTakenTime);
-
-  latestImageURL = URL.createObjectURL(file);
-
-  // Show modal
-  updateModal();
-});
-
-console.log("Add image file input change handler");
-// When the user takes a picture
-document.getElementById("imageInput").addEventListener("change", async (event) => {
   latestImageURL = undefined;
   latestTakenTime = undefined;
   latestGPS = undefined;

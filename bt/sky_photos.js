@@ -134,9 +134,12 @@ export function updateSkyPhotosPositions()
     });
 }
 
+const cameraButton = document.getElementById("cameraButton");
 const skyPhotosBtn = document.getElementById('skyPhotosBtn');
 skyPhotosBtn.addEventListener('click', () => {
     skyPhotosBtn.dataset.state =
         skyPhotosBtn.dataset.state === "on" ? "off" : "on";
-    updateSkyPhotos(skyPhotosBtn.dataset.state === "on");
+    const showSkyPhotos = skyPhotosBtn.dataset.state === "on";
+    cameraButton.style.display = showSkyPhotos ? "block" : "none";
+    updateSkyPhotos(showSkyPhotos);
 });

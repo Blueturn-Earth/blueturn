@@ -47,9 +47,6 @@ html, body, canvas {
 
 #cameraButton {
   position: fixed;
-  top: 0;
-  left: 50%;
-  transform: translateX(40px);
   background: transparent;   /* no background so the SVG shape is visible */
   border: none;
   cursor: pointer;
@@ -64,27 +61,6 @@ html, body, canvas {
 }
 
 #cameraButton:hover {
-  opacity: 1;
-}
-
-#imageFileButton {
-  position: fixed;
-  top: 0;
-  right: 50%;
-  transform: translateX(-40px);
-  background: transparent;   /* no background so the SVG shape is visible */
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-  z-index: 10;
-  pointer-events: auto;
-  width: 50px;
-  height: 50px;
-  opacity: 0.3;
-  transition: opacity 0.2s ease;
-}
-
-#imageFileButton:hover {
   opacity: 1;
 }
 
@@ -314,9 +290,6 @@ html, body, canvas {
 
 .sky-photos-icon {
   position: fixed;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
   background: transparent;   /* no background so the SVG shape is visible */
   border: none;
   cursor: pointer;
@@ -377,4 +350,31 @@ html, body, canvas {
 
 [hidden] {
   display: none !important;
+}
+
+@media (min-aspect-ratio: 1/1) or (orientation: landscape) {
+  #cameraButton {
+    left: 60px;
+    bottom: 50%;
+    transform: translateY(50%);
+  }
+  .sky-photos-icon {
+    right: 0;
+    bottom: 50%;
+    transform: translateY(50%);
+  }
+}
+
+/* in portrait split screen vertically, typlayer top half, iss-tracker bottom half */
+@media (max-aspect-ratio: 1/1) or (orientation: portrait) {
+  #cameraButton {
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .sky-photos-icon {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
