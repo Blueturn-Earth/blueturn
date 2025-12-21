@@ -15,7 +15,6 @@
 
   <!-- Global site tag (gtag.js) - Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=UA-142372523-1"></script>
-  <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
   <script src="https://cdn.jsdelivr.net/npm/piexifjs"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
@@ -39,11 +38,13 @@
       <img src="bt/images/icons/share.png" alt="Share"/>
     </button>
     <input type="date" id="date-picker" onclick="this.showDatePicker && this.showDatePicker()">
-    <input type="file" id="cameraInput" style="display:none;" accept="image/*" capture="environment" onchange="this.cameraShot && this.cameraShot(event)">
-    <img id="cameraButton" src="./bt/images/icons/camera.svg"/>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment">
+    <input type="file" id="imageInput">
+/>  <img id="cameraButton" src="./bt/images/icons/camera.svg"/>
+    <img id="imageFileButton" src="./bt/images/icons/load-image.svg"/>
     <img id="skyPhotosBtn" class="sky-photos-icon" data-state="off"></object>
     <button id="profileBtn" class="profile-btn" title="Account">
-      <img id="profileImg" alt="Profile" />
+      <img id="profileImg" alt="Profile" src="./bt/images/icons/default-user.svg" />
     </button>
   </div>
 

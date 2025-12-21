@@ -47,19 +47,45 @@ html, body, canvas {
 
 #cameraButton {
   position: fixed;
-  bottom: 60px;
+  top: 0;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(60px);
   background: transparent;   /* no background so the SVG shape is visible */
   border: none;
   cursor: pointer;
   padding: 5px;
   z-index: 10;
   pointer-events: auto;
+  width: 50px;
+  height: 50px;
+  align-items: left;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
 }
 
-.camera-white {
-  color: white;     /* makes SVG white */
+#cameraButton:hover {
+  opacity: 1;
+}
+
+#imageFileButton {
+  position: fixed;
+  top: 0;
+  right: 50%;
+  transform: translateX(-60px);
+  background: transparent;   /* no background so the SVG shape is visible */
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  z-index: 10;
+  pointer-events: auto;
+  width: 50px;
+  height: 50px;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+}
+
+#imageFileButton:hover {
+  opacity: 1;
 }
 
 #loading-text {
@@ -271,6 +297,12 @@ html, body, canvas {
   padding: 0;
   background: transparent;
   pointer-events: auto;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+}
+
+.profile-btn:hover {
+  opacity: 1;
 }
 
 .profile-btn img {
@@ -282,7 +314,7 @@ html, body, canvas {
 
 .sky-photos-icon {
   position: fixed;
-  top: 10px;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
   background: transparent;   /* no background so the SVG shape is visible */
@@ -291,6 +323,14 @@ html, body, canvas {
   padding: 5px;
   z-index: 10;
   pointer-events: auto;
+  width: 50px;
+  height: 50px;
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+}
+
+.sky-photos-icon:hover {
+  opacity: 1;
 }
 
 .sky-photos-icon[data-state="off"] {
