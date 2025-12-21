@@ -5,7 +5,6 @@ const modal = document.getElementById('photoModal');
 const modalImage = document.getElementById('modalImage');
 const modalTimestamp = document.getElementById('modalTimestamp');
 const modalGPS = document.getElementById('modalGPS');
-const modalOrientation = document.getElementById('modalOrientation');
 const modalSky = document.getElementById('modalSkyCoverage');
 const closeModal = document.getElementById('closeModal');
 const loading = document.getElementById("loadingOverlay");
@@ -43,7 +42,7 @@ document.getElementById("cameraButton").addEventListener("click", async () => {
 });
 
 
-function analyzeSky(img, gps, orientation) {
+function analyzeSky(img) {
   console.log("Analyzing sky coverage…");
   const canvas = document.createElement('canvas');
   canvas.width = img.width;
@@ -128,21 +127,15 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
   // Get timestamp
   const timestamp = new Date().toISOString();
 
-  // Get latest device orientation
-  const alpha = latestOrientation.alpha;
-  const beta = latestOrientation.beta;
-  const gamma = latestOrientation.gamma;
-
  // Show modal
   modalImage.src = URL.createObjectURL(file);
   modalTimestamp.textContent = timestamp;
   modalGPS.textContent = latestGPS ? `GPS: ${latestGPS.lat.toFixed(6)}, ${latestGPS.lon.toFixed(6)}` : "GPS: unavailable";
-  modalOrientation.textContent = `Orientation: yaw/alpha ${alpha?.toFixed(1)}, pitch/beta ${beta?.toFixed(1)}, roll/gamma ${gamma?.toFixed(1)}`;
 
   // Sky coverage
   const img = new Image();
   img.onload = () => {
-    const isSky = analyzeSky(img, latestGPS, latestOrientation);
+    const isSky = analyzeSky(img);
     console.log("Sky photo analysis:", isSky);
   };
   console.log("Loading image");
@@ -151,8 +144,7 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
   console.log("Adding EXIF data to image…");
   preparedImageDataURL = await addExif(
     file,
-    latestGPS,
-    latestOrientation.alpha
+    latestGPS
   );
 
   console.log("Show modal");
@@ -181,7 +173,7 @@ function gpsToExif(coord) {
   return [[deg,1], [min,1], toRational(sec)];
 }
 
-async function addExif(file, gps, heading) {
+async function addExif(file, gps) {
   const dataURL = await fileToDataURL(file);
   const exifObj = piexif.load(dataURL);
 
@@ -208,11 +200,6 @@ async function addExif(file, gps, heading) {
     if (gps.alt != null) {
       exifObj["GPS"][piexif.GPSIFD.GPSAltitude] = toRational(Math.abs(gps.alt));
       exifObj["GPS"][piexif.GPSIFD.GPSAltitudeRef] = gps.alt < 0 ? 1 : 0;
-    }
-
-    if (heading != null) {
-      exifObj["GPS"][piexif.GPSIFD.GPSImgDirection] = toRational(heading);
-      exifObj["GPS"][piexif.GPSIFD.GPSImgDirectionRef] = "T";
     }
   }
 
@@ -269,7 +256,7 @@ async function saveImage(dataURL) {
 
     const profile = getStorageProvider().getProfile();
 
-    await saveMetadata(uploadResult, profile, latestGPS, latestOrientation);
+    await saveMetadata(uploadResult, profile, latestGPS);
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
