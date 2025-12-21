@@ -37,9 +37,6 @@
     <button onclick="share()" class="share-button">
       <img src="bt/images/icons/share.png" alt="Share"/>
     </button>
-    <input type="date" id="date-picker" onclick="this.showDatePicker && this.showDatePicker()">
-    <input type="file" id="cameraInput" accept="image/*" capture="environment">
-    <input type="file" id="imageInput">
 />  <img id="cameraButton" src="./bt/images/icons/camera.svg"/>
     <img id="imageFileButton" src="./bt/images/icons/load-image.svg"/>
     <img id="skyPhotosBtn" class="sky-photos-icon" data-state="off"></object>
@@ -47,6 +44,10 @@
       <img id="profileImg" alt="Profile" src="./bt/images/icons/default-user.svg" />
     </button>
   </div>
+
+  <input type="date" id="date-picker" onclick="this.showDatePicker && this.showDatePicker()">
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;">
+  <input type="file" id="imageInput" style="display:none;">
 
   <div id="photo-popup" hidden>
     <img id="photo-popup-img" alt="">
