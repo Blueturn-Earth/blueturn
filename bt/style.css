@@ -49,7 +49,7 @@ html, body, canvas {
   position: fixed;
   top: 0;
   left: 50%;
-  transform: translateX(60px);
+  transform: translateX(40px);
   background: transparent;   /* no background so the SVG shape is visible */
   border: none;
   cursor: pointer;
@@ -71,7 +71,7 @@ html, body, canvas {
   position: fixed;
   top: 0;
   right: 50%;
-  transform: translateX(-60px);
+  transform: translateX(-40px);
   background: transparent;   /* no background so the SVG shape is visible */
   border: none;
   cursor: pointer;
