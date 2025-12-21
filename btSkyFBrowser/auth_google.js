@@ -1,6 +1,6 @@
 export let googleProfile = null;
-export let accessToken = null;
-
+export let googleAccessToken = null;
+export const SUPER_USER_ID = "115698886322844446345";
 
 export function initGoogleAuth() {
     window.tokenClient = window.google.accounts.oauth2.initTokenClient({
@@ -9,10 +9,21 @@ export function initGoogleAuth() {
     });
 }
 
+async function fetchGoogleProfile() {
+  const res = await fetch(
+    "https://www.googleapis.com/oauth2/v3/userinfo",
+    {
+      headers: {
+        Authorization: `Bearer ${googleAccessToken}`
+      }
+    }
+  );
+  return await res.json();
+}
 
 export function requestGoogleAuth() {
     return new Promise((resolve) => {
-      if (accessToken) {
+      if (googleAccessToken) {
         console.log("Already have Drive access token");
         return resolve();
       }
@@ -22,8 +33,10 @@ export function requestGoogleAuth() {
           console.error("Error obtaining Drive access token: ", resp);
           reject();
         } else {
-          accessToken = resp.access_token;
-          console.log("Obtained Drive access token: ", accessToken);
+          googleAccessToken = resp.access_token;
+          console.log("Obtained Drive access token: ", googleAccessToken);
+          googleProfile = await fetchGoogleProfile();
+          console.log("Obtained Google profile: ", googleProfile);
           resolve();
         }
       };

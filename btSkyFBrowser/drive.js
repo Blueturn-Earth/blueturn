@@ -1,19 +1,11 @@
 // drive.js
-import { accessToken, requestGoogleAuth } from "./auth_google.js";
-
-export async function deleteDriveFile(fileId) {
-    await requestGoogleAuth();
-
-  if (!accessToken) {
-    throw new Error("No Google Drive access token");
-  }
-
+export async function deleteDriveFile(googleAccessToken, fileId) {
   const res = await fetch(
     `https://www.googleapis.com/drive/v3/files/${fileId}`,
     {
       method: "DELETE",
       headers: {
-        Authorization: `Bearer ${accessToken}`
+        Authorization: `Bearer ${googleAccessToken}`
       }
     }
   );
