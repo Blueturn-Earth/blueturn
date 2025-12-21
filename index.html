@@ -31,53 +31,47 @@
   <canvas id="glcanvas"></canvas>
   <div id="current-time-text"></div>
   <div id="loading-text"></div>
-  <div id="uiLayer">
-    <div id="topUI">
-      <a href="https://blueturn.earth" target="_blank">
-        <img src="./bt/images/logos/LogoBTV1024BT.png" id="btLogo" alt="Blueturn Logo" />
-      </a>
-      <button onclick="share()" class="share-button">
-        <img src="bt/images/icons/share.png" alt="Share"/>
-      </button>
-      <input type="date" id="date-picker" onclick="this.showDatePicker && this.showDatePicker()">
-      <input type="file" id="cameraInput" style="display:none;" accept="image/*" capture="environment" onchange="this.cameraShot && this.cameraShot(event)">
-      <button id="cameraButton">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <!-- Camera Body -->
-          <rect x="3" y="7" width="18" height="14" rx="2" ry="2" stroke="white" stroke-width="2"/>
-          <!-- Lens -->
-          <circle cx="12" cy="14" r="4" stroke="white" stroke-width="2"/>
-          <!-- Top viewfinder -->
-          <rect x="7" y="4" width="10" height="3" stroke="white" stroke-width="2"/>
-        </svg>
-      </button>
-      <button id="profileBtn" class="profile-btn" title="Account">
-        <img id="profileImg" alt="Profile" />
-      </button>
-    </div>
-
-    <!-- Modal container -->
-    <div id="photoModal" class="modal">
-      <div class="modal-content">
-        <span id="closeModal" class="close">&times;</span>
-        <button id="saveImageBtn" class="save-btn">
-          Publish Photo
-        </button>
-        <div id="uploadProgress" class="progress hidden">
-          <div class="bar"></div>
-          <div class="label">Uploading…</div>
-        </div>
-        <p id="modalSkyCoverage"></p>
-        <img id="modalImage" src="" alt="Photo">
-        <p id="modalTimestamp"></p>
-        <p id="modalGPS"></p>
-        <p id="modalOrientation"></p>
-
-      </div>
-    </div>
-
-    <div id="gallery"></div>
+  <div id="topUI">
+    <a href="https://blueturn.earth" target="_blank">
+      <img src="./bt/images/logos/LogoBTV1024BT.png" id="btLogo" alt="Blueturn Logo" />
+    </a>
+    <button onclick="share()" class="share-button">
+      <img src="bt/images/icons/share.png" alt="Share"/>
+    </button>
+    <input type="date" id="date-picker" onclick="this.showDatePicker && this.showDatePicker()">
+    <input type="file" id="cameraInput" style="display:none;" accept="image/*" capture="environment" onchange="this.cameraShot && this.cameraShot(event)">
+    <img id="cameraButton" src="./bt/images/icons/camera.svg"/>
+    <img id="skyPhotosBtn" class="sky-photos-icon" data-state="off"></object>
+    <button id="profileBtn" class="profile-btn" title="Account">
+      <img id="profileImg" alt="Profile" />
+    </button>
   </div>
+
+  <div id="photo-popup" hidden>
+    <img id="photo-popup-img" alt="">
+  </div>
+
+  <!-- Modal container -->
+  <div id="photoModal" class="modal">
+    <div class="modal-content">
+      <span id="closeModal" class="close">&times;</span>
+      <button id="saveImageBtn" class="save-btn">
+        Publish Photo
+      </button>
+      <div id="uploadProgress" class="progress hidden">
+        <div class="bar"></div>
+        <div class="label">Uploading…</div>
+      </div>
+      <p id="modalSkyCoverage"></p>
+      <img id="modalImage" src="" alt="Photo">
+      <p id="modalTimestamp"></p>
+      <p id="modalGPS"></p>
+      <p id="modalOrientation"></p>
+
+    </div>
+  </div>
+
+  <div id="skyPhotosEarthGallery"></div>
 
   <div id="loadingOverlay" class="loading-overlay">
     <div class="spinner"></div>
@@ -96,5 +90,6 @@
   <script type="module" src="./bt/share.js"></script>
   <script type="module" src="./bt/camera.js"></script>
   <script type="module" src="./bt/firebase_auth.js"></script>
+  <script type="module" src="./bt/sky_photos.js"></script>
 </body>
 </html>

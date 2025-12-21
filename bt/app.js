@@ -12,7 +12,8 @@ import {
     gCalcNormalFromScreenCoord, 
     gCalcLatLonFromScreenCoord, 
     gGetDayFromTimeSec, 
-    gCalculateScreenCoordFromLatLon} 
+    gCalculateScreenCoordFromLatLon,
+    gLerp} 
     from './utils.js';
 
 export let gEpicTimeSec = undefined;
@@ -241,10 +242,10 @@ export function gSetInitialEpicTimeSec(startTimeSec)
     gEpicDB.setTimeRange(startTimeSec, gControlState.range);
     const timeSuccess = gSetEpicTimeSec(startTimeSec);
 
-    if (timeSuccess && gControlState.zoom && gEpicImageData)
+    if (timeSuccess && gControlState.zoom && gControlState.zoom.str && gEpicImageData)
     {
         gControlState.play = false;
-        const [latStr, lonStr] = gControlState.zoom.split(',');
+        const [latStr, lonStr] = gControlState.zoom.str.split(',');
         const lat = parseFloat(latStr);
         const lon = parseFloat(lonStr);
         const zoomPivotPos = gCalculateScreenCoordFromLatLon(lat, lon, 
@@ -542,7 +543,8 @@ function createPivotEpicImageData(epicImageData, pivotPos, alsoGetTimezone = tru
 
     if (gEpicTimeSec)
     {
-        const {lat, lon} = pivotEpicImageData.pivot_coordinates;
+        const lat = pivotEpicImageData.pivot_coordinates.lat;
+        const lon = pivotEpicImageData.pivot_coordinates.lon;
         const timestamp = Math.floor(Date.now() / 1000);
         const apiKey = "AIzaSyA5G5wpnUkc_3cKFUVGfJVjtCATeTCEFF8";
         console.log("Fetching timezone for lat:", lat, "lon:", lon);
@@ -584,9 +586,12 @@ function setZoom(on, pivotPos)
             }
             pivotStartPos = pivotPos;
             gZoom = true;
-            gControlState.zoom = 
-                gPivotEpicImageData.pivot_coordinates.lat.toString() + ","+
-                gPivotEpicImageData.pivot_coordinates.lon;
+            gControlState.zoom = {
+                lat: gPivotEpicImageData.pivot_coordinates.lat,
+                lon: gPivotEpicImageData.pivot_coordinates.lon,
+                str: 
+                    gPivotEpicImageData.pivot_coordinates.lat.toString() + ","+
+                    gPivotEpicImageData.pivot_coordinates.lon};
             //console.log('pivotStartPos: ' + JSON.stringify(pivotStartPos));
         }
     }
@@ -600,10 +605,6 @@ function mix(x, y, a) {
 }
 
 let lastUpdateTime = undefined;
-
-function lerp( a, b, alpha ) {
-    return a + alpha * ( b - a );
-}
 
 export function gUpdateEpicTime(time)
 {
@@ -631,7 +632,7 @@ export function gUpdateEpicTime(time)
         {
             const DECCELERATION_FACTOR = 0.1; // Adjust this value to control the deceleration speed
             const systemDeltaTime = (time - lastUpdateTime) / 1000.0;
-            currentTimeSpeed = lerp(currentTimeSpeed, targetSpeed, DECCELERATION_FACTOR);
+            currentTimeSpeed = gLerp(currentTimeSpeed, targetSpeed, DECCELERATION_FACTOR);
             let timeSec = gEpicTimeSec + systemDeltaTime * currentTimeSpeed;
             let snapping = false;
             if (!gControlState.play && !gControlState.blockSnapping)
@@ -651,7 +652,7 @@ export function gUpdateEpicTime(time)
                             console.log("Snapped to closest EPIC image: " + closestEpicImageData.date);
                         }
                         if(snapping)
-                            timeSec = lerp(timeSec, closestEpicImageData.timeSec, SNAP_FACTOR);
+                            timeSec = gLerp(timeSec, closestEpicImageData.timeSec, SNAP_FACTOR);
                         else
                             timeSec = closestEpicImageData.timeSec;
                     }

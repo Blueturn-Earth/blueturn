@@ -280,14 +280,6 @@ html, body, canvas {
   object-fit: cover;
 }
 
-#uiLayer {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-  pointer-events: none;
-  overscroll-behavior: auto;
-}
-
 #gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -352,4 +344,64 @@ html, body, canvas {
 
 .actions button.danger {
   background: rgba(160, 50, 50, 0.8);
+}
+
+
+.sky-photos-icon {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: transparent;   /* no background so the SVG shape is visible */
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  z-index: 10;
+  pointer-events: auto;
+}
+
+.sky-photos-icon[data-state="off"] {
+  content: url("./images/icons/clouds-off.svg");
+}
+
+.sky-photos-icon[data-state="on"] {
+  content: url("./images/icons/clouds-on.svg");
+}
+
+.sky-photo-thumb {
+  position:absolute;
+  width: 50px;
+  height: 50px;
+  object-fit: contain;     /* keep aspect ratio */
+  transform: translate(-50%, -50%);
+  border-radius: 8px;
+  z-index: 5;
+}
+
+#photo-popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  cursor: pointer; /* Click anywhere to close */
+  animation: photoPopupFadeIn 120ms ease-out;
+}
+
+@keyframes photoPopupFadeIn {
+  from { opacity: 0 }
+  to   { opacity: 1 }
+}
+
+#photo-popup img {
+  max-width: 80vw;
+  max-height: 80vh;
+  object-fit: contain;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+[hidden] {
+  display: none !important;
 }

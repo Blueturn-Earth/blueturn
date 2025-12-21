@@ -29,7 +29,7 @@ gControlMap.set('day', (v) => {gControlState.day = v; gControlState.jump = true;
 gControlMap.set('time', (v) => {gControlState.time = v; gControlState.jump = true;});
 gControlMap.set('range', (v) => {gControlState.range = parseInt(v) * 24 * 3600;});
 gControlMap.set('showText', (v) => {gControlState.showText = parseInt(v) != 0;});
-gControlMap.set('zoom', (v) => {gControlState.zoom = v;});
+gControlMap.set('zoom', (v) => {gControlState.zoom = {str: v};});
 
 const urlParams = new URLSearchParams(window.location.search);
 

@@ -33,7 +33,7 @@ function shareURL(url) {
     let shareText = "I am sharing the Whole Earth with you...\n";
     shareText += "Time info: " + gDateText + "\n";
     if(gControlState.zoom)
-      shareText += "GPS Info: " + gControlState.zoom + "\n";
+      shareText += "GPS Info: " + gControlState.zoom.str + "\n";
     const shareTextWithURL = shareText + url;
     console.log("Sharing this:\n" + shareTextWithURL);
     navigator.share({

@@ -1,6 +1,5 @@
 import GoogleDriveProvider from './gdrive_provider.js';
 import {saveMetadata} from './firebase_save.js';
-import {loadGalleryFiltered} from './firebase_gallery.js';
 
 const modal = document.getElementById('photoModal');
 const modalImage = document.getElementById('modalImage');
@@ -252,11 +251,6 @@ function getStorageProvider() {
 document.getElementById("profileBtn").onclick = async () => {
   await getStorageProvider().ensureAuth();
   const driveUserId = getStorageProvider().getProfile()?.sub;
-  /*
-  loadGalleryFiltered(driveUserId, (fileId) => 
-    getStorageProvider().deletePhoto(fileId)
-  );
-  */
 };
 
 async function saveImage(dataURL) {

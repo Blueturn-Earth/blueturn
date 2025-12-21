@@ -11,6 +11,7 @@ import { db } from "./firebase_db.js";
 import { ensureAuthReady } from "./firebase_auth.js";
 
 const gallery = document.getElementById("gallery");
+gallery.style.display = "none";
 
 async function deletePhoto(docId, storageFileId, cardEl, deleteStorageToo, deleteStorageCb) {
   if (!confirm("Delete this entry?")) return;

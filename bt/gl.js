@@ -13,14 +13,15 @@ import {
   gPivotEpicImageData
 } 
 from './app.js';
-import { gControlState } from './controlparams.js';
 import { gScreen } from './screen.js';
+import { updateSkyPhotosPositions } from './sky_photos.js';
+import {gLerp} from './utils.js'
 
 const canvas = document.getElementById('glcanvas');
 const gl = canvas.getContext('webgl2');
 const pageLoadTime = Date.now();
 
-let zoomFactor = 1.0;
+export let glZoomFactor = 1.0;
 let maxZoom = 2.0;
 let mixBMEpicFactor = undefined;
 
@@ -270,12 +271,8 @@ Promise.all([
         mixFactor = 2.0 - clamp(boundDist01, 1.0, 2.0);
     }
 
-    function lerp( a, b, alpha ) {
-        return a + alpha * ( b - a );
-    }
-
     if (mixBMEpicFactor !== undefined)
-      mixBMEpicFactor = lerp(mixBMEpicFactor, mixFactor, 0.1);
+      mixBMEpicFactor = gLerp(mixBMEpicFactor, mixFactor, 0.1);
     else
       mixBMEpicFactor = mixFactor;
 
@@ -312,22 +309,22 @@ Promise.all([
     if (gPivotEpicImageData)
     {
       const targetZoomFactor = gZoom ? maxZoom : 1.0;
-      zoomFactor += 0.03 * (targetZoomFactor - zoomFactor); 
+      glZoomFactor += 0.03 * (targetZoomFactor - glZoomFactor); 
       glUpdateEPICImage(gPivotEpicImageData, 'pivot_epicImage');
       gl.uniform2f(gl.getUniformLocation(program, 'pivotScreenCoord'), 
         gPivotEpicImageData.pivot_coordinates.x, 
         gPivotEpicImageData.pivot_coordinates.y);
       gl.uniform1i(gl.getUniformLocation(program, 'zoomActive'), true);
-      gl.uniform1f(gl.getUniformLocation(program, 'zoomFactor'), zoomFactor);
+      gl.uniform1f(gl.getUniformLocation(program, 'zoomFactor'), glZoomFactor);
 
       gl.uniform1i(gl.getUniformLocation(program, 'showZoomCircle'), 1);
       glUpdateZoomCircleRadius();
     }
     else
     {
-      zoomFactor = 1.0;
+      glZoomFactor = 1.0;
       gl.uniform1i(gl.getUniformLocation(program, 'zoomActive'), false);
-      gl.uniform1f(gl.getUniformLocation(program, 'zoomFactor'), zoomFactor);
+      gl.uniform1f(gl.getUniformLocation(program, 'zoomFactor'), glZoomFactor);
       gl.uniform1i(gl.getUniformLocation(program, 'showZoomCircle'), 1);
     }
 
@@ -342,6 +339,7 @@ Promise.all([
     {
       gUpdateEpicTime(time);
       glUpdateUniforms();
+      updateSkyPhotosPositions();
     
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.uniform3f(resLoc, canvas.width, canvas.height, 1.0);

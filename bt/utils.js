@@ -65,12 +65,41 @@ export function gCalcNormalFromScreenCoord(screenCoord, earthRadiusPx, screenWid
   return normal;
 }
 
-export function gCalcScreenCoordFromNormal(normal, earthRadiusPx, screenWidth, screenHeight) 
+const ZOOM_EPSILON = 0.01;
+
+export function gLerp(a, b, x)
+{
+  return a + (b - a) * x;
+}
+
+export function gCalcScreenCoordFromNormal(normal, earthRadiusPx, screenWidth, screenHeight, 
+  isZoomOn, zoomFactor, pivotCoordinates, centroidMatrix) 
 {
   const screenCoord = {
     x: normal[0] * earthRadiusPx + screenWidth / 2.0,
-    y: normal[1] * earthRadiusPx + screenHeight / 2.0
+    y: normal[1] * earthRadiusPx + screenHeight / 2.0,
+    z: normal[2]
   };
+  if ((isZoomOn || Math.abs(zoomFactor - 1.0) > ZOOM_EPSILON) && 
+      pivotCoordinates && 
+      centroidMatrix) 
+  {
+    // Adjust screen coordinates based on zoom
+    let zoomScreenCoords = {
+      x: pivotCoordinates.x,
+      y: pivotCoordinates.y
+    };
+    const pivotEpicScreenCoords = gCalculateScreenCoordFromLatLon(
+      pivotCoordinates.lat,
+      pivotCoordinates.lon,
+      centroidMatrix,
+      earthRadiusPx, screenWidth, screenHeight
+    );
+    zoomScreenCoords.x = gLerp(pivotEpicScreenCoords.x, zoomScreenCoords.x, zoomFactor - 1.0)
+    zoomScreenCoords.y = gLerp(pivotEpicScreenCoords.y, zoomScreenCoords.y, zoomFactor - 1.0)
+    screenCoord.x = (screenCoord.x - pivotEpicScreenCoords.x) * zoomFactor + zoomScreenCoords.x;
+    screenCoord.y = (screenCoord.y - pivotEpicScreenCoords.y) * zoomFactor + zoomScreenCoords.y;
+  }
   return screenCoord;
 }
 
@@ -110,7 +139,8 @@ export function gCalcLatLonFromScreenCoord(screenCoord, centroidMatrix, earthRad
   };
 }
 
-export function gCalculateScreenCoordFromLatLon(lat, lon, centroidMatrix, earthRadiusPx, screenWidth, screenHeight)
+export function gCalculateScreenCoordFromLatLon(lat, lon, centroidMatrix, earthRadiusPx, screenWidth, screenHeight, 
+  isZoomOn, zoomFactor, pivotCoordinates)
 {
   const globeLatLonMatrix = gCalcLatLonNorthRotationMatrix(lat, lon);
   // take Z axis of transpose
@@ -120,7 +150,8 @@ export function gCalculateScreenCoordFromLatLon(lat, lon, centroidMatrix, earthR
     globeLatLonMatrix[8]);
   let normal = vec3.create();
   vec3.transformMat3(normal, globeNormal, centroidMatrix);
-  return gCalcScreenCoordFromNormal(normal, earthRadiusPx, screenWidth, screenHeight);
+  return gCalcScreenCoordFromNormal(normal, earthRadiusPx, screenWidth, screenHeight, 
+    isZoomOn, zoomFactor, pivotCoordinates, centroidMatrix);
 }
 
 export function gArrayBoundIndices(array, key, strict) 
