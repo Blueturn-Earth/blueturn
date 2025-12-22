@@ -23,7 +23,7 @@ function makeDocId(userId) {
   );
 }
 
-export async function saveMetadata(uploadResult, profile, gps) {
+export async function saveMetadata(uploadResult, profile, gps, takenTime) {
   if (!db) {
     console.warn("No Firestore DB available, skipping metadata save");
     return;
@@ -38,6 +38,7 @@ export async function saveMetadata(uploadResult, profile, gps) {
     ownerUid: auth?.currentUser?.uid, // 🔑 used for rules
     createdAt: serverTimestamp(),
     image: uploadResult,
+    takenTime: takenTime,
     gps: gps,
     profile: profile
   };

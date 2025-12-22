@@ -1,5 +1,5 @@
-import {gCalculateScreenCoordFromLatLon} from './utils.js';
-import {gEpicImageData} from '././app.js';
+import {gCalculateScreenCoordFromLatLon, gGetDateFromTimeSec} from './utils.js';
+import {gEpicImageData, gEpicTimeSec} from '././app.js';
 import { db } from "./firebase_db.js";
 import { ensureAuthReady } from "./firebase_auth.js";
 import {
@@ -30,6 +30,24 @@ function gGetScreenCoordFromLatLon(lat, lon)
 
 const picsMap = new Map();
 
+function timeOfDayUTCSeconds(d) {
+  return (
+    d.getUTCHours()   * 3600 +
+    d.getUTCMinutes() * 60 +
+    d.getUTCSeconds()
+  );
+}
+
+function timeDiffSecondsWithTZ(a, b) {
+  const SECONDS_IN_DAY = 86400;
+
+  const ta = timeOfDayUTCSeconds(a);
+  const tb = timeOfDayUTCSeconds(b);
+
+  const diff = Math.abs(ta - tb);
+  return Math.min(diff, SECONDS_IN_DAY - diff);
+}
+
 export function updateSkyPhotoPosition(picDiv)
 {
     const picPos = gGetScreenCoordFromLatLon(picDiv.data.gps.lat, picDiv.data.gps.lon);
@@ -42,6 +60,19 @@ export function updateSkyPhotoPosition(picDiv)
     picDiv.style.left = `${picPos.x / dpr}px`;
     picDiv.style.top = `${picPos.y / dpr}px`;
     picDiv.style.zIndex = picPos.z <= 0.0 ? '-1' : '5'; 
+
+    // process timestamp
+    const timestampDate = picDiv.data.takenTime || picDiv.data.createdAt.toDate();
+    const currentDate = new Date(gEpicTimeSec * 1000);
+    const diffSec = timeDiffSecondsWithTZ(currentDate, timestampDate);
+    const dayInSec = 60*60*24;
+    const dayDiffSec = diffSec % dayInSec;
+    const scaleWindow = 3600*2;
+    const minScale = .1;
+    const maxScale = 2.0;
+    const scaleFactor = (1.0 - Math.min(dayDiffSec, scaleWindow) / scaleWindow)*(maxScale - minScale) + minScale;
+    picDiv.style.transform = `translate(-50%, -50%) scale(${scaleFactor})`;
+    picDiv.style.zIndex = 5 + Math.floor(scaleFactor/maxScale * 4);
 }
 
 function createPicDiv(data)
@@ -65,15 +96,15 @@ async function setPic(docId, data)
         return false;
     }
     if (!data.image || !data.image.thumbnailUrl) {
-        console.warn("No image data for pic:", docId);
+        console.warn("No image field for pic data:", docId);
         return false;
     }
     if (!data.gps || data.gps.lat === undefined || data.gps.lon === undefined) {
-        console.warn("No GPS data for pic:", docId);
+        console.warn("No GPS field for pic data:", docId);
         return false;
     }
-    if (!data.createdAt) {
-        console.warn("No createdAt data for pic:", docId);
+    if (!data.createdAt && !data.takenTime) {
+        console.warn("No timestamp (takenTime or createdAt) field for pic data:", docId);
         return false;
     }
     let picDiv;

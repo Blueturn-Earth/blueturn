@@ -252,7 +252,7 @@ async function saveImage(imgFile) {
 
     const profile = getStorageProvider().getProfile();
 
-    await saveMetadata(uploadResult, profile, latestGPS);
+    await saveMetadata(uploadResult, profile, latestGPS, latestTakenTime);
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
