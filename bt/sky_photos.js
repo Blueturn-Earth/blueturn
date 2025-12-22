@@ -10,6 +10,7 @@ import {
 import { openPopupFromThumbnail } from './sky-photos-popup.js';
 import { gZoom, gPivotEpicImageData } from './app.js';
 import { glZoomFactor } from './gl.js';
+import { gControlState } from './controlparams.js';
 
 console.log("Sky Photos module loaded");
 
@@ -72,7 +73,7 @@ export function updateSkyPhotoPosition(picDiv)
     const currentDate = new Date(gEpicTimeSec * 1000);
     const diffSec = timeDiffSecondsWithTZ(currentDate, timestampDate);
     const absDiffSec = Math.abs(diffSec);
-    const scaleWindow = 3600*2;
+    const scaleWindow = gControlState.speed;
     const minScale = .02;
     const maxScale = 0.5;
     const scaleAlpha = smoothstep
@@ -88,7 +89,7 @@ export function updateSkyPhotoPosition(picDiv)
     }
     picDiv.style.zIndex = 5 + Math.round(scaleFactor/maxScale * 4);
 
-    const borderWindow = 3600;
+    const borderWindow = gControlState.speed / 2;
     const minBorderFactor = 0;
     const maxBorderFactor = 4.0;
     const borderAlpha = smoothstep
