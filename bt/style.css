@@ -333,8 +333,6 @@ html, body, canvas {
 
 .sky-photo-thumb {
   position:absolute;
-  width: 50px;
-  height: 50px;
   object-fit: contain;     /* keep aspect ratio */
   display: flex;
   transform: translate(-50%, -50%);
