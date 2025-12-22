@@ -13,7 +13,7 @@ const loading = document.getElementById("loadingOverlay");
 let latestOrientation = { alpha: 0, beta: 0, gamma: 0 };
 let latestGPS = null;
 let latestTakenTime;
-let latestImageURL;
+let latestImageFile;
 
 // Ask for DeviceOrientation permission on iOS
 function enableOrientation() {
@@ -90,6 +90,8 @@ function analyzeSky(img) {
 
 function updateModal()
 {
+  const latestImageURL = URL.createObjectURL(latestImageFile);
+
   // Show modal
   modalImage.src = latestImageURL;
   modalTimestamp.textContent = latestTakenTime;
@@ -115,7 +117,7 @@ function updateModal()
 console.log("Add camera input change handler");
 // When the user takes a picture
 document.getElementById("cameraInput").addEventListener("change", async (event) => {
-  latestImageURL = undefined;
+  latestImageFile = undefined;
   latestTakenTime = undefined;
   latestGPS = undefined;
 
@@ -140,7 +142,7 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
     return;
   }
 
-  latestImageURL = URL.createObjectURL(imgFile);
+  latestImageFile = imgFile;
 
   updateModal();
 });
@@ -173,7 +175,70 @@ document.getElementById("profileBtn").onclick = async () => {
   }
 };
 
-async function saveImage(dataURL) {
+function needsConversion(imgFile) {
+  // HEIC explicitly
+  if (imgFile.type === "image/heic" || imgFile.type === "image/heif") {
+    return true;
+  }
+
+  // iOS camera often gives empty type
+  if (!imgFile.type) {
+    return true;
+  }
+
+  return false;
+}
+
+function getBaseName(filename) {
+  if (!filename) return "photo";
+
+  // Remove path if any (some browsers include it)
+  const name = filename.split("/").pop().split("\\").pop();
+
+  // Remove last extension only
+  const dot = name.lastIndexOf(".");
+  if (dot > 0) {
+    return name.slice(0, dot);
+  }
+
+  return name;
+}
+
+async function heicToJpeg(imgFile) {
+  console.log("Converting ", imgFile.name);
+  const baseName = getBaseName(imgFile.name) || "photo";
+  const img = await createImageBitmap(imgFile);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+
+  return new Promise(resolve => {
+    canvas.toBlob(blob => {
+      const newFileName = `${baseName}.jpg`;
+      console.log("Creating new file ", newFileName);
+      resolve(new File(
+        [blob], 
+        newFileName, 
+        { type: "image/jpeg" }
+      ));
+    }, "image/jpeg", 0.92);
+  });
+}
+
+async function saveImage(imgFile) {
+
+  let uploadFile = imgFile;
+
+  if (needsConversion(imgFile)) {
+    console.log("Image needs conversion before upload");
+    uploadFile = await heicToJpeg(imgFile);
+  }
+
+  const dataURL = URL.createObjectURL(uploadFile);
+
   const blob = await (await fetch(dataURL)).blob();
   progressEl.classList.remove("hidden");
   barEl.style.width = "0%";
@@ -202,8 +267,8 @@ async function saveImage(dataURL) {
 
 document.getElementById("saveImageBtn").addEventListener("click", async (e) => {
   e.stopPropagation(); // empêche la popup de se fermer
-  if (!latestImageURL) return;
+  if (!latestImageFile) return;
 
-  await saveImage(latestImageURL);
+  await saveImage(latestImageFile);
 });
 
