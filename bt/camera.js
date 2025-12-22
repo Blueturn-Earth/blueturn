@@ -132,7 +132,7 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
     latestGPS = result.gps;
   }
   catch(e) {
-    console.error(errorMsg);
+    console.error(e);
     loading.style.display = "none";
     modal.style.display = 'none';
     labelEl.style.display = "none";
