@@ -11,7 +11,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 import { deleteDriveFile } from "./drive.js";
-
+import { requestGoogleAuth, googleAccessToken, googleProfile, SUPER_USER_ID } from "./auth_google.js";
 import { db, auth } from "./firebase.js";
 
 
@@ -162,7 +162,15 @@ export function Gallery() {
     );
 
     async function handleDelete(item) {
-        if (!confirm("Delete this image from DB?")) return;
+        await requestGoogleAuth();
+
+        if (!googleAccessToken || !googleProfile || googleProfile.sub != SUPER_USER_ID) {
+            alert("You don't have permission to delete");
+            return;
+        }
+
+        if (!confirm("Delete this image from DB?")) 
+            return;
         //Don't delete from Drive
         /*
         try {
