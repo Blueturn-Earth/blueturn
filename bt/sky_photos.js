@@ -62,7 +62,8 @@ export function updateSkyPhotoPosition(picDiv)
     picDiv.style.zIndex = picPos.z <= 0.0 ? '-1' : '5'; 
 
     // process timestamp
-    const timestampDate = picDiv.data.takenTime || picDiv.data.createdAt.toDate();
+    const timestamp = picDiv.data.takenTime || picDiv.data.createdAt;
+    const timestampDate = timestamp.toDate();
     const currentDate = new Date(gEpicTimeSec * 1000);
     const diffSec = timeDiffSecondsWithTZ(currentDate, timestampDate);
     const dayInSec = 60*60*24;
