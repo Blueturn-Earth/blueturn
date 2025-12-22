@@ -1,73 +1,14 @@
-import StorageProvider from './storage_provider.js';
+import {StorageProvider} from './storage_provider.js';
+import {getAuthProvider} from './google_auth.js';
 
 export default class GoogleDriveProvider extends StorageProvider {
-  constructor(clientId = '509580731574-fk6ovov57h0b2tq083jv4860qa8ofhqg.apps.googleusercontent.com') {
-    super();
-    this.clientId = clientId;
-    this.accessToken = null;
-    this.profile = null;
-    this.tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: this.clientId,
-      scope: 
-        "openid " +
-        "profile " +
-        "https://www.googleapis.com/auth/drive.file " +
-        "https://www.googleapis.com/auth/drive.metadata.readonly"
-    });
-  }
 
-  async fetchGoogleProfile(accessToken) {
-    const res = await fetch(
-      "https://www.googleapis.com/oauth2/v3/userinfo",
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
-      }
-    );
-    return await res.json();
-  }
-
-  setProfileButton(url, name) {
-    const img = document.getElementById("profileImg");
-    img.src = url;
-    img.alt = name || "Profile";
-  }
-
-  ensureAuth() {
-    return new Promise((resolve) => {
-      if (this.accessToken) {
-        console.log("Already have Drive access token");
-        return resolve();
-      }
-      console.log("Requesting Drive access token");
-      this.tokenClient.callback = async (resp) => {
-        if (resp.error) {
-          console.error("Error obtaining Drive access token: ", resp);
-          reject(resp);
-        } else {
-          this.accessToken = resp.access_token;
-          console.log("Obtained Drive access token: ", this.accessToken);
-          this.profile = await this.fetchGoogleProfile(this.accessToken);
-          console.log("Obtained Google profile: ", this.profile);
-          this.setProfileButton(this.profile.picture, this.profile.given_name);
-          resolve(this.accessToken);
-        }
-      };
-      this.tokenClient.requestAccessToken(/*{ prompt: "consent" }*/);
-    });
-  }
-
-  getProfile()
-  {
-    return this.profile;
-  }
 
   async uploadToDrive(blob, onProgress, onError) {
-    console.log("Ensuring Drive auth…");
-    await this.ensureAuth();
-    if (!this.accessToken) {
-      const err = new Error("Failed to obtain Drive access token");
+    console.log("Ensuring Google auth…");
+    let googleAccessToken = await getAuthProvider().ensureAuth();
+    if (!googleAccessToken) {
+      const err = new Error("Failed to obtain Google access token");
       console.error(err);
       onError && onError(err);
       throw err;
@@ -105,7 +46,7 @@ export default class GoogleDriveProvider extends StorageProvider {
 
         xhr.setRequestHeader(
           "Authorization",
-          `Bearer ${this.accessToken}`
+          `Bearer ${googleAccessToken}`
         );
 
         xhr.upload.onprogress = (e) => {
@@ -116,32 +57,33 @@ export default class GoogleDriveProvider extends StorageProvider {
         };
 
         xhr.onload = () => {
-          console.log("Upload to Drive completed with status: ", xhr.status);
+          console.log("Upload to GoogleDrive completed with status: ", xhr.status);
           if (xhr.status >= 200 && xhr.status < 300) {
               const { id } = JSON.parse(xhr.responseText);
-              console.log("Upload to Drive completed successfully with file ID: ", id);
+              console.log("Upload to GoogleDrive completed successfully with file ID: ", id);
               resolve(id);
           } else {
-              console.error("Upload to Drive failed: ", xhr.responseText);
+              console.error("Upload to GoogleDrive failed: ", xhr.responseText);
               reject(xhr.responseText);
           }
         };
 
         xhr.onerror = () => reject("Upload failed");
 
-        console.log("Starting upload to Drive with progress tracking…: ", metadata);
+        console.log("Starting upload to GoogleDrive with progress tracking…: ", metadata);
         xhr.send(form);
     });
 }
 
   async makeDriveFilePublic(fileId) {
-    console.log("Making Drive file public: ", fileId);
+    console.log("Making GoogleDrive file public: ", fileId);
+    const googleAccessToken = await getAuthProvider().ensureAuth();
     await fetch(
       `https://www.googleapis.com/drive/v3/files/${fileId}/permissions`,
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${this.accessToken}`,
+          Authorization: `Bearer ${googleAccessToken}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -150,7 +92,7 @@ export default class GoogleDriveProvider extends StorageProvider {
         })
       }
     );
-    console.log("Drive file is now public: ", fileId);
+    console.log("GoogleDrive file is now public: ", fileId);
     return `https://drive.google.com/uc?id=${fileId}`;
   }
 
@@ -171,6 +113,7 @@ export default class GoogleDriveProvider extends StorageProvider {
   }
 
   async getOrCreateFolder(name, parentId = "root") {
+    let googleAccessToken = await getAuthProvider().ensureAuth();
     const q = [
         `name='${name.replace("'", "\\'")}'`,
         "mimeType='application/vnd.google-apps.folder'",
@@ -184,7 +127,7 @@ export default class GoogleDriveProvider extends StorageProvider {
         {
           method: "GET",
           headers: {
-              Authorization: `Bearer ${this.accessToken}`
+              Authorization: `Bearer ${googleAccessToken}`
           }
         }
     );
@@ -207,7 +150,7 @@ export default class GoogleDriveProvider extends StorageProvider {
         {
           method: "POST",
           headers: {
-              Authorization: `Bearer ${this.accessToken}`,
+              Authorization: `Bearer ${googleAccessToken}`,
               "Content-Type": "application/json"
           },
           body: JSON.stringify({
@@ -243,14 +186,23 @@ export default class GoogleDriveProvider extends StorageProvider {
   }
 
   async deletePhoto(fileId) {
+    let googleAccessToken = await getAuthProvider().ensureAuth();
     await fetch(
       `https://www.googleapis.com/drive/v3/files/${fileId}`,
       {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${this.accessToken}`
+          Authorization: `Bearer ${googleAccessToken}`
         }
       }
     );
   }
+}
+
+let _storageProvider = null;
+export function getStorageProvider() {
+  if (!_storageProvider) {
+    _storageProvider = new GoogleDriveProvider();
+  }
+  return _storageProvider;
 }

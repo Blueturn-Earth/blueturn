@@ -1,13 +1,5 @@
-export default class StorageProvider {
+export class StorageProvider {
   PATH = "Pictures/Blueturn/SkyPhotos";
-
-  ensureAuth() {
-    throw new Error("unimplemented method");
-  }
-
-  getIdToken() {
-    throw new Error("unimplemented method");
-  }
 
   async upload(blob, onProgress, onError) {
 

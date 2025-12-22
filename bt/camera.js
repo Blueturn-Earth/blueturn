@@ -1,4 +1,5 @@
-import GoogleDriveProvider from './gdrive_provider.js';
+import {getAuthProvider} from './google_auth.js'
+import {getStorageProvider} from './gdrive_provider.js';
 import {saveMetadata} from './firebase_save.js';
 import {processEXIF} from './exif.js'
 
@@ -154,18 +155,22 @@ const labelEl = progressEl.querySelector(".label");
 
 const SUPER_USER_ID = "115698886322844446345";
 
-let _storageProvider = null;
+let authProvider;
 
-function getStorageProvider() {
-  if (!_storageProvider) {
-    _storageProvider = new GoogleDriveProvider();
-  }
-  return _storageProvider;
-}
+const profileImg = document.getElementById("profileImg");
+window.onload = () => {
+  authProvider = getAuthProvider();
+  authProvider.setAuthCb((profile) => {
+    profileImg.src = profile.picture;
+    profileImg.alt = profile.given_name || "Profile";
+  });
+};
 
 document.getElementById("profileBtn").onclick = async () => {
-  await getStorageProvider().ensureAuth();
-  const profile = getStorageProvider().getProfile();
+  if (!authProvider)
+    return;
+  await authProvider.ensureAuth();
+  const profile = authProvider.getProfile();
   if (profile?.sub == SUPER_USER_ID)
   {
     document.getElementById("showDbBtn").style.display = 'block';
