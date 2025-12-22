@@ -132,8 +132,6 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
     latestGPS = result.gps;
   }
   catch(e) {
-    const errorMsg = "Cannot use selected image";
-    alert(errorMsg);
     console.error(errorMsg);
     loading.style.display = "none";
     modal.style.display = 'none';
