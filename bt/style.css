@@ -288,6 +288,23 @@ html, body, canvas {
   object-fit: cover;
 }
 
+.show-db-btn {
+  position: absolute;
+  top: 80px;
+  right: 15px;
+  font-size: 14px;
+  border-radius: 20px;
+  border: none;
+  background: #1e88e5;
+  color: white;
+  cursor: pointer;
+  display: none;
+}
+
+.show-db-btn:active {
+  transform: scale(0.97);
+}
+
 .sky-photos-icon {
   position: fixed;
   background: transparent;   /* no background so the SVG shape is visible */
