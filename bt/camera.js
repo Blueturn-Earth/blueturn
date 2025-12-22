@@ -164,7 +164,8 @@ function getStorageProvider() {
 }
 
 document.getElementById("profileBtn").onclick = async () => {
-  await getStorageProvider().ensureAuth();
+  const forceNewLogin = true;
+  await getStorageProvider().ensureAuth(forceNewLogin);
   const profile = getStorageProvider().getProfile();
   if (profile?.sub == SUPER_USER_ID)
   {

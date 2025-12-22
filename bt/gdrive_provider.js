@@ -34,7 +34,9 @@ export default class GoogleDriveProvider extends StorageProvider {
     img.alt = name || "Profile";
   }
 
-  ensureAuth() {
+  ensureAuth(reset) {
+    if (reset) 
+      this.accessToken = null;
     return new Promise((resolve) => {
       if (this.accessToken) {
         console.log("Already have Drive access token");
