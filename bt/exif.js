@@ -4,9 +4,6 @@ import * as exifr from 'https://cdn.jsdelivr.net/npm/exifr/dist/full.esm.js';
 export async function processEXIF(imgFile)
 {
     console.log("Trying to get GPS from EXIF");
-    // Get createdAt
-    const createdAt = new Date().toISOString();
-    let takenTime = undefined;
     let gps = undefined;
 
     const tags = await exifr.parse(imgFile, { 
