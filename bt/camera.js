@@ -152,12 +152,7 @@ const progressEl = document.getElementById("uploadProgress");
 const barEl = progressEl.querySelector(".bar");
 const labelEl = progressEl.querySelector(".label");
 
-function decodeJwt(token) {
-  if (!token)
-    return null;
-  const payload = token.split(".")[1];
-  return JSON.parse(atob(payload));
-}
+const SUPER_USER_ID = "115698886322844446345";
 
 let _storageProvider = null;
 
@@ -170,7 +165,11 @@ function getStorageProvider() {
 
 document.getElementById("profileBtn").onclick = async () => {
   await getStorageProvider().ensureAuth();
-  const driveUserId = getStorageProvider().getProfile()?.sub;
+  const profile = getStorageProvider().getProfile();
+  if (profile?.sub == SUPER_USER_ID)
+  {
+    document.getElementById("showDbBtn").style.display = 'block';
+  }
 };
 
 async function saveImage(dataURL) {
