@@ -14,6 +14,13 @@ export async function processEXIF(imgFile)
             pick: ['DateTimeOriginal','CreateDate','ModifyDate','GPSLatitude','GPSLongitude','GPSLatitudeRef','GPSLongitudeRef']
         });
   
+    if (!tags)
+    {
+        const errorMsg = "No EXIF data in image file " + imgFile.name;
+        alert(errorMsg);
+        throw new Error(errorMsg);
+    }
+
     if (tags.GPSLatitude && tags.GPSLongitude) {
         const lat = tags.GPSLatitude[0] + tags.GPSLatitude[1]/60 + tags.GPSLatitude[2]/3600;
         const lon = tags.GPSLongitude[0] + tags.GPSLongitude[1]/60 + tags.GPSLongitude[2]/3600;
@@ -21,7 +28,7 @@ export async function processEXIF(imgFile)
         console.log("Got GPS from EXIF:", gps);
     }
     else {
-        const errorMsg = "No GPS in image file";
+        const errorMsg = "No GPS in image file " + imgFile.name;
         alert(errorMsg);
         throw new Error(errorMsg);
     }
@@ -31,7 +38,7 @@ export async function processEXIF(imgFile)
         tags.CreateDate || 
         tags.ModifyDate;
     if (!dateTaken) {
-        const errorMsg = "No Timestamp in image file";
+        const errorMsg = "No Timestamp in image file " + imgFile.name;
         alert(errorMsg);
         throw new Error(errorMsg);
     }
