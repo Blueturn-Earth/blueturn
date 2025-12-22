@@ -44,8 +44,13 @@ function timeDiffSecondsWithTZ(a, b) {
   const ta = timeOfDayUTCSeconds(a);
   const tb = timeOfDayUTCSeconds(b);
 
+  const sign = ta < tb ? -1 : 1; 
   const diff = Math.abs(ta - tb);
-  return Math.min(diff, SECONDS_IN_DAY - diff);
+  return sign * Math.min(diff, SECONDS_IN_DAY - diff);
+}
+
+function smoothstep (x) {
+   return x * x * (3.0 - 2.0 * x);
 }
 
 export function updateSkyPhotoPosition(picDiv)
@@ -66,14 +71,31 @@ export function updateSkyPhotoPosition(picDiv)
     const timestampDate = timestamp.toDate();
     const currentDate = new Date(gEpicTimeSec * 1000);
     const diffSec = timeDiffSecondsWithTZ(currentDate, timestampDate);
-    const dayInSec = 60*60*24;
-    const dayDiffSec = diffSec % dayInSec;
+    const absDiffSec = Math.abs(diffSec);
     const scaleWindow = 3600*2;
-    const minScale = .1;
-    const maxScale = 2.0;
-    const scaleFactor = (1.0 - Math.min(dayDiffSec, scaleWindow) / scaleWindow)*(maxScale - minScale) + minScale;
-    picDiv.style.transform = `translate(-50%, -50%) scale(${scaleFactor})`;
-    picDiv.style.zIndex = 5 + Math.floor(scaleFactor/maxScale * 4);
+    const minScale = .02;
+    const maxScale = 0.5;
+    const scaleAlpha = smoothstep
+        (1.0 - Math.min(absDiffSec, scaleWindow) / scaleWindow);
+    const scaleFactor = scaleAlpha*(maxScale - minScale) + minScale;
+    if (diffSec < 0) {
+        picDiv.style.opacity = 1;
+        picDiv.style.transform = `translate(-50%, -50%) scale(${scaleFactor})`;
+    }
+    else {
+        picDiv.style.opacity = scaleFactor/maxScale;
+        picDiv.style.transform = `translate(-50%, -50%) scale(${maxScale})`;
+    }
+    picDiv.style.zIndex = 5 + Math.round(scaleFactor/maxScale * 4);
+
+    const borderWindow = 3600;
+    const minBorderFactor = 0;
+    const maxBorderFactor = 4.0;
+    const borderAlpha = smoothstep
+        (1.0 - Math.min(absDiffSec, borderWindow) / borderWindow);
+    const borderFactor = borderAlpha*(maxBorderFactor - minBorderFactor) + minBorderFactor;
+    const borderColor = Math.round(borderAlpha * 255);    
+    picDiv.style.border = `${borderFactor}px solid rgba(${borderColor}, ${borderColor}, ${borderColor}, ${borderAlpha})`;
 }
 
 function createPicDiv(data)
@@ -81,8 +103,6 @@ function createPicDiv(data)
     const picDiv = document.createElement('img');
     picDiv.className = 'sky-photo-thumb';
     picDiv.src = data.image.thumbnailUrl;
-    picDiv.width = 80;
-    picDiv.height = 80;
     picDiv.data = data;
     picDiv.onclick = () => {
         openPopupFromThumbnail(picDiv);
