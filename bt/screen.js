@@ -387,6 +387,8 @@ class Screen
             return;
 
         if (!this.clickCancelled &&
+            this.#lastMovePos &&
+            this.#startPos &&
             Math.abs(this.#lastMovePos.x - this.#startPos.x) < this.#MIN_DOUBLE_CLICK_DISTANCE &&
             Math.abs(this.#lastMovePos.y - this.#startPos.y) < this.#MIN_DOUBLE_CLICK_DISTANCE)
         {
