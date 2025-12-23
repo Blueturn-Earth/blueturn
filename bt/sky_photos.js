@@ -1,5 +1,5 @@
 import {gCalculateScreenCoordFromLatLon, gGetDateFromTimeSec} from './utils.js';
-import {gEpicImageData, gEpicTimeSec} from '././app.js';
+import {gEpicImageData, gEpicTimeSec, gEpicDB} from '././app.js';
 import { db } from "./firebase_db.js";
 import { ensureAuthReady } from "./firebase_auth.js";
 import {
@@ -39,15 +39,18 @@ function timeOfDayUTCSeconds(d) {
   );
 }
 
-function timeDiffSecondsWithTZ(a, b) {
-  const SECONDS_IN_DAY = 86400;
+function dateDiffSecondsWithTZ(a, b) {
+  return (a.getTime() - b.getTime()) / 1000;
+}
 
+function timeDiffSecondsWithTZ(a, b) {
   const ta = timeOfDayUTCSeconds(a);
   const tb = timeOfDayUTCSeconds(b);
-
-  const sign = ta < tb ? -1 : 1; 
-  const diff = Math.abs(ta - tb);
-  return sign * Math.min(diff, SECONDS_IN_DAY - diff);
+  const dateDiff = ta - tb;
+  const sign = dateDiff < 0 ? -1 : 1; 
+  const absDateiff = Math.abs(dateDiff);
+  const SECONDS_IN_DAY = 86400;
+  return sign * Math.min(absDateiff, SECONDS_IN_DAY - absDateiff);
 }
 
 function smoothstep (x) {
@@ -56,6 +59,25 @@ function smoothstep (x) {
 
 export function updateSkyPhotoPosition(picDiv)
 {
+    const timestamp = picDiv.data.takenTime || picDiv.data.createdAt;
+    const timestampDate = timestamp.toDate();
+    const currentDate = new Date(gEpicTimeSec * 1000);
+
+    const dateDiff = dateDiffSecondsWithTZ(currentDate, timestampDate);
+    if (Math.abs(dateDiff) > 12 * 3600)
+    {
+        const latestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec();
+        const timestampTimeSec = timestampDate.getTime() / 1000;
+        const currentDateTimeSec = currentDate.getTime() / 1000;
+        const SECONDS_IN_DAY = 24*3600;
+        if (latestEpicTimeSec - timestampTimeSec > SECONDS_IN_DAY ||
+            latestEpicTimeSec - currentDateTimeSec > SECONDS_IN_DAY)
+        {
+            picDiv.style.display = 'none';
+            return;
+        }
+    }
+
     const picPos = gGetScreenCoordFromLatLon(picDiv.data.gps.lat, picDiv.data.gps.lon);
     if (picPos.z < -0.2) {
         picDiv.style.display = 'none';
@@ -68,9 +90,6 @@ export function updateSkyPhotoPosition(picDiv)
     picDiv.style.zIndex = picPos.z <= 0.0 ? '-1' : '5'; 
 
     // process timestamp
-    const timestamp = picDiv.data.takenTime || picDiv.data.createdAt;
-    const timestampDate = timestamp.toDate();
-    const currentDate = new Date(gEpicTimeSec * 1000);
     const diffSec = timeDiffSecondsWithTZ(currentDate, timestampDate);
     const absDiffSec = Math.abs(diffSec);
     const scaleWindow = gControlState.speed;
