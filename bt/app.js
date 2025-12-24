@@ -72,7 +72,7 @@ function initStartTime()
         console.log("Date changed to: " + this.value);
         gControlState.day = this.value;
         gControlState.play = false;
-        gControlState.blockSnapping = false;
+        //gControlState.blockSnapping = false;
         gControlState.jump = true;
     });
 
@@ -211,7 +211,7 @@ gScreen.addEventListener("down", (e) => {
     if (gEpicTimeSec)
     {
         epicPressTime = gEpicTimeSec;
-        gControlState.blockSnapping = false;
+        //gControlState.blockSnapping = false;
         gControlState.holding = true;
     }
 });
@@ -406,7 +406,7 @@ export function gSetPlayState(play)
 const PLAY_TIMEOUT_MS = 250;
 
 gScreen.addEventListener("click", (e) => {
-    gControlState.blockSnapping = false;
+    //gControlState.blockSnapping = false;
     gControlState.holding = false;
     // pause immediately, play with delay
     if (gControlState.play || gControlState.playTimeout) {
