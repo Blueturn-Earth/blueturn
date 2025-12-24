@@ -9,7 +9,7 @@ import {
     gArrayBoundIndices, 
     gGetPrevDateStr, 
     gGetNextDateStr,
-    gGetDateFromTimeSec} from './utils.js';
+    gGetDateTimeStringFromTimeSec} from './utils.js';
 import { gControlState } from "./controlparams.js";
 
 export default class EpicDB { 
@@ -378,7 +378,7 @@ export default class EpicDB {
             }
         }
         if (numLoadedForward > 0) {
-            //console.log("Preloaded (for play) " + numLoadedForward + " epic images forward from " + gGetDateFromTimeSec(timeSec));
+            //console.log("Preloaded (for play) " + numLoadedForward + " epic images forward from " + gGetDateTimeStringFromTimeSec(timeSec));
         }
         const numLoadedForwardForPlay = numLoadedForward;
         let numLoadedBackward = 0;
@@ -419,10 +419,10 @@ export default class EpicDB {
             // If we fail to load, we can just stop preloading
         }
         if (numLoadedForward > numLoadedForwardForPlay) {
-            //console.log("Preloaded (for scroll) " + (numLoadedForward - numLoadedForwardForPlay) + " more epic images forward from " + gGetDateFromTimeSec(timeSec));
+            //console.log("Preloaded (for scroll) " + (numLoadedForward - numLoadedForwardForPlay) + " more epic images forward from " + gGetDateTimeStringFromTimeSec(timeSec));
         }
         if (numLoadedBackward > 0) {
-            //console.log("Preloaded (for scroll) " + numLoadedBackward + " epic images backward from " + gGetDateFromTimeSec(timeSec));
+            //console.log("Preloaded (for scroll) " + numLoadedBackward + " epic images backward from " + gGetDateTimeStringFromTimeSec(timeSec));
         }
     }
 

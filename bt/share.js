@@ -1,6 +1,6 @@
 import { gControlState, gControlMap } from './controlparams.js';
 import { gEpicTimeSec, gDateText } from './app.js';
-import { gGetDateFromTimeSec } from './utils.js';
+import { gGetDateTimeStringFromTimeSec } from './utils.js';
 
 function toSimpleString(value) {
   if (typeof value === 'string') {
@@ -50,7 +50,7 @@ function shareURL(url) {
 const USE_TINY_URL = true; // Set to true to use TinyURL for shorter links
 
 export function share() {
-    const day_time = gGetDateFromTimeSec(gEpicTimeSec);
+    const day_time = gGetDateTimeStringFromTimeSec(gEpicTimeSec);
     const day_time_split = day_time.split(' ');
     gControlState.day = day_time_split[0];
     gControlState.time = day_time_split[1];

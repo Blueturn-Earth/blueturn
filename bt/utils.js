@@ -212,7 +212,7 @@ export function gGetTodayDateStr()
     return TodayDatesStr;
 }
 
-export function gGetDateFromTimeSec(timeSec)
+export function gGetDateTimeStringFromTimeSec(timeSec)
 {
     const date = new Date(timeSec * 1000);
     const dayStr = date.toISOString().split('T')[0];
