@@ -212,7 +212,7 @@ export function gGetTodayDateStr()
     return TodayDatesStr;
 }
 
-export function gGetDateFromTimeSec(timeSec)
+export function gGetDateTimeStringFromTimeSec(timeSec)
 {
     const date = new Date(timeSec * 1000);
     const dayStr = date.toISOString().split('T')[0];
@@ -226,3 +226,42 @@ export function gGetDayFromTimeSec(timeSec)
     return date.toISOString().slice(0, 10);
 }
 
+export function gFindClosestIndexInSortedArray(arr, target, getter) {
+    if (!getter)
+      getter = item => item;
+    const n = arr.length;
+
+    // Handle edge cases where target is outside the array range
+    if (target <= getter(arr[0])) return 0;
+    if (target >= getter(arr[n - 1])) return n - 1;
+
+    let left = 0;
+    let right = n - 1;
+    let mid;
+
+    // Binary search to find the index where target would be inserted
+    while (left <= right) {
+        mid = Math.floor((left + right) / 2);
+
+        if (getter(arr[mid]) === target) {
+            return mid; // Found exact match
+        } else if (getter(arr[mid]) < target) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    // At the end of the loop, 'left' and 'right' pointers bracket the target
+    // arr[right] is the largest element <= target
+    // arr[left] is the smallest element >= target
+    const closestLeft = getter(arr[right]);
+    const closestRight = getter(arr[left]);
+
+    // Compare which of the two adjacent elements is closer to the target
+    if (Math.abs(target - closestLeft) <= Math.abs(target - closestRight)) {
+        return right;
+    } else {
+        return left;
+    }
+}

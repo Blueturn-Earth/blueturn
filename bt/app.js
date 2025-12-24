@@ -13,7 +13,8 @@ import {
     gCalcLatLonFromScreenCoord, 
     gGetDayFromTimeSec, 
     gCalculateScreenCoordFromLatLon,
-    gLerp} 
+    gLerp,
+    gGetDateTimeStringFromTimeSec} 
     from './utils.js';
 
 export let gEpicTimeSec = undefined;
@@ -44,56 +45,68 @@ export async function gInitEpicTime()
 {
     // set first time
     gEpicDB.init()
-    .then(gJumpToEpicTime)            
+    .then(async () => {
+        const date_time = initStartTime();
+        console.log("Initializing to EPIC time: " + date_time);
+        let startTimeSec = EpicDB.getTimeSecFromDateTimeString(date_time);
+        gJumpToEpicTime(startTimeSec);
+    })            
     .catch((error) => {
         console.error("Failed to init EpicDB: " + error);
     });
 }
 
-export async function gJumpToEpicTime()
+function initStartTime()
+{
+    // Now that we know the limit, set start time
+    if (!gControlState.day)
+    {
+        gControlState.day = gEpicDB.getLastDay();
+    }
+
+    let datePicker = document.getElementById("date-picker");
+    datePicker.max = gEpicDB.getLastDay();
+    datePicker.min = gEpicDB.getFirstDay();
+    datePicker.value = gControlState.day;
+    datePicker.addEventListener('change', function (e) {
+        console.log("Date changed to: " + this.value);
+        gControlState.day = this.value;
+        gControlState.play = false;
+        //gControlState.blockSnapping = false;
+        gControlState.jump = true;
+    });
+
+    if (!gControlState.time)
+    {
+        // set the current hour within the current day
+        const now = new Date();
+        gControlState.time = now.toUTCString().split(' ')[4].replace(/\.\d+Z$/, '');
+    }
+
+    const date_time = gControlState.day + " " + gControlState.time.replace(/\.\d+Z$/, '');
+    return date_time;
+}
+
+export async function gJumpToEpicTime(startTimeSec)
 {
     if (gControlState.jumping)
     {
         console.warn("Already jumping to new date, ignoring request");
         return;
     }
-    return new Promise((resolve, reject) => {
-        if (!gEpicDB.isReady())
-        {
-            reject("EpicDB is not ready");
-            return;
-        }
 
+    if (!gEpicDB.isReady())
+    {
+        console.error("EpicDB is not ready");
+        return;
+    }
+
+    let date_time = gGetDateTimeStringFromTimeSec(startTimeSec);
+    console.log("Jumping to ", date_time);
+
+    return new Promise((resolve, reject) => {
         gControlState.jumping = true;
 
-        // Now that we know the limit, set start time
-        if (!gControlState.day)
-        {
-            gControlState.day = gEpicDB.getLastDay();
-        }
-
-        let datePicker = document.getElementById("date-picker");
-        datePicker.max = gEpicDB.getLastDay();
-        datePicker.min = gEpicDB.getFirstDay();
-        datePicker.value = gControlState.day;
-        datePicker.addEventListener('change', function (e) {
-            console.log("Date changed to: " + this.value);
-            gControlState.day = this.value;
-            gControlState.play = false;
-            gControlState.blockSnapping = false;
-            gControlState.jump = true;
-        });
-
-        if (!gControlState.time)
-        {
-            // set the current hour within the current day
-            const now = new Date();
-            gControlState.time = now.toUTCString().split(' ')[4].replace(/\.\d+Z$/, '');
-        }
-
-        let date_time = gControlState.day + " " + gControlState.time.replace(/\.\d+Z$/, '');
-        console.log("Jumping to EPIC time: " + date_time);
-        let startTimeSec = EpicDB.getTimeSecFromDateTimeString(date_time);
 
         if (startTimeSec < gEpicDB.getOldestEpicImageTimeSec())
         {
@@ -198,7 +211,7 @@ gScreen.addEventListener("down", (e) => {
     if (gEpicTimeSec)
     {
         epicPressTime = gEpicTimeSec;
-        gControlState.blockSnapping = false;
+        //gControlState.blockSnapping = false;
         gControlState.holding = true;
     }
 });
@@ -370,7 +383,7 @@ gScreen.addEventListener("double-click", (e) => {
         clearTimeout(gControlState.playTimeout);
         gControlState.playTimeout = undefined;
     }
-    setControlStatePlay(false);
+    gSetPlayState(false);
 
     if (!gControlState.play)
         setZoom(!gZoom, e.clickPos);
@@ -380,7 +393,7 @@ gScreen.addEventListener("double-click", (e) => {
     gTagZoomEvent("double-click");
 });
 
-function setControlStatePlay(play)
+export function gSetPlayState(play)
 {
     gControlState.play = play;
     gtag('event', 'play', {
@@ -393,7 +406,7 @@ function setControlStatePlay(play)
 const PLAY_TIMEOUT_MS = 250;
 
 gScreen.addEventListener("click", (e) => {
-    gControlState.blockSnapping = false;
+    //gControlState.blockSnapping = false;
     gControlState.holding = false;
     // pause immediately, play with delay
     if (gControlState.play || gControlState.playTimeout) {
@@ -402,7 +415,7 @@ gScreen.addEventListener("click", (e) => {
             clearTimeout(gControlState.playTimeout);
             gControlState.playTimeout = undefined;
         }
-        setControlStatePlay(false);
+        gSetPlayState(false);
     }
     else {
         if (gControlState.playTimeout)
@@ -414,7 +427,7 @@ gScreen.addEventListener("click", (e) => {
                 gControlState.playTimeout = undefined;
                 if (!gControlState.play)
                 {
-                    setControlStatePlay(true);
+                    gSetPlayState(true);
                 }
             },
             PLAY_TIMEOUT_MS
@@ -424,6 +437,10 @@ gScreen.addEventListener("click", (e) => {
 
 function jumpDays(numDays)
 {
+    if (!gEpicTimeSec) {
+        console.warn("Epic time not set");
+        return;
+    }
     const newEpicTimeSec = gEpicTimeSec + numDays * 24 * 3600;
     // Get ISO string and remove the time zone suffix (.000Z)
     const isoString = new Date(newEpicTimeSec * 1000).toISOString();
@@ -621,7 +638,10 @@ export function gUpdateEpicTime(time)
     if (gControlState.jump)
     {
         console.log("Requested jumping to new date");
-        gJumpToEpicTime();
+        console.log("Jumping to EPIC time: " + date_time);
+        const date_time = gControlState.day + " " + gControlState.time.replace(/\.\d+Z$/, '');
+        let jumpTimeSec = EpicDB.getTimeSecFromDateTimeString(date_time);
+        gJumpToEpicTime(jumpTimeSec);
         return;
     }
 
