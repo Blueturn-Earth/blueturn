@@ -37,7 +37,13 @@ export default class DragScroller
     this.scroller.addEventListener('pointerdown', this.#onPointerDown);
     this.scroller.addEventListener('pointermove', this.#onPointerMove);
     this.scroller.addEventListener('pointerup', this.#endPointerInteraction);
-    this.scroller.addEventListener('pointercancel', this.#endPointerInteraction);
+    this.scroller.addEventListener('mousedown', this.#onPointerDown);
+    this.scroller.addEventListener('mousemove', this.#onPointerMove);
+    this.scroller.addEventListener('mouseup', this.#endPointerInteraction);
+    this.scroller.addEventListener('touchstart', this.#onPointerDown);
+    this.scroller.addEventListener('touchmove', this.#onPointerMove);
+    this.scroller.addEventListener('touchend', this.#endPointerInteraction);
+    //this.scroller.addEventListener('pointercancel', this.#endPointerInteraction);
     //this.scroller.addEventListener('lostpointercapture', this.#endPointerInteraction);
     // Window-level safety net
     window.addEventListener('blur', this.#endPointerInteraction);
@@ -96,7 +102,6 @@ export default class DragScroller
       return;
 
     //console.log("alpha: ", alpha);
-    this.#setSelectedIndex(undefined);
     const limits = this.#getScrollLimits();
     if (!limits) return;
 
@@ -105,17 +110,24 @@ export default class DragScroller
     const target =
       limits.min + alpha * (limits.max - limits.min);
 
-    this.scroller.scrollTo({
-      ...(this.isHorizontal ? { left: target } : { top: target }),
-      behavior: 'auto'
-    });
+    const needScroll = 
+      this.isHorizontal ? 
+        Math.abs(this.scroller.scrollLeft - target) > 1 : 
+        Math.abs(this.scroller.scrollTop - target) > 1;
+    if (needScroll) {
+      this.#setSelectedIndex(undefined);
+      this.scroller.scrollTo({
+        ...(this.isHorizontal ? { left: target } : { top: target }),
+        behavior: 'auto'
+      });
+    }
   }
   
   getScrolledAlpha() {
     const limits = this.#getScrollLimits();
     if (!limits) return 0;
 
-    const pos = this.scroller.scrollLeft;
+    const pos = this.isHorizontal ? this.scroller.scrollLeft : this.scroller.scrollTop;
 
     return (pos - limits.min) / (limits.max - limits.min);
   }
@@ -171,11 +183,14 @@ export default class DragScroller
     this.isDown = true;
     this.scroller.style.cursor = 'grabbing';
     this.isDragging = false;
-    this.startClientX = e.clientX;
-    this.startClientY = e.clientY;
-    this.startX = this.isHorizontal
-      ? e.pageX - this.scroller.offsetLeft
-      : e.pageY - this.scroller.offsetTop;
+    if (e.clientX != undefined)
+      this.startClientX = e.clientX;
+    if (e.clientY != undefined)
+      this.startClientY = e.clientY;
+    if (e.pageX != undefined && e.pageY != undefined)
+      this.startX = this.isHorizontal
+        ? e.pageX - this.scroller.offsetLeft
+        : e.pageY - this.scroller.offsetTop;
     this.scrollStart = this.isHorizontal
       ? this.scroller.scrollLeft
       : this.scroller.scrollTop;
@@ -234,19 +249,25 @@ export default class DragScroller
 
     const delta = current - this.startX;
 
+    const limits = this.#getScrollLimits();
     if (this.isHorizontal) {
       this.scroller.scrollLeft = this.scrollStart - delta;
+      if (limits) {
+        this.scroller.scrollLeft = Math.max(
+          limits.min,
+          Math.min(limits.max, this.scroller.scrollLeft)
+        );
+      }
     } else {
       this.scroller.scrollTop = this.scrollStart - delta;
+      if (limits) {
+        this.scroller.scrollTop = Math.max(
+          limits.min,
+          Math.min(limits.max, this.scroller.scrollTop)
+        );
+      }
     }
 
-    const limits = this.#getScrollLimits();
-    if (limits) {
-      this.scroller.scrollLeft = Math.max(
-        limits.min,
-        Math.min(limits.max, this.scroller.scrollLeft)
-      );
-    }
   }
 
   #onScroll = (e) =>

@@ -353,6 +353,15 @@ html, body, canvas {
   z-index: 5;
 }
 
+.sky-earth-photo-thumb {
+  -webkit-touch-callout: none; /* iOS: disables image menu */
+  -webkit-user-select: none;
+  user-select: none;
+
+  -webkit-user-drag: none;     /* Safari */
+  pointer-events: none;        /* IMPORTANT: let container receive gestures */
+}
+
 #photo-popup {
   position: fixed;
   inset: 0;
