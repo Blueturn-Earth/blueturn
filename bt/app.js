@@ -148,6 +148,7 @@ export async function gJumpToEpicTime(startTimeSec)
             return;
         }
 
+        gUpdateLoadingText("Loading...");
         gEpicDB.fetchBoundKeyFrames(startTimeSec)
         .then((boundPair) => {
             if (!boundPair) // likely aborted
@@ -202,6 +203,7 @@ export async function gJumpToEpicTime(startTimeSec)
             gSetInitialEpicTimeSec(startTimeSec);
             gControlState.jumping = false;
             gControlState.jump = false;
+            gUpdateLoadingText("");
             resolve(startTimeSec);
             return;
         })
