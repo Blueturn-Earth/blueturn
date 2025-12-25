@@ -8,7 +8,7 @@ const modalTimestamp = document.getElementById('modalTimestamp');
 const modalGPS = document.getElementById('modalGPS');
 const modalSky = document.getElementById('modalSkyCoverage');
 const closeModal = document.getElementById('closeModal');
-const loading = document.getElementById("loadingOverlay");
+const loading = document.getElementById("skyPhotoLoadingOverlay");
 
 let latestOrientation = { alpha: 0, beta: 0, gamma: 0 };
 let latestGPS = null;

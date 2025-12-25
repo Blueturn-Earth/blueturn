@@ -492,12 +492,3 @@ resize();
 
 window.addEventListener('resize', resize);
 
-const loadingTextElement = document.getElementById("loading-text");
-
-export function gUpdateLoadingText(loadingText)
-{
-    if (!gControlState || !gControlState.showText)
-        loadingText = "";
-    loadingTextElement.textContent = loadingText;
-}   
-

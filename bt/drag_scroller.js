@@ -240,7 +240,8 @@ export default class DragScroller
     }
 
     // Now it's a drag
-    this.scroller.setPointerCapture(e.pointerId);
+    if (e && e.pointerId)
+      this.scroller.setPointerCapture(e.pointerId);
     e.preventDefault();
 
     const current = this.isHorizontal
