@@ -197,6 +197,7 @@ function setPic(docId, data)
 }
 
 let sortedPicItems = [];
+let selectedItemIndex = undefined;
 
 async function updateSkyPhotos(isOn)
 {
@@ -262,7 +263,11 @@ async function updateSkyPhotos(isOn)
     }
     skyPhotosScrollGallery.show();
 
+
     skyPhotosScrollGallery.setSelectItemCb((node, index) => {
+        if (index == selectedItemIndex)
+            return;
+        selectedItemIndex = index;
         if (index == undefined)
             return;
         const picItem = sortedPicItems[index];
