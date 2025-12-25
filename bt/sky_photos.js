@@ -98,7 +98,8 @@ function updateEarthSkyPhotoPosition(picItem)
     const absDiffSec = Math.abs(diffSec);
     const scaleWindow = gControlState.speed;
     const minScale = .02;
-    const maxScale = 0.5;
+    const maxScale = 0.25;
+    const overScale = 0.35;
     const scaleAlpha = smoothstep
         (1.0 - Math.min(absDiffSec, scaleWindow) / scaleWindow);
     const scaleFactor = scaleAlpha*(maxScale - minScale) + minScale;
@@ -108,7 +109,8 @@ function updateEarthSkyPhotoPosition(picItem)
     }
     else {
         earthPicDiv.style.opacity = scaleFactor/maxScale;
-        earthPicDiv.style.transform = `translate(-50%, -50%) scale(${maxScale})`;
+        const extraScaleFactor = (1.0 - scaleAlpha)*(overScale - maxScale) + maxScale;
+        earthPicDiv.style.transform = `translate(-50%, -50%) scale(${extraScaleFactor})`;
     }
     earthPicDiv.style.zIndex = 5 + Math.round(scaleFactor/maxScale * 4);
 
