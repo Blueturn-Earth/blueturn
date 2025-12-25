@@ -129,7 +129,7 @@ export default class EpicDB {
         return !!this.getEpicDataForTimeSec(timeSec);
     }
 
-    isTimeSecFirstOfDay(timeSec) {
+    isTimeSecBeforeFirstOfDay(timeSec) {
         // Check if the given timeSec is the first epic image of the day
         const dayStr = EpicDB.getDayStrFromTimeSec(timeSec);
         if (!this._epicDays.has(dayStr)) {
@@ -140,10 +140,10 @@ export default class EpicDB {
             return false; // No data for this day
         }
         // Check if the first epic image of the day matches the given timeSec
-        return epicDayData[0] && !epicDayData[0].loading && timeSec <= epicDayData[0].timeSec;
+        return epicDayData[0] && !epicDayData[0].loading && timeSec < epicDayData[0].timeSec;
     }
     
-    isTimeSecLastOfDay(timeSec) {
+    isTimeSecAfterLastOfDay(timeSec) {
         // Check if the given timeSec is the last epic image of the day
         const dayStr = EpicDB.getDayStrFromTimeSec(timeSec);
         if (!this._epicDays.has(dayStr)) {
@@ -155,7 +155,7 @@ export default class EpicDB {
         }
         // Check if the last epic image of the day matches the given timeSec
         const lastEpicImageData = epicDayData[epicDayData.length - 1];
-        return lastEpicImageData && !lastEpicImageData.loading && timeSec >= lastEpicImageData.timeSec;
+        return lastEpicImageData && !lastEpicImageData.loading && timeSec > lastEpicImageData.timeSec;
     }
     
     _getPrevEpicImage(timeSec, strict = true) {

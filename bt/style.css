@@ -66,9 +66,9 @@ html, body, canvas {
 
 #loading-text {
     position: absolute;
-    top: 20px;
+    bottom: 120px;
     left: 20px;
-    color: darkorange;
+    color: darkgoldenrod;
     font-size: 20px;
     font-family: 'Courier New', monospace;
     text-align: left;
@@ -193,7 +193,7 @@ html, body, canvas {
   color: #bbb;
 }
 
-.loading-overlay {
+.sky-photo-loading-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -351,6 +351,15 @@ html, body, canvas {
   transform-origin: center;
   border-radius: 8px;
   z-index: 5;
+}
+
+.sky-earth-photo-thumb {
+  -webkit-touch-callout: none; /* iOS: disables image menu */
+  -webkit-user-select: none;
+  user-select: none;
+
+  -webkit-user-drag: none;     /* Safari */
+  pointer-events: none;        /* IMPORTANT: let container receive gestures */
 }
 
 #photo-popup {
