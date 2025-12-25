@@ -128,7 +128,7 @@ class Screen
     #MIN_DRAG_DISTANCE = 50;
     #MIN_DOUBLE_CLICK_DISTANCE = 80;
     #CLICK_TIMEOUT_MS = 200;
-    #LONG_PRESS_TIME_MS = 500;
+    #LONG_PRESS_TIME_MS = 1000;
     #DOUBLE_CLICK_MAX_TIME_MS = 200;
     #MOVE_2_CROSS_THRESHOLD = 0.1;
     #PINCH_STEP = canvas.width / 50;
@@ -387,6 +387,8 @@ class Screen
             return;
 
         if (!this.clickCancelled &&
+            this.#lastMovePos &&
+            this.#startPos &&
             Math.abs(this.#lastMovePos.x - this.#startPos.x) < this.#MIN_DOUBLE_CLICK_DISTANCE &&
             Math.abs(this.#lastMovePos.y - this.#startPos.y) < this.#MIN_DOUBLE_CLICK_DISTANCE)
         {
@@ -489,13 +491,4 @@ function resize()
 resize();
 
 window.addEventListener('resize', resize);
-
-const loadingTextElement = document.getElementById("loading-text");
-
-export function gUpdateLoadingText(loadingText)
-{
-    if (!gControlState || !gControlState.showText)
-        loadingText = "";
-    loadingTextElement.textContent = loadingText;
-}   
 

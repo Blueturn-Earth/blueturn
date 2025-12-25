@@ -8,7 +8,7 @@ const modalTimestamp = document.getElementById('modalTimestamp');
 const modalGPS = document.getElementById('modalGPS');
 const modalSky = document.getElementById('modalSkyCoverage');
 const closeModal = document.getElementById('closeModal');
-const loading = document.getElementById("loadingOverlay");
+const loading = document.getElementById("skyPhotoLoadingOverlay");
 
 let latestOrientation = { alpha: 0, beta: 0, gamma: 0 };
 let latestGPS = null;
@@ -132,7 +132,7 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
     latestGPS = result.gps;
   }
   catch(e) {
-    console.error(errorMsg);
+    console.error(e);
     loading.style.display = "none";
     modal.style.display = 'none';
     labelEl.style.display = "none";
@@ -252,7 +252,7 @@ async function saveImage(imgFile) {
 
     const profile = getStorageProvider().getProfile();
 
-    await saveMetadata(uploadResult, profile, latestGPS);
+    await saveMetadata(uploadResult, profile, latestGPS, latestTakenTime);
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";

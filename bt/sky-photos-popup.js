@@ -17,7 +17,7 @@ window.addEventListener("popstate", (event) => {
 });
 
 export function openPopupFromThumbnail(thumbImg) {
-    popupImg.src = thumbImg.data.image.thumbnailUrl + "&sz=w1600"; // Load higher-res image
+    popupImg.src = thumbImg.src + "&sz=w1600"; // Load higher-res image
     popup.hidden = false;
     history.pushState({ popup: true }, "");
 }

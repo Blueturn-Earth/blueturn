@@ -9,7 +9,7 @@ import {
     gArrayBoundIndices, 
     gGetPrevDateStr, 
     gGetNextDateStr,
-    gGetDateFromTimeSec} from './utils.js';
+    gGetDateTimeStringFromTimeSec} from './utils.js';
 import { gControlState } from "./controlparams.js";
 
 export default class EpicDB { 
@@ -129,7 +129,7 @@ export default class EpicDB {
         return !!this.getEpicDataForTimeSec(timeSec);
     }
 
-    isTimeSecFirstOfDay(timeSec) {
+    isTimeSecBeforeFirstOfDay(timeSec) {
         // Check if the given timeSec is the first epic image of the day
         const dayStr = EpicDB.getDayStrFromTimeSec(timeSec);
         if (!this._epicDays.has(dayStr)) {
@@ -140,10 +140,10 @@ export default class EpicDB {
             return false; // No data for this day
         }
         // Check if the first epic image of the day matches the given timeSec
-        return epicDayData[0] && !epicDayData[0].loading && timeSec <= epicDayData[0].timeSec;
+        return epicDayData[0] && !epicDayData[0].loading && timeSec < epicDayData[0].timeSec;
     }
     
-    isTimeSecLastOfDay(timeSec) {
+    isTimeSecAfterLastOfDay(timeSec) {
         // Check if the given timeSec is the last epic image of the day
         const dayStr = EpicDB.getDayStrFromTimeSec(timeSec);
         if (!this._epicDays.has(dayStr)) {
@@ -155,7 +155,7 @@ export default class EpicDB {
         }
         // Check if the last epic image of the day matches the given timeSec
         const lastEpicImageData = epicDayData[epicDayData.length - 1];
-        return lastEpicImageData && !lastEpicImageData.loading && timeSec >= lastEpicImageData.timeSec;
+        return lastEpicImageData && !lastEpicImageData.loading && timeSec > lastEpicImageData.timeSec;
     }
     
     _getPrevEpicImage(timeSec, strict = true) {
@@ -378,7 +378,7 @@ export default class EpicDB {
             }
         }
         if (numLoadedForward > 0) {
-            //console.log("Preloaded (for play) " + numLoadedForward + " epic images forward from " + gGetDateFromTimeSec(timeSec));
+            //console.log("Preloaded (for play) " + numLoadedForward + " epic images forward from " + gGetDateTimeStringFromTimeSec(timeSec));
         }
         const numLoadedForwardForPlay = numLoadedForward;
         let numLoadedBackward = 0;
@@ -419,10 +419,10 @@ export default class EpicDB {
             // If we fail to load, we can just stop preloading
         }
         if (numLoadedForward > numLoadedForwardForPlay) {
-            //console.log("Preloaded (for scroll) " + (numLoadedForward - numLoadedForwardForPlay) + " more epic images forward from " + gGetDateFromTimeSec(timeSec));
+            //console.log("Preloaded (for scroll) " + (numLoadedForward - numLoadedForwardForPlay) + " more epic images forward from " + gGetDateTimeStringFromTimeSec(timeSec));
         }
         if (numLoadedBackward > 0) {
-            //console.log("Preloaded (for scroll) " + numLoadedBackward + " epic images backward from " + gGetDateFromTimeSec(timeSec));
+            //console.log("Preloaded (for scroll) " + numLoadedBackward + " epic images backward from " + gGetDateTimeStringFromTimeSec(timeSec));
         }
     }
 

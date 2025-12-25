@@ -107,7 +107,9 @@ export function Gallery() {
                 React.createElement(
                     "div",
                     { className: "timestamp" },
-                    new Date(doc.createdAt.seconds * 1000).toLocaleString()
+                    new Date(doc.takenTime ?
+                        doc.takenTime.seconds * 1000 :
+                        doc.createdAt.seconds * 1000).toLocaleString()
                 ),
 
                 doc.gps ?

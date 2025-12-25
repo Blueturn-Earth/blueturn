@@ -66,9 +66,9 @@ html, body, canvas {
 
 #loading-text {
     position: absolute;
-    top: 20px;
+    bottom: 120px;
     left: 20px;
-    color: darkorange;
+    color: darkgoldenrod;
     font-size: 20px;
     font-family: 'Courier New', monospace;
     text-align: left;
@@ -135,7 +135,7 @@ html, body, canvas {
     top: 0;
     left: 0;
     width: 100vw;
-    height: 10vmin;
+    height: 20vmin;
     opacity: 1;
     transition: opacity 0.5s ease-in-out;
     z-index: 10; /* Ensure it’s on top */
@@ -193,7 +193,7 @@ html, body, canvas {
   color: #bbb;
 }
 
-.loading-overlay {
+.sky-photo-loading-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -331,14 +331,35 @@ html, body, canvas {
   content: url("./images/icons/clouds-on.svg");
 }
 
-.sky-photo-thumb {
+.scroll-cursor {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+}
+
+#skyPhotoEarthGallery {
+  display: none;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+.sky-earth-photo-thumb {
   position:absolute;
-  width: 50px;
-  height: 50px;
-  object-fit: contain;     /* keep aspect ratio */
+  display: flex;
   transform: translate(-50%, -50%);
+  transform-origin: center;
   border-radius: 8px;
   z-index: 5;
+}
+
+.sky-earth-photo-thumb {
+  -webkit-touch-callout: none; /* iOS: disables image menu */
+  -webkit-user-select: none;
+  user-select: none;
+
+  -webkit-user-drag: none;     /* Safari */
+  pointer-events: none;        /* IMPORTANT: let container receive gestures */
 }
 
 #photo-popup {
@@ -369,16 +390,145 @@ html, body, canvas {
   display: none !important;
 }
 
+#skyPhotosScrollGallery {
+  padding: 8px;
+  -webkit-overflow-scrolling: touch; /* iOS momentum */
+  /* Hide scrollbar — Firefox */
+  scrollbar-width: none;
+  cursor: grab;
+
+  position: absolute;
+  z-index: 10;
+  
+  /* background-color: #f11; */
+}
+
+#skyPhotosScrollGallery.horizontal {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 120px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  touch-action: pan-x;
+}
+
+#skyPhotosScrollGallery.vertical {
+  position: fixed;
+  top: 0;
+  right: 60px;
+  bottom: 0;
+  width: 120px;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  touch-action: pan-y;
+}
+
+/* Hide scrollbar — WebKit (Chrome, Safari, Edge) */
+#skyPhotosScrollGallery::-webkit-scrollbar {
+  display: none;
+}
+
+#skyPhotosScrollGallery.dragging {
+  cursor: grabbing;
+}
+
+#skyPhotosScrollBox {
+  display: flex;
+  gap: 12px;
+}
+
+.scroll-spacer {
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+#skyPhotosScrollGallery[data-orientation="horizontal"] .spacer {
+  width: var(--spacer-size);
+  height: 100%;
+}
+
+#skyPhotosScrollGallery[data-orientation="vertical"] .spacer {
+  height: var(--spacer-size);
+  width: 100%;
+}
+
+.sky-scroll-photo-thumb {
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;              /* IMPORTANT */
+  pointer-events: auto;         /* ensure it receives events */
+}
+
+.sky-scroll-photo-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+
+  width: auto;
+  height: auto;
+  object-fit: contain;     /* keep aspect ratio */
+
+  display: block;
+
+  scroll-snap-align: center;
+  -webkit-user-drag: none; /* Chrome / Safari */
+  user-drag: none;         /* future-proof */
+  user-select: none;       /* prevents text/image selection */
+}
+
+@media (orientation: landscape) {
+  #skyPhotosScrollBox {
+    flex-direction: column;
+    width: 100%;
+    align-items: stretch;   /* OK because width is controlled */
+  }
+
+  .sky-scroll-photo-thumb {
+    width: 100%;
+    aspect-ratio: 1 / 1;   /* square */
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;     /* important */
+  }
+}
+
+@media (orientation: portrait) {
+  #skyPhotosScrollBox {
+    flex-direction: row;
+    height: 100%;
+  }
+
+  .sky-scroll-photo-thumb {
+    height: 100%;
+    aspect-ratio: 1;    /* <-- square based on height */
+  }
+}
+
 @media (min-aspect-ratio: 1/1) or (orientation: landscape) {
   #cameraButton {
     left: 60px;
     bottom: 50%;
-    transform: translateY(50%);
+    transform: translateY(66%);
   }
   .sky-photos-icon {
     right: 0;
     bottom: 50%;
-    transform: translateY(50%);
+    transform: translateY(66%);
+  }
+  .scroll-cursor {
+    right: 45px;
+    top: 50%;
+    transform: rotate(-90deg);
   }
 }
 
@@ -387,11 +537,16 @@ html, body, canvas {
   #cameraButton {
     bottom: 60px;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-33%);
   }
   .sky-photos-icon {
     top: 0;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translateX(-33%);
+  }
+  .scroll-cursor {
+    top: 45px;
+    left: 50%;
+    transform: rotate(180deg);
   }
 }
