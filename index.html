@@ -37,21 +37,21 @@
     <a href="https://blueturn.earth" target="_blank">
       <img src="./bt/images/logos/LogoBTV1024BT.png" id="btLogo" alt="Blueturn Logo" />
     </a>
-    <button onclick="share()" class="share-button">
-      <img src="bt/images/icons/share.png" alt="Share"/>
-    </button>
-/>  <img id="cameraButton" src="./bt/images/icons/camera.svg" style="display:none;"/>
-    <img id="skyPhotosBtn" class="sky-photos-icon" data-state="off"></object>
-    <button id="profileBtn" class="profile-btn" title="Account">
-      <img id="profileImg" alt="Profile" src="./bt/images/icons/default-user.svg" />
-    </button>
+    <div id="topButtons">
+      <img src="bt/images/icons/share.svg" alt="Share" id="shareButton" onclick="share()"/>
+      <img id="cameraButton" src="./bt/images/icons/camera.svg"/>
+      <img id="skyPhotosBtn" data-state="off"></img>
+      <img id="addPhotoButton" src="./bt/images/icons/plus.svg"/>
+      <img id="profileBtn" title="Account"alt="Profile" src="./bt/images/icons/default-user.svg" />
+    </div>
     <a href="./btSkyFBrowser" id="showDbBtn" class="show-db-btn">
       Show DB
     </a>
   </div>
 
   <input type="date" id="date-picker" onclick="this.showDatePicker && this.showDatePicker()">
-  <input type="file" id="cameraInput" style="display:none;">
+  <input type="file" id="cameraInput" style="display:none;" accept="image/*" capture="environment">
+  <input type="file" id="addPhotoInput" style="display:none;">
 
   <div id="skyPhotosScrollGallery">
     <div id="skyPhotosScrollBox">

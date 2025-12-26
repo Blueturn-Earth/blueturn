@@ -35,6 +35,7 @@ export async function saveMetadata(uploadResult, profile, gps, takenTime) {
   console.log("Generated document ID:", docId);
 
   const photoDoc = {
+    docId: docId,
     ownerUid: auth?.currentUser?.uid, // 🔑 used for rules
     createdAt: serverTimestamp(),
     image: uploadResult,
@@ -47,4 +48,5 @@ export async function saveMetadata(uploadResult, profile, gps, takenTime) {
   console.log("DB type:", typeof db);
   await setDoc(doc(db, "images", docId), photoDoc);
   console.log("Saved document to Firestore:", photoDoc);
+  return docId;
 }

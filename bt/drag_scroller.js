@@ -97,6 +97,17 @@ export default class DragScroller
     this.numItems++;
   }
 
+  clearItems()
+  {
+    // remove only non-spacer children, keep the first one
+    for (let i = 2; i < this.numItems-1; i++)
+    {
+      this.itemsGroup.removeChild(this.itemsGroup.children[i]);
+    }
+    this.#updateSpacers();
+    this.numItems++;
+  }
+
   scrollToAlpha(alpha) {
     if (this.isDown)
       return;

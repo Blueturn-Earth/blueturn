@@ -29,7 +29,7 @@ export default class GoogleDriveProvider extends StorageProvider {
   }
 
   setProfileButton(url, name) {
-    const img = document.getElementById("profileImg");
+    const img = document.getElementById("profileBtn");
     img.src = url;
     img.alt = name || "Profile";
   }

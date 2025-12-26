@@ -1,6 +1,7 @@
 import GoogleDriveProvider from './gdrive_provider.js';
 import {saveMetadata} from './firebase_save.js';
-import {processEXIF} from './exif.js'
+import {processEXIF, addEXIF} from './exif.js';
+import {reloadAndSelectNewSkyPhoto} from './sky_photos.js';
 
 const modal = document.getElementById('photoModal');
 const modalImage = document.getElementById('modalImage');
@@ -9,6 +10,7 @@ const modalGPS = document.getElementById('modalGPS');
 const modalSky = document.getElementById('modalSkyCoverage');
 const closeModal = document.getElementById('closeModal');
 const loading = document.getElementById("skyPhotoLoadingOverlay");
+const saveImageBtn = document.getElementById("saveImageBtn")
 
 let latestOrientation = { alpha: 0, beta: 0, gamma: 0 };
 let latestGPS = null;
@@ -46,6 +48,17 @@ console.log("Add camera button click handler");
 cameraButton.addEventListener("click", async () => {
   // Trigger camera
   cameraInput.click();
+});
+
+const addPhotoButton = document.getElementById("addPhotoButton");
+const addPhotoInput = document.getElementById("addPhotoInput");
+addPhotoInput.style.display = "none";
+
+console.log("Add Add-Photo button click handler");
+// Capture photo and metadata
+addPhotoButton.addEventListener("click", async () => {
+  // Trigger camera
+  addPhotoInput.click();
 });
 
 function analyzeSky(img) {
@@ -112,11 +125,18 @@ function updateModal()
   modal.style.display = 'flex';
   labelEl.style.display = "none";
   barEl.style.width = "0%";
+  saveImageBtn.disabled = false;
 }
 
 console.log("Add camera input change handler");
-// When the user takes a picture
-document.getElementById("cameraInput").addEventListener("change", async (event) => {
+
+async function cameraInputChange(event)
+{
+  return addPhotoInputChange(event, true);
+}
+
+async function addPhotoInputChange(event, camera)
+{
   latestImageFile = undefined;
   latestTakenTime = undefined;
   latestGPS = undefined;
@@ -126,13 +146,19 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
 
   // Show loading spinner immediately after accepting the photo
   loading.style.display = "flex";
+
   try {
-    const result = await processEXIF(imgFile);
+    let result;
+    if (camera)
+      result = await addEXIF(imgFile);
+    else
+      result = await processEXIF(imgFile);
     latestTakenTime = result.takenTime;
     latestGPS = result.gps;
   }
   catch(e) {
     console.error(e);
+    alert(e);
     loading.style.display = "none";
     modal.style.display = 'none';
     labelEl.style.display = "none";
@@ -143,7 +169,12 @@ document.getElementById("cameraInput").addEventListener("change", async (event) 
   latestImageFile = imgFile;
 
   updateModal();
-});
+}
+
+// When the user takes a picture
+cameraInput.addEventListener("change", cameraInputChange);
+// When the user adds a picture
+addPhotoInput.addEventListener("change", addPhotoInputChange);
 
 // Close modal when clicking outside or on close button
 closeModal.addEventListener('click', () => modal.style.display='none');
@@ -252,10 +283,11 @@ async function saveImage(imgFile) {
 
     const profile = getStorageProvider().getProfile();
 
-    await saveMetadata(uploadResult, profile, latestGPS, latestTakenTime);
+    const docId = await saveMetadata(uploadResult, profile, latestGPS, latestTakenTime);
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
+    await reloadAndSelectNewSkyPhoto(docId);
   } catch (e) {
     labelEl.textContent = "Upload failed";
     barEl.style.width = "0%";
@@ -263,7 +295,8 @@ async function saveImage(imgFile) {
   }
 }
 
-document.getElementById("saveImageBtn").addEventListener("click", async (e) => {
+saveImageBtn.addEventListener("click", async (e) => {
+  saveImageBtn.disabled = true;
   e.stopPropagation(); // empêche la popup de se fermer
   if (!latestImageFile) return;
 
