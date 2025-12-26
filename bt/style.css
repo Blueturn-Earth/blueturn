@@ -482,8 +482,8 @@ html, body, canvas {
 
 #topButtons img {
     /* Force all SVG images to be exactly 50px by 50px */
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     /* Optional: Ensures the SVG scales correctly within the assigned dimensions */
     display: block; 
   max-width: 100%;
