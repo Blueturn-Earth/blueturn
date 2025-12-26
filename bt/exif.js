@@ -17,7 +17,6 @@ export async function processEXIF(imgFile)
     if (!tags)
     {
         const errorMsg = "No EXIF data in image file " + imgFile.name;
-        alert(errorMsg);
         throw new Error(errorMsg);
     }
 
@@ -29,22 +28,52 @@ export async function processEXIF(imgFile)
     }
     else {
         const errorMsg = "No GPS in image file " + imgFile.name;
-        alert(errorMsg);
         throw new Error(errorMsg);
     }
 
-    const dateTaken = 
+    const takenTime = 
         tags.DateTimeOriginal || 
         tags.CreateDate || 
         tags.ModifyDate;
-    if (!dateTaken) {
+    if (!takenTime) {
         const errorMsg = "No Timestamp in image file " + imgFile.name;
-        alert(errorMsg);
         throw new Error(errorMsg);
     }
-    console.log('EXIF date:', dateTaken);
+    console.log('EXIF date:', takenTime);
     return {
-        takenTime: dateTaken,
+        takenTime: takenTime,
         gps: gps
     };
+}
+
+export async function addEXIF(imgFile)
+{
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error("Geolocation not supported"));
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const now = new Date();
+
+                resolve({
+                    takenTime: now,
+                    gps: {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude
+                    }
+                });
+            },
+            (error) => {
+                reject(error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    });
 }

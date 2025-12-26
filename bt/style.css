@@ -45,25 +45,6 @@ html, body, canvas {
     pointer-events: auto;
 }
 
-#cameraButton {
-  position: fixed;
-  background: transparent;   /* no background so the SVG shape is visible */
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-  z-index: 10;
-  pointer-events: auto;
-  width: 50px;
-  height: 50px;
-  align-items: left;
-  opacity: 0.3;
-  transition: opacity 0.2s ease;
-}
-
-#cameraButton:hover {
-  opacity: 1;
-}
-
 #loading-text {
     position: absolute;
     bottom: 120px;
@@ -104,30 +85,6 @@ html, body, canvas {
 
 #nasaLogo:hover {
     opacity: 1;
-}
-
-.share-button {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    width: 5vmin;
-    height: auto;
-    background: none;
-    border: none;
-    cursor: pointer;
-    z-index: 10;
-    opacity: 0.3;
-    transition: opacity 0.2s ease;
-    pointer-events: auto;
-}
-
-.share-button:hover {
-  opacity: 1;
-}
-
-.share-button img {
-    width: 32px;
-    height: 32px;
 }
 
 #topUI {
@@ -236,6 +193,11 @@ html, body, canvas {
   transform: scale(0.97);
 }
 
+.save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .progress {
   width: 80%;
   max-width: 360px;
@@ -261,33 +223,6 @@ html, body, canvas {
   display: none;
 }
 
-.profile-btn {
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  width: 44px;
-  height: 44px;
-  cursor: pointer;
-  border-radius: 50%;
-  border: none;
-  padding: 0;
-  background: transparent;
-  pointer-events: auto;
-  opacity: 0.3;
-  transition: opacity 0.2s ease;
-}
-
-.profile-btn:hover {
-  opacity: 1;
-}
-
-.profile-btn img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
 .show-db-btn {
   position: absolute;
   top: 80px;
@@ -305,29 +240,11 @@ html, body, canvas {
   transform: scale(0.97);
 }
 
-.sky-photos-icon {
-  position: fixed;
-  background: transparent;   /* no background so the SVG shape is visible */
-  border: none;
-  cursor: pointer;
-  padding: 5px;
-  z-index: 10;
-  pointer-events: auto;
-  width: 50px;
-  height: 50px;
-  opacity: 0.3;
-  transition: opacity 0.2s ease;
-}
-
-.sky-photos-icon:hover {
-  opacity: 1;
-}
-
-.sky-photos-icon[data-state="off"] {
+#skyPhotosBtn[data-state="off"] {
   content: url("./images/icons/clouds-off.svg");
 }
 
-.sky-photos-icon[data-state="on"] {
+#skyPhotosBtn[data-state="on"] {
   content: url("./images/icons/clouds-on.svg");
 }
 
@@ -515,38 +432,71 @@ html, body, canvas {
 }
 
 @media (min-aspect-ratio: 1/1) or (orientation: landscape) {
-  #cameraButton {
-    left: 60px;
-    bottom: 50%;
-    transform: translateY(66%);
-  }
-  .sky-photos-icon {
-    right: 0;
-    bottom: 50%;
-    transform: translateY(66%);
-  }
   .scroll-cursor {
     right: 45px;
     top: 50%;
-    transform: rotate(-90deg);
+    transform: translate(-50%) rotate(-90deg);
   }
 }
 
-/* in portrait split screen vertically, typlayer top half, iss-tracker bottom half */
 @media (max-aspect-ratio: 1/1) or (orientation: portrait) {
-  #cameraButton {
-    bottom: 60px;
-    left: 50%;
-    transform: translateX(-33%);
-  }
-  .sky-photos-icon {
-    top: 0;
-    left: 50%;
-    transform: translateX(-33%);
-  }
   .scroll-cursor {
     top: 45px;
     left: 50%;
-    transform: rotate(180deg);
+    transform: translate(-50%) rotate(180deg);
   }
 }
+
+#topButtons {
+    display: flex;
+    flex-direction: row;
+    /* Aligns items vertically in the center of the toolbar */
+    align-items: center; 
+    /* Distributes space evenly between or around buttons (optional, adjust as needed) */
+    justify-content: space-around; 
+    padding: 5px;
+    height: 60px; /* Example height for the toolbar, accommodating the 50px icons */
+    width: 100%;
+}
+
+#topButtons > * {
+  all: unset;
+  display: flex !important;
+
+  /* THIS IS CRITICAL */
+  justify-self: stretch;
+
+  align-items: center;
+  justify-content: center;
+}
+
+/* First visible child → left */
+#topButtons > *:first-child {
+  justify-content: flex-start;
+}
+
+/* Last visible child → right */
+#topButtons > *:last-child {
+  justify-content: flex-end;
+}
+
+#topButtons img {
+    /* Force all SVG images to be exactly 50px by 50px */
+    width: 50px;
+    height: 50px;
+    /* Optional: Ensures the SVG scales correctly within the assigned dimensions */
+    display: block; 
+  max-width: 100%;
+  max-height: 100%;
+}
+
+#topButtons
+{
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+}
+
+#topButtons:hover {
+  opacity: 1;
+}
+

@@ -138,7 +138,6 @@ function createEarthPicDiv(data)
     earthPicDiv.onclick = () => {
         openPopupFromThumbnail(earthPicDiv);
     }
-    skyPhotosEarthGallery.appendChild(earthPicDiv);
     return earthPicDiv;
 }
 
@@ -181,7 +180,7 @@ function checkData(data)
     return true;
 }
 
-function setPic(docId, data)
+function setPic(docId, data, timeSec)
 {
     if (!docId || !checkData(data))
         return null;
@@ -190,7 +189,8 @@ function setPic(docId, data)
         const picItem = {
             earthPicDiv: createEarthPicDiv(data),
             scrollPicDiv: createScrollPicDiv(data),
-            data: data
+            data: data,
+            timeSec: timeSec
         }
         picsMap.set(docId, picItem);
     }
@@ -200,6 +200,19 @@ function setPic(docId, data)
 
 let sortedPicItems = [];
 let selectedItemIndex = undefined;
+
+function selectPicItemIndex(index)
+{
+    if (index == selectedItemIndex)
+        return;
+    selectedItemIndex = index;
+    if (index == undefined)
+        return;
+    const picItem = sortedPicItems[index];
+    const timeSec = picItem.timeSec;
+    gSetPlayState(false);
+    gJumpToEpicTime(timeSec);
+}
 
 async function updateSkyPhotos(isOn)
 {
@@ -244,38 +257,32 @@ async function updateSkyPhotos(isOn)
         const SECONDS_IN_DAY = 3600*24;
         while (timeSec > latestEpicTimeSec)
             timeSec -= SECONDS_IN_DAY;
-        const picItem = setPic(d.id, data);
+        const picItem = setPic(d.id, data, timeSec);
         if (picItem) {
-            picItem.timeSec = timeSec;
-            picItem.data = data;
             sortedPicItems.push(picItem);
             nPics++;
         }
     });
 
     sortedPicItems.sort((a, b) => a.timeSec - b.timeSec);
+    skyPhotosEarthGallery.innerHTML = '';
+    skyPhotosScrollGallery.clearItems(); 
 
     for(let i = 0; i < sortedPicItems.length; i++)
     {
         const picItem = sortedPicItems[i];
+        const earthPicDiv = picItem.earthPicDiv;
         const scrollPicDiv = picItem.scrollPicDiv;
         const timestamp = picItem.data.takenTime || picItem.data.createdAt;
         console.log(`Pic #${i}: real date: \"${timestamp.toDate()}\", fake date:\"${new Date(sortedPicItems[i].timeSec * 1000)}\"`)
+        skyPhotosEarthGallery.appendChild(earthPicDiv);
         skyPhotosScrollGallery.appendItem(scrollPicDiv); 
     }
     skyPhotosScrollGallery.show();
 
 
     skyPhotosScrollGallery.setSelectItemCb((node, index) => {
-        if (index == selectedItemIndex)
-            return;
-        selectedItemIndex = index;
-        if (index == undefined)
-            return;
-        const picItem = sortedPicItems[index];
-        const timeSec = picItem.timeSec;
-        gSetPlayState(false);
-        gJumpToEpicTime(timeSec);
+        selectPicItemIndex(index);
     });
 
     skyPhotosScrollGallery.setSelectedItemClickCb((node, index) => {
@@ -348,15 +355,34 @@ export function updateSkyPhotosPositions()
 
 const skyPhotosBtn = document.getElementById('skyPhotosBtn');
 const cameraButton = document.getElementById("cameraButton");
+const addPhotoButton = document.getElementById("addPhotoButton");
 const scrollCursor = document.getElementById('scrollCursor');
 cameraButton.style.display = 'none';
+addPhotoButton.style.display = 'none';
 scrollCursor.style.display = 'none';
 skyPhotosBtn.addEventListener('click', () => {
-    skyPhotosBtn.dataset.state =
-        skyPhotosBtn.dataset.state === "on" ? "off" : "on";
-    const showSkyPhotos = skyPhotosBtn.dataset.state === "on";
+    // toggle
+    setSkyPhotosState(skyPhotosBtn.dataset.state === "off");
+});
+
+async function setSkyPhotosState(isOn)
+{
+    skyPhotosBtn.dataset.state = isOn ? "on" : "off";
+    const showSkyPhotos = isOn;
     gControlState.blockSnapping = showSkyPhotos;
     cameraButton.style.display = showSkyPhotos ? "block" : "none";
+    addPhotoButton.style.display = showSkyPhotos ? "block" : "none";
     scrollCursor.style.display = showSkyPhotos ? "block" : "none";
-    updateSkyPhotos(showSkyPhotos);
-});
+    return updateSkyPhotos(showSkyPhotos);
+}
+
+export async function reloadAndSelectNewSkyPhoto(docId)
+{
+    await setSkyPhotosState(true);
+    const picItemIndex = sortedPicItems.findIndex(pic => pic.data.docId === docId);
+    if (picItemIndex != undefined)
+    {
+        selectedItemIndex = undefined;
+        selectPicItemIndex(picItemIndex);
+    }
+}
