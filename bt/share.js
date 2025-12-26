@@ -70,4 +70,16 @@ export function share() {
     }
 }
 
+export function gotoNASALink(node)
+{
+  window.location.href = "http://epic.gsfc.nasa.gov/";
+}
+
+export function gotoBTLink(node)
+{
+  window.location.href = "https://blueturn.earth";
+}
+
 window.share = share;
+window.gotoNASALink = gotoNASALink;
+window.gotoBTLink = gotoBTLink;
