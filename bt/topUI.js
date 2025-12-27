@@ -1,17 +1,12 @@
-  const topUI = document.getElementById("topUI");
-  let hideTimeout;
+const topUI = document.getElementById('topUI');
 
-  function showUI() {
-    topUI.classList.remove("hidden");
-    clearTimeout(hideTimeout);
-    hideTimeout = setTimeout(() => {
-      topUI.classList.add("hidden");
-    }, 3000); // Hide after 3 seconds of inactivity
-  }
+const activate = () => {
+  topUI.classList.add('is-active');
+  clearTimeout(topUI._t);
+  topUI._t = setTimeout(() => {
+    topUI.classList.remove('is-active');
+  }, 1200); // fade back after 1.2s
+};
 
-  // User interactions that reset the timer and show the topUI again
-  ["mousemove", "keydown", "touchstart"].forEach(event =>
-    window.addEventListener(event, showUI)
-  );
+topUI.addEventListener('pointerdown', activate);  
 
-  showUI(); // Start the timer

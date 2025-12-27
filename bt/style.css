@@ -93,13 +93,13 @@ html, body, canvas {
     left: 0;
     width: 100vw;
     height: 20vmin;
-    opacity: 1;
-    transition: opacity 0.5s ease-in-out;
+    opacity: 0.3;
+    transition: opacity 0.2s ease;
     z-index: 10; /* Ensure it’s on top */
 }
 
-#topUI.hidden {
-    opacity: 0;
+#topUI.is-active {
+    opacity: 1;
 }
 
 /* Modal styling */
@@ -455,7 +455,7 @@ html, body, canvas {
     /* Distributes space evenly between or around buttons (optional, adjust as needed) */
     justify-content: space-around; 
     padding: 5px;
-    height: 60px; /* Example height for the toolbar, accommodating the 50px icons */
+    height: 40px; /* Example height for the toolbar, accommodating the 50px icons */
     width: 100%;
 }
 
@@ -482,21 +482,11 @@ html, body, canvas {
 
 #topButtons img {
     /* Force all SVG images to be exactly 50px by 50px */
-    width: 40px;
-    height: 40px;
+    width: 30px;
+    height: 30px;
     /* Optional: Ensures the SVG scales correctly within the assigned dimensions */
     display: block; 
   max-width: 100%;
   max-height: 100%;
-}
-
-#topButtons
-{
-  opacity: 0.3;
-  transition: opacity 0.2s ease;
-}
-
-#topButtons:hover {
-  opacity: 1;
 }
 
