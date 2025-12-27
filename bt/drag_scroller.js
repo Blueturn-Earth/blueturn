@@ -105,7 +105,7 @@ export default class DragScroller
       this.itemsGroup.removeChild(this.itemsGroup.children[i]);
     }
     this.#updateSpacers();
-    this.numItems++;
+    this.numItems = 0;
   }
 
   scrollToAlpha(alpha) {
@@ -346,6 +346,8 @@ export default class DragScroller
     if (index != this.selectedItemIndex)
     {
       this.selectedItemIndex = index;
+      
+      console.log("Selected item index: ", index);
       
       if (this.onSelectItemCb)
         this.onSelectItemCb(this.itemsGroup.children[index + 1], index); // skip start spacer

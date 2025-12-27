@@ -63,6 +63,7 @@ function smoothstep (x) {
 function updateEarthSkyPhotoPosition(picItem)
 {
     const earthPicDiv = picItem.earthPicDiv;
+    const scrollDivImg = picItem.scrollPicDiv.querySelector("img");
     const timestamp = earthPicDiv.data.takenTime || earthPicDiv.data.createdAt;
     const timestampDate = timestamp.toDate();
     const currentDate = new Date(gEpicTimeSec * 1000);
@@ -78,6 +79,7 @@ function updateEarthSkyPhotoPosition(picItem)
             latestEpicTimeSec - currentDateTimeSec > SECONDS_IN_DAY)
         {
             earthPicDiv.style.display = 'none';
+            scrollDivImg.style.border = `0px solid`;
             return;
         }
     }
@@ -85,6 +87,7 @@ function updateEarthSkyPhotoPosition(picItem)
     const picPos = gGetScreenCoordFromLatLon(earthPicDiv.data.gps.lat, earthPicDiv.data.gps.lon);
     if (picPos.z < -0.2) {
         earthPicDiv.style.display = 'none';
+        scrollDivImg.style.border = `0px solid`;
         return;
     }    
     earthPicDiv.style.display = 'block';
@@ -123,7 +126,6 @@ function updateEarthSkyPhotoPosition(picItem)
     const borderColor = Math.round(borderAlpha * 255);    
     earthPicDiv.style.border = `${borderFactor}px solid rgba(${borderColor}, ${borderColor}, ${borderColor}, ${borderAlpha})`;
 
-    const scrollDivImg = picItem.scrollPicDiv.querySelector("img");
     scrollDivImg.style.border = earthPicDiv.style.border;
 
     return scaleAlpha;
