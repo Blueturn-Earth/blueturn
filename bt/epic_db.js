@@ -158,11 +158,38 @@ export default class EpicDB {
         return lastEpicImageData && !lastEpicImageData.loading && timeSec > lastEpicImageData.timeSec;
     }
     
-    _getPrevEpicImage(timeSec, strict = true) {
-        const dayStr = EpicDB.getDayStrFromTimeSec(timeSec);
+    _getPrevAvailableDay(dayStr, strict = true)
+    {
+        if (!strict && this._epicDays.has(dayStr))
+            return dayStr;
+        const prevEntry = this._epicDays.floorEntry(dayStr);
+        if (!prevEntry)
+            return null; // first day
+        return prevEntry[0];
+    }
+
+    _getNextAvailableDay(dayStr, strict = true)
+    {
+        if (!strict && this._epicDays.has(dayStr))
+            return dayStr;
+        const nextEntry = this._epicDays.ceilEntry(dayStr);
+        if (!nextEntry)
+            return null; // last day
+        return nextEntry[0];
+    }
+
+    _getPrevEpicImage(timeSec, strict = true, sameDay = true) {
+        let dayStr = EpicDB.getDayStrFromTimeSec(timeSec);
         if (!this._epicDays.has(dayStr)) {
-            return null; // No data for this day
+            if (sameDay)
+                return null; // No data for this day
+
+            // faraway previous
+            dayStr = this._getPrevAvailableDay(dayStr);
+            if (!dayStr)
+                return null;
         }
+
         const epicDayData = this._epicDays.get(dayStr);
         if (!epicDayData || epicDayData.loading || !epicDayData.length) {
             return null; // No data for this day
@@ -192,10 +219,16 @@ export default class EpicDB {
         return prevEpicDayData[prevEpicDayData.length - 1]; // Last image of the prev day        
     }
 
-    _getNextEpicImage(timeSec, strict = false) {
-        const dayStr = EpicDB.getDayStrFromTimeSec(timeSec);
+    _getNextEpicImage(timeSec, strict = false, sameDay = true) {
+        let dayStr = EpicDB.getDayStrFromTimeSec(timeSec);
         if (!this._epicDays.has(dayStr)) {
-            return null; // No data for this day
+            if (sameDay)
+                return null; // No data for this day
+
+            // faraway next
+            dayStr = this._getNextAvailableDay(timeSec);
+            if (!dayStr)
+                return null; // last day
         }
         const epicDayData = this._epicDays.get(dayStr);
         if (!epicDayData || epicDayData.loading || !epicDayData.length) {
@@ -426,11 +459,11 @@ export default class EpicDB {
         }
     }
 
-    getBoundKeyFrames(timeSec) {
+    getBoundKeyFrames(timeSec, sameDay = true) {
         // Get the bound key frames for the given timeSec
         // This will return the previous and next key frames around the given timeSec
-        const epicImageDataKey0 = this._getPrevEpicImage(timeSec, true);
-        const epicImageDataKey1 = this._getNextEpicImage(timeSec, false);
+        const epicImageDataKey0 = this._getPrevEpicImage(timeSec, true, sameDay);
+        const epicImageDataKey1 = this._getNextEpicImage(timeSec, false, sameDay);
         return [epicImageDataKey0, epicImageDataKey1];
     }
 
@@ -444,35 +477,37 @@ export default class EpicDB {
     // 7. predict and load epic frames to be loaded around the given timeSec, with a heuristic based on given time speed
     // 8. returns the key frames, the interpolated frame, and the mix factor for the given timeSec
     // Load the bound key frames for the given timeSec
-    async fetchBoundKeyFrames(timeSec) 
+    async fetchBoundKeyFrames(timeSec, sameDay = true) 
     {
+        let epicImageDataKey0;
+        let epicImageDataKey1;
+
+        const boundPair = this.getBoundKeyFrames(timeSec, sameDay);
+        if (!boundPair || (sameDay && boundPair.length !== 2)) {
+            return null;
+        }
+        [epicImageDataKey0, epicImageDataKey1] = boundPair;
+
+        if (epicImageDataKey0 && epicImageDataKey1)
+        {
+            // If both frames are already loaded, return them
+            return [epicImageDataKey0, epicImageDataKey1];
+        }
+
+        // Load metadata from days around the given date
+        const date = new Date(timeSec * 1000);
+        const dayStr = date.toISOString().slice(0, 10);
+        const prevDayStr = sameDay ?
+            gGetPrevDateStr(dayStr) :
+            this._getPrevAvailableDay(dayStr);
+        const nextDayStr = sameDay ?
+            gGetNextDateStr(dayStr) :
+            this._getNextAvailableDay(dayStr);
+        this._abortLoadingDaysExcept([dayStr, prevDayStr, nextDayStr], 
+            "Aborted loading days except current:" + dayStr + ", previous:" + prevDayStr + ", next:" + nextDayStr);
+        
         return new Promise((resolve, reject) => {
-            let epicImageDataKey0;
-            let epicImageDataKey1;
-
-            const boundPair = this.getBoundKeyFrames(timeSec);
-            if (!boundPair || boundPair.length !== 2) {
-                resolve(null); // likely aborted
-                return;
-            }
-            [epicImageDataKey0, epicImageDataKey1] = boundPair;
-
-            if (epicImageDataKey0 && epicImageDataKey1)
-            {
-                // If both frames are already loaded, return them
-                resolve([epicImageDataKey0, epicImageDataKey1]);
-                return;
-            }
-
-            // Load metadata from days around the given date
-            const date = new Date(timeSec * 1000);
-            const dayStr = date.toISOString().slice(0, 10);
-            const prevDayStr = gGetPrevDateStr(dayStr);
-            const nextDayStr = gGetNextDateStr(dayStr);
-            this._abortLoadingDaysExcept([dayStr, prevDayStr, nextDayStr], 
-                "Aborted loading days except current:" + dayStr + ", previous:" + prevDayStr + ", next:" + nextDayStr);
-            
-            if (!epicImageDataKey0 && !epicImageDataKey1)
+            if (!epicImageDataKey0 && !epicImageDataKey1 && this.isDayAvailable(dayStr))
             {
                 this._loadEpicDay(dayStr)
                 .then((epicDayData) => {
@@ -480,7 +515,7 @@ export default class EpicDB {
                         resolve(null); // likely loading already
                         return;
                     }
-                    const boundPair = this.getBoundKeyFrames(timeSec);
+                    const boundPair = this.getBoundKeyFrames(timeSec, sameDay);
                     if (!boundPair || boundPair.length !== 2) {
                         resolve(null); // likely aborted
                         return;
@@ -490,7 +525,7 @@ export default class EpicDB {
                         resolve([epicImageDataKey0, epicImageDataKey1]);
                     else if (epicImageDataKey0 || epicImageDataKey1)
                     {
-                        this.fetchBoundKeyFrames(timeSec) // maybe we miss prev or next
+                        this.fetchBoundKeyFrames(timeSec, sameDay) // maybe we miss prev or next
                         .then((boundPair) => {resolve(boundPair);})
                         .catch(e => {
                             console.error("Error fetching bound key frames: " + e);
@@ -507,19 +542,26 @@ export default class EpicDB {
             }
             else if (!epicImageDataKey0) // if left frame is missing
             {
+                if (!prevDayStr || !this.isDayAvailable(prevDayStr))
+                {
+                    resolve([epicImageDataKey0, epicImageDataKey1]);
+                    return;
+                }
                 this._loadEpicDay(prevDayStr)
                 .then((epicDayData) => {
                     if (epicDayData == null) {
                         resolve(null); // likely loading already
                         return;
                     }
-                    const boundPair = this.getBoundKeyFrames(timeSec);
+                    const boundPair = this.getBoundKeyFrames(timeSec, sameDay);
                     if (!boundPair || boundPair.length !== 2) {
                         resolve(null); // likely aborted
                         return;
                     }
                     [epicImageDataKey0, epicImageDataKey1] = boundPair;
                     if (epicImageDataKey0 && epicImageDataKey1)
+                        resolve([epicImageDataKey0, epicImageDataKey1]);
+                    else if (!sameDay && (epicImageDataKey0 || epicImageDataKey1))
                         resolve([epicImageDataKey0, epicImageDataKey1]);
                     else
                         resolve(null); // likely aborted
@@ -531,19 +573,26 @@ export default class EpicDB {
             }
             else //if (!epicImageDataKey1) // if right frame is missing
             {
+                if (!nextDayStr || !this.isDayAvailable(nextDayStr))
+                {
+                    resolve([epicImageDataKey0, epicImageDataKey1]);
+                    return;
+                }
                 this._loadEpicDay(nextDayStr)
                 .then((epicDayData) => {
                     if (epicDayData == null) {
                         resolve(null); // likely loading already
                         return;
                     }
-                    const boundPair = this.getBoundKeyFrames(timeSec);
+                    const boundPair = this.getBoundKeyFrames(timeSec, sameDay);
                     if (!boundPair || boundPair.length !== 2) {
                         resolve(null); // likely aborted
                         return;
                     }
                     [epicImageDataKey0, epicImageDataKey1] = boundPair;
                     if (epicImageDataKey0 && epicImageDataKey1)
+                        resolve([epicImageDataKey0, epicImageDataKey1]);
+                    else if (!sameDay && (epicImageDataKey0 || epicImageDataKey1))
                         resolve([epicImageDataKey0, epicImageDataKey1]);
                     else
                         resolve(null); // likely aborted

@@ -82,6 +82,8 @@ export default class EpicDataLoader
         this._pendingLoads.forEach((controller, call) => {
             let doAbort = true;
             days.forEach((date) => {
+                if (!date)
+                    return;
                 const excludedCall = gEpicAPI.getEpicDayCall(date);
                 if (call === excludedCall) {
                     doAbort = false; // Do not abort the call for the excluded date

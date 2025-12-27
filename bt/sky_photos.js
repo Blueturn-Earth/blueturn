@@ -1,4 +1,4 @@
-import {gCalculateScreenCoordFromLatLon, gFindClosestIndexInSortedArray} from './utils.js';
+import {gCalculateScreenCoordFromLatLon, gFindClosestIndexInSortedArray, gGetDateTimeStringFromTimeSec} from './utils.js';
 import {gEpicImageData, gEpicTimeSec, gEpicDB, gSetPlayState, gJumpToEpicTime} from '././app.js';
 import { db } from "./firebase_db.js";
 import { ensureAuthReady } from "./firebase_auth.js";
@@ -64,24 +64,16 @@ function updateEarthSkyPhotoPosition(picItem)
 {
     const earthPicDiv = picItem.earthPicDiv;
     const scrollDivImg = picItem.scrollPicDiv.querySelector("img");
-    const timestamp = earthPicDiv.data.takenTime || earthPicDiv.data.createdAt;
-    const timestampDate = timestamp.toDate();
+    const timestampTimeSec = picItem.timeSec;
+    const timestampDate = new Date(timestampTimeSec * 1000);
     const currentDate = new Date(gEpicTimeSec * 1000);
 
     const dateDiff = dateDiffSecondsWithTZ(currentDate, timestampDate);
     if (Math.abs(dateDiff) > 12 * 3600)
     {
-        const latestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec();
-        const timestampTimeSec = timestampDate.getTime() / 1000;
-        const currentDateTimeSec = currentDate.getTime() / 1000;
-        const SECONDS_IN_DAY = 24*3600;
-        if (latestEpicTimeSec - timestampTimeSec > SECONDS_IN_DAY ||
-            latestEpicTimeSec - currentDateTimeSec > SECONDS_IN_DAY)
-        {
-            earthPicDiv.style.display = 'none';
-            scrollDivImg.style.border = `0px solid`;
-            return;
-        }
+        earthPicDiv.style.display = 'none';
+        scrollDivImg.style.border = `0px solid`;
+        return;
     }
 
     const picPos = gGetScreenCoordFromLatLon(earthPicDiv.data.gps.lat, earthPicDiv.data.gps.lon);
@@ -250,21 +242,45 @@ async function updateSkyPhotos(isOn)
 
     let nPics = 0;
     sortedPicItems = [];
-    const latestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec();
-    snap.forEach(d => {
+    for (const d of snap.docs) {
         const data = d.data();
         const timestamp = data.takenTime || data.createdAt;
         const timestampDate = timestamp.toDate();
         let timeSec = timestampDate.getTime() / 1000;
+
+        const boundPair = 
+            await gEpicDB.fetchBoundKeyFrames(
+                timeSec,
+                false // don't request same day
+            );
+        const [epicImageData0, epicImageData1] = boundPair ? boundPair : [null, null];
+        if (!epicImageData0 && !epicImageData1) {
+            console.warn("Could not fetch EPIC image at picture time ", timestampDate);
+            continue;
+        }
         const SECONDS_IN_DAY = 3600*24;
-        while (timeSec > latestEpicTimeSec)
-            timeSec -= SECONDS_IN_DAY;
+        if (!epicImageData1 || !epicImageData0 || epicImageData1.timeSec - epicImageData0.timeSec > SECONDS_IN_DAY)
+        {
+            console.log("EPIC data not available at picture time ", timestampDate);
+            if (!epicImageData1 || timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)
+            {
+                console.log("Closest EPIC data before picture time is at ", epicImageData0.date);
+                while (timeSec > epicImageData0.timeSec)
+                    timeSec -= SECONDS_IN_DAY;
+            }
+            else
+            {
+                console.log("Closest EPIC data after picture time is at ", epicImageData1.date);
+                while (timeSec < epicImageData1.timeSec)
+                    timeSec += SECONDS_IN_DAY;
+            }
+        }
         const picItem = setPic(d.id, data, timeSec);
         if (picItem) {
             sortedPicItems.push(picItem);
             nPics++;
         }
-    });
+    }
 
     sortedPicItems.sort((a, b) => a.timeSec - b.timeSec);
     skyPhotosEarthGallery.innerHTML = '';

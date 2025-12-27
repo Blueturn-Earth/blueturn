@@ -135,12 +135,12 @@ export async function gJumpToEpicTime(startTimeSec)
             gControlState.day = adjustedDate.toISOString().split('T')[0];
             gControlState.time = adjustedDate.toUTCString().split(' ')[4].replace(/\.\d+Z$/, '');
             date_time = gControlState.day + " " + gControlState.time;
-        console.warn("Time " + bad_date_time + " is not in available EPIC range - adjust to 24 hours backwards: " + date_time);
+            console.warn("Time " + bad_date_time + " is not in available EPIC range - adjust to 24 hours backwards: " + date_time);
         }
         // align to exact time of closest EPIC image
         if (gEpicDB.hasEpicDataForTimeSec(startTimeSec))
         {
-        console.log("Time: " + date_time);
+            console.log("Time: " + date_time);
             gSetInitialEpicTimeSec(startTimeSec);
             gControlState.jumping = false;
             gControlState.jump = false;
