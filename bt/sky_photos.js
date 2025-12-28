@@ -262,13 +262,13 @@ async function updateSkyPhotos(isOn)
         if (!epicImageData1 || !epicImageData0 || epicImageData1.timeSec - epicImageData0.timeSec > SECONDS_IN_DAY)
         {
             console.log("EPIC data not available at picture time ", timestampDate);
-            if (!epicImageData1 || timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)
+            if (!epicImageData1 || (epicImageData0 && (timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)))
             {
                 console.log("Closest EPIC data before picture time is at ", epicImageData0.date);
                 while (timeSec > epicImageData0.timeSec)
                     timeSec -= SECONDS_IN_DAY;
             }
-            else
+            if (!epicImageData0 || (epicImageData1 && (timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)))
             {
                 console.log("Closest EPIC data after picture time is at ", epicImageData1.date);
                 while (timeSec < epicImageData1.timeSec)
