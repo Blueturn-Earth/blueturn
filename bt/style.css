@@ -25,7 +25,7 @@ html, body, canvas {
 #current-time-text {
     position: absolute;
     bottom: 20px;
-    right: 20px;
+      left: 20px;
     color: lightgray;
     font-size: 20px;
     font-family: 'Courier New', monospace;
@@ -54,37 +54,6 @@ html, body, canvas {
     font-family: 'Courier New', monospace;
     text-align: left;
     z-index: 10;  /* Ensure text stays on top */
-}
-
-#btLogo {
-    position: fixed;
-    bottom: 10px;
-    left: 10px;
-    width: 10vmin;
-    height: auto;
-    z-index: 10;
-    opacity: 0.3;
-    transition: opacity 0.2s;
-    pointer-events: auto;
-}
-
-#btLogo:hover {
-    opacity: 1;
-}
-
-#nasaLogo {
-    position: fixed;
-    bottom: 10px;
-    left: 10px;
-    width: 10vmin;
-    height: auto;
-    z-index: 10;
-    opacity: 0.3;
-    transition: opacity 0.2s;
-}
-
-#nasaLogo:hover {
-    opacity: 1;
 }
 
 #topUI {
@@ -448,15 +417,9 @@ html, body, canvas {
 }
 
 #topButtons {
+    position: fixed;
     display: flex;
-    flex-direction: row;
-    /* Aligns items vertically in the center of the toolbar */
-    align-items: center; 
-    /* Distributes space evenly between or around buttons (optional, adjust as needed) */
-    justify-content: space-around; 
     padding: 5px;
-    height: 40px; /* Example height for the toolbar, accommodating the 50px icons */
-    width: 100%;
 }
 
 #topButtons > * {
@@ -489,4 +452,35 @@ html, body, canvas {
   max-width: 100%;
   max-height: 100%;
 }
+
+@media (min-aspect-ratio: 1/1) or (orientation: landscape) {
+  #topButtons {
+      flex-direction: column;
+      height: 100%;
+      width: 40px;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      left: auto;
+      justify-content: space-evenly; /* or space-between */
+      align-items: center;
+  }
+}
+
+@media (max-aspect-ratio: 1/1) or (orientation: portrait) {
+  #topButtons {
+      flex-direction: row;
+      height: 40px;
+      width: 100%;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: auto;
+      /* Aligns items in the center of the toolbar */
+      align-items: center; 
+      /* Distributes space evenly between or around buttons (optional, adjust as needed) */
+      justify-content: space-around; 
+  }
+}
+
 
