@@ -1,6 +1,9 @@
 import StorageProvider from './storage_provider.js';
 
-export default class GoogleDriveProvider extends StorageProvider {
+export const MB_USER_ID = "115698886322844446345";
+export const BT_USER_ID = "114875439275176869994";
+
+export class GoogleDriveProvider extends StorageProvider {
   constructor(clientId = '509580731574-fk6ovov57h0b2tq083jv4860qa8ofhqg.apps.googleusercontent.com') {
     super();
     this.clientId = clientId;

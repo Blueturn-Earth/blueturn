@@ -404,3 +404,4 @@ export async function reloadAndSelectNewSkyPhoto(docId)
         selectPicItemIndex(picItemIndex);
     }
 }
+

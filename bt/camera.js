@@ -1,4 +1,4 @@
-import GoogleDriveProvider from './gdrive_provider.js';
+import {GoogleDriveProvider, MB_USER_ID, BT_USER_ID} from './gdrive_provider.js';
 import {saveMetadata} from './firebase_save.js';
 import {processEXIF, addEXIF} from './exif.js';
 import {reloadAndSelectNewSkyPhoto} from './sky_photos.js';
@@ -183,8 +183,6 @@ const progressEl = document.getElementById("uploadProgress");
 const barEl = progressEl.querySelector(".bar");
 const labelEl = progressEl.querySelector(".label");
 
-const SUPER_USER_ID = "115698886322844446345";
-
 let _storageProvider = null;
 
 function getStorageProvider() {
@@ -198,9 +196,13 @@ document.getElementById("profileBtn").onclick = async () => {
   const forceNewLogin = true;
   await getStorageProvider().ensureAuth(forceNewLogin);
   const profile = getStorageProvider().getProfile();
-  if (profile?.sub == SUPER_USER_ID)
+  if (profile?.sub == MB_USER_ID)
   {
     document.getElementById("showDbBtn").style.display = 'block';
+  }
+  if (profile?.sub == BT_USER_ID)
+  {
+    loadPicsFromBTContent();
   }
 };
 
@@ -269,12 +271,18 @@ async function saveImage(imgFile) {
   const dataURL = URL.createObjectURL(uploadFile);
 
   const blob = await (await fetch(dataURL)).blob();
+  return await saveBlob(blob, dataURL)
+}
+
+async function saveBlob(blob, url)
+{
   progressEl.classList.remove("hidden");
   barEl.style.width = "0%";
   labelEl.textContent = "Uploading…";
   labelEl.style.display = "block";
 
   try {
+    console.log("Uploading to GDrive ", url);
     const uploadResult = await getStorageProvider().upload(blob, (p) => {
       barEl.style.width = `${Math.round(p * 100)}%`;
     });
@@ -283,6 +291,7 @@ async function saveImage(imgFile) {
 
     const profile = getStorageProvider().getProfile();
 
+    console.log("Saving to FB ", url);
     const docId = await saveMetadata(uploadResult, profile, latestGPS, latestTakenTime);
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
@@ -303,3 +312,43 @@ saveImageBtn.addEventListener("click", async (e) => {
   await saveImage(latestImageFile);
 });
 
+async function loadPicsFromBTContent()
+{
+    try {
+        const resp = await fetch('https://content.blueturn.earth/Pictures.txt');
+        if (!resp.ok) {
+            return;
+        }
+        const picListTxt = await resp.text();
+        const picList = picListTxt.split('\n');
+        for (let i = 0; i < picList.length; i++)
+        {
+            let url = picList[i];
+            url = url.replace(
+              "http://content.blueturn.earth.storage.googleapis.com/", 
+              "https://storage.googleapis.com/content.blueturn.earth/");
+            try {
+                // 0. Download
+                console.log("Downloading ", url);
+                const blob = await (await fetch(url)).blob();
+                // 1. Extract EXIF
+                console.log("Extracting EXIF from ", url);
+                const result = await processEXIF(blob);        
+                latestTakenTime = result.takenTime;
+                latestGPS = result.gps;
+                console.log("Extracted EXIF: takenTime=" + latestTakenTime + ", gps=" + latestGPS);
+                // 2. save to GDrive + FB
+                console.log("Saving blob for ", url);
+                await saveBlob(blob);
+                console.log("Done with ", url);
+            }            
+            catch(e) {
+                console.error("Failed to load ", url);
+            }
+        }
+    }
+    catch (e)
+    {
+        console.log(e);
+    }
+}
