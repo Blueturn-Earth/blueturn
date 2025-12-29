@@ -2,6 +2,7 @@ import GoogleDriveProvider from './gdrive_provider.js';
 import {saveMetadata} from './firebase_save.js';
 import {processEXIF, addEXIF} from './exif.js';
 import {reloadAndSelectNewSkyPhoto} from './sky_photos.js';
+import {analyzeSkyFromURL} from './sky_analyzer.js'
 
 const modal = document.getElementById('photoModal');
 const modalImage = document.getElementById('modalImage');
@@ -61,46 +62,6 @@ addPhotoButton.addEventListener("click", async () => {
   addPhotoInput.click();
 });
 
-function analyzeSky(img) {
-  console.log("Analyzing sky coverage…");
-  const canvas = document.createElement('canvas');
-  canvas.width = img.width;
-  canvas.height = img.height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img,0,0);
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  let skyPixels = 0;
-  const totalPixels = imageData.data.length / 4;
-
-  for (let i = 0; i < imageData.data.length; i += 4) {
-    const r = imageData.data[i];
-    const g = imageData.data[i+1];
-    const b = imageData.data[i+2];
-    const luminance = 0.299*r + 0.587*g + 0.114*b;
-
-    // Accept bright pixels or lightly saturated (white/gray clouds)
-    const maxColor = Math.max(r,g,b);
-    const minColor = Math.min(r,g,b);
-    const saturation = (maxColor - minColor)/255;
-
-    if (luminance > 150 && saturation < 0.7) skyPixels++;
-    else if (b > r && b > g) skyPixels++;
-  }
-
-  const skyRatio = skyPixels / totalPixels;
-
-  const MIN_SKY_RATIO = 0.55;
-  let isSkyPhoto = skyRatio > MIN_SKY_RATIO;
-
-    modalSky.textContent = 
-        "Sky Ratio: " + (skyRatio.toFixed(2)*100) + "%";
-
-    console.log(modalSky.textContent);
-    
-  return isSkyPhoto;
-
-}
-
 function updateModal()
 {
   const latestImageURL = URL.createObjectURL(latestImageFile);
@@ -111,14 +72,14 @@ function updateModal()
   modalGPS.textContent = latestGPS ? `GPS: ${latestGPS.lat.toFixed(6)}, ${latestGPS.lon.toFixed(6)}` : "GPS: unavailable";
 
   // Sky coverage
-  const img = new Image();
-  img.onload = () => {
-    const isSky = analyzeSky(img);
-    console.log("Sky photo analysis:", isSky);
-  };
-  console.log("Loading image");
-  img.src = latestImageURL;
-
+  modalSky.textContent = "Analyzing sky...";
+  modalSky.style.color = "white";
+  analyzeSkyFromURL(latestImageURL)
+  .then(({isSky, skyRatio}) => {
+    modalSky.textContent = (isSky ? "Likely" : "Unlikely") + "sky photo (ratio=" + (skyRatio.toFixed(2)*100) + "%)";
+    console.log(modalSky.textContent);
+    modalSky.style.color = isSky ? "lightgreen" : "pink";
+  });
   console.log("Show modal");
   // All ready → Hide spinner + show modal
   loading.style.display = "none";
