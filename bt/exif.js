@@ -46,28 +46,18 @@ export async function processEXIF(imgFile)
     };
 }
 
-export async function addEXIF(imgFile)
+async function getGeolocationPromise()
 {
     return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-            reject(new Error("Geolocation not supported"));
-            return;
-        }
-
         navigator.geolocation.getCurrentPosition(
             (position) => {
-                const now = new Date();
-
                 resolve({
-                    takenTime: now,
-                    gps: {
-                        lat: position.coords.latitude,
-                        lon: position.coords.longitude
-                    }
-                });
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude
+                });                
             },
-            (error) => {
-                reject(error);
+            (geoError) => {
+                reject(geoError);
             },
             {
                 enableHighAccuracy: true,
@@ -76,4 +66,47 @@ export async function addEXIF(imgFile)
             }
         );
     });
+}
+
+async function getGeolocation()
+{
+    let gps;
+    try {
+        gps = await getGeolocationPromise();
+    }
+    catch(geoError) {
+        switch(geoError.code)
+        {
+        case 1: // PERMISSION_DENIED
+            if (window.confirm("Please allow geolocation to pin your photo on Earth"))
+            {
+                try {
+                    gps = await getGeolocationPromise();
+                }
+                catch (geoError) {
+                    throw new Error("Geolocation error: " + geoError.message);
+                }
+            }
+            throw new Error("No Geolocation permission: " + geoError.message);
+        case 2: // POSITION_UNAVAILABLE
+            throw new Error("Geolocation unavailable: " + geoError.message);
+        case 3: // TIMEOUT
+            throw new Error("Geolocation timeout: " + geoError.message);
+        }
+    }
+}
+
+export async function addEXIF(imgFile)
+{
+    if (!navigator.geolocation) {
+        throw new Error("Geolocation not supported");
+    }
+
+    const now = new Date();
+    const gps = await getGeolocation();
+
+    return {
+        takenTime: now,
+        gps: gps
+    };
 }
