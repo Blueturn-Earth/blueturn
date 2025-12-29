@@ -22,6 +22,9 @@ skyPhotosScrollGallery.hide();
 
 function gGetScreenCoordFromLatLon(lat, lon)
 {
+    if(!gEpicImageData)
+        return null;
+
     return gCalculateScreenCoordFromLatLon(lat, lon, 
         gEpicImageData.centroid_matrix,
         gEpicImageData.earthRadius / 2.0 * Math.min(canvas.width, canvas.height),
@@ -77,16 +80,16 @@ function updateEarthSkyPhotoPosition(picItem)
     }
 
     const picPos = gGetScreenCoordFromLatLon(earthPicDiv.data.gps.lat, earthPicDiv.data.gps.lon);
-    if (picPos.z < -0.2) {
+    if (!picPos || picPos.z < -0.2) {
         earthPicDiv.style.display = 'none';
-        scrollDivImg.style.border = `0px solid`;
-        return;
-    }    
-    earthPicDiv.style.display = 'block';
-    const dpr = window.devicePixelRatio || 1;
-    earthPicDiv.style.left = `${picPos.x / dpr}px`;
-    earthPicDiv.style.top = `${picPos.y / dpr}px`;
-    earthPicDiv.style.zIndex = picPos.z <= 0.0 ? '-1' : '5'; 
+    }
+    else {
+        earthPicDiv.style.display = 'block';
+        const dpr = window.devicePixelRatio || 1;
+        earthPicDiv.style.left = `${picPos.x / dpr}px`;
+        earthPicDiv.style.top = `${picPos.y / dpr}px`;
+        earthPicDiv.style.zIndex = picPos.z <= 0.0 ? '-1' : '5'; 
+    }
 
     // process timestamp
     const diffSec = timeDiffSecondsWithTZ(currentDate, timestampDate);
@@ -97,13 +100,16 @@ function updateEarthSkyPhotoPosition(picItem)
     const overScale = 0.35;
     const scaleAlpha = smoothstep
         (1.0 - Math.min(absDiffSec, scaleWindow) / scaleWindow);
+    if (scaleAlpha < 0.001) {
+        earthPicDiv.style.display = 'none';
+    }    
     const scaleFactor = scaleAlpha*(maxScale - minScale) + minScale;
     if (diffSec < 0) {
         earthPicDiv.style.opacity = 1;
         earthPicDiv.style.transform = `translate(-50%, -50%) scale(${scaleFactor})`;
     }
     else {
-        earthPicDiv.style.opacity = scaleFactor/maxScale;
+        earthPicDiv.style.opacity = scaleAlpha;
         const extraScaleFactor = (1.0 - scaleAlpha)*(overScale - maxScale) + maxScale;
         earthPicDiv.style.transform = `translate(-50%, -50%) scale(${extraScaleFactor})`;
     }
@@ -262,13 +268,13 @@ async function updateSkyPhotos(isOn)
         if (!epicImageData1 || !epicImageData0 || epicImageData1.timeSec - epicImageData0.timeSec > SECONDS_IN_DAY)
         {
             console.log("EPIC data not available at picture time ", timestampDate);
-            if (!epicImageData1 || timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)
+            if (!epicImageData1 || (epicImageData0 && (timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)))
             {
                 console.log("Closest EPIC data before picture time is at ", epicImageData0.date);
                 while (timeSec > epicImageData0.timeSec)
                     timeSec -= SECONDS_IN_DAY;
             }
-            else
+            if (!epicImageData0 || (epicImageData1 && (timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)))
             {
                 console.log("Closest EPIC data after picture time is at ", epicImageData1.date);
                 while (timeSec < epicImageData1.timeSec)
