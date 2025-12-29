@@ -103,7 +103,7 @@ function updateEarthSkyPhotoPosition(picItem)
         earthPicDiv.style.transform = `translate(-50%, -50%) scale(${scaleFactor})`;
     }
     else {
-        earthPicDiv.style.opacity = scaleFactor/maxScale;
+        earthPicDiv.style.opacity = scaleAlpha;
         const extraScaleFactor = (1.0 - scaleAlpha)*(overScale - maxScale) + maxScale;
         earthPicDiv.style.transform = `translate(-50%, -50%) scale(${extraScaleFactor})`;
     }
