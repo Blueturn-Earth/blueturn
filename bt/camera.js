@@ -76,7 +76,7 @@ function updateModal()
   modalSky.style.color = "white";
   analyzeSkyFromURL(latestImageURL)
   .then(({isSky, skyRatio}) => {
-    modalSky.textContent = (isSky ? "Likely" : "Unlikely") + "sky photo (ratio=" + (skyRatio.toFixed(2)*100) + "%)";
+    modalSky.textContent = (isSky ? "Likely" : "Unlikely") + "sky photo (ratio=" + Math.trunc(skyRatio*100).toString() + "%)";
     console.log(modalSky.textContent);
     modalSky.style.color = isSky ? "lightgreen" : "pink";
   });
