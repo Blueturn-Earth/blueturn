@@ -164,10 +164,14 @@ function openNewPhotoWithFile(file, camera)
 
   // Show modal
   console.log("Loading new photo");
-  modalImage.src = url;
   modalImage.onload = () => {
     openNewPhotoWithImg(modalImage, file, camera);
   }
+  modalImage.onerror = () => {
+    alert("Failed to open " + file);
+    loading.style.display = "none";
+  }
+  modalImage.src = url;
 }
 
 console.log("Add camera input change handler");
@@ -312,10 +316,11 @@ async function saveImage(imgFile) {
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
     await reloadAndSelectNewSkyPhoto(docId);
-  } catch (e) {
+  } catch (e) {    
     labelEl.textContent = "Upload failed";
     barEl.style.width = "0%";
     console.error(e);
+    alert(e);
   }
 }
 

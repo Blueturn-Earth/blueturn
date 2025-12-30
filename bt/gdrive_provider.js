@@ -67,12 +67,19 @@ export default class GoogleDriveProvider extends StorageProvider {
 
   async uploadToDrive(blob, onProgress, onError) {
     console.log("Ensuring Drive auth…");
-    await this.ensureAuth();
+    try {
+      await this.ensureAuth();
+    }
+    catch(e) {
+      const err = new Error("Failed to autheticate: " + e);
+      console.error(err);
+      onError && onError(err);
+    }
     if (!this.accessToken) {
       const err = new Error("Failed to obtain Drive access token");
       console.error(err);
       onError && onError(err);
-      throw err;
+      return;
     }
 
     let folderId;
@@ -82,7 +89,7 @@ export default class GoogleDriveProvider extends StorageProvider {
     } catch (e) {
       console.error(e);
       onError && onError(e);
-      throw e;
+      return;
     }
     const metadata = {
         name: `Sky_${Date.now()}.jpg`,
@@ -134,7 +141,7 @@ export default class GoogleDriveProvider extends StorageProvider {
         console.log("Starting upload to Drive with progress tracking…: ", metadata);
         xhr.send(form);
     });
-}
+  }
 
   async makeDriveFilePublic(fileId) {
     console.log("Making Drive file public: ", fileId);
