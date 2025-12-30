@@ -45,21 +45,17 @@ export default class GoogleDriveProvider extends StorageProvider {
       console.log("Requesting Drive access token");
       this.tokenClient.callback = async (resp) => {
         if (resp.error) {
-          alert("Error requesting Access Token: " + resp);
           console.error("Error obtaining Drive access token: ", resp);
           reject(resp);
         } else {
           this.accessToken = resp.access_token;
-          alert("Obtained Drive access token: " + this.accessToken);
           console.log("Obtained Drive access token: ", this.accessToken);
           this.profile = await this.fetchGoogleProfile(this.accessToken);
-          alert("Obtained Google profile: " + this.profile);
           console.log("Obtained Google profile: ", this.profile);
           this.setProfileButton(this.profile.picture, this.profile.given_name);
           resolve(this.accessToken);
         }
       };
-      alert("Requesting Access Token…");
       this.tokenClient.requestAccessToken(/*{ prompt: "consent" }*/);
     });
   }
@@ -71,13 +67,11 @@ export default class GoogleDriveProvider extends StorageProvider {
 
   async uploadToDrive(blob, onProgress) {
     console.log("Ensuring Drive auth…");
-    alert("Ensuring auth...");
     await this.ensureAuth();
     if (!this.accessToken) {
       throw new Error("Failed to obtain Drive access token");
     }
 
-    alert("Ensuring SkyPhotos folder…");
     let folderId;
     console.log("Ensuring SkyPhotos folder…");
     folderId = await this.ensureSkyPhotosFolder();
@@ -98,13 +92,11 @@ export default class GoogleDriveProvider extends StorageProvider {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
 
-        alert("Opening request…");
         xhr.open(
           "POST",
           "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id"
         );
 
-        alert("Setting request header…");
         xhr.setRequestHeader(
           "Authorization",
           `Bearer ${this.accessToken}`
@@ -132,7 +124,6 @@ export default class GoogleDriveProvider extends StorageProvider {
         xhr.onerror = () => reject("Upload failed");
 
         console.log("Starting upload to Drive with progress tracking…: ", metadata);
-        alert("Sending form…");
         xhr.send(form);
     });
   }
@@ -162,7 +153,6 @@ export default class GoogleDriveProvider extends StorageProvider {
   }
 
   async uploadImageToService(blob, onProgress) {
-    alert("Uploading to GDrive...");
     const fileId = await this.uploadToDrive(blob, onProgress);
     const publicUrl = await this.makeDriveFilePublic(fileId);
     const thumbnailUrl = this.getThumbnailUrl(fileId);
