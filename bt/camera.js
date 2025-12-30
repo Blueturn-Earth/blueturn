@@ -302,6 +302,7 @@ async function saveImage(imgFile) {
   labelEl.textContent = "Uploading…";
   labelEl.style.display = "block";
 
+  let docId;
   try {
     const uploadResult = await getStorageProvider().upload(blob, (p) => {
       barEl.style.width = `${Math.round(p * 100)}%`;
@@ -311,7 +312,7 @@ async function saveImage(imgFile) {
 
     const profile = getStorageProvider().getProfile();
 
-    const docId = await saveMetadata(uploadResult, profile, latestGPS, latestTakenTime, latestSkyRatio);
+    docId = await saveMetadata(uploadResult, profile, latestGPS, latestTakenTime, latestSkyRatio);
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
@@ -320,6 +321,7 @@ async function saveImage(imgFile) {
     barEl.style.width = "0%";
     console.error(e);
     alert(e);
+    return;
   }
 
   try {
