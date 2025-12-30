@@ -151,6 +151,19 @@ function createScrollPicDiv(data)
     if (scrollPicDiv.data)
         scrollPicDiv = scrollPicDiv.cloneNode(true);
     const scrollImg = scrollPicDiv.querySelector("img");
+    scrollImg.onload = function() {
+        const msg = "Loaded image " + scrollImg.src;
+        console.log(msg);
+        alert(msg);
+    };
+    scrollImg.addEventListener('error', function(event) {
+        const msg = "Failed to load image source: " + event.target.src + ", Error event: " + event;
+        console.error(msg);
+        alert(msg);
+        // Replace with a fallback image
+        event.target.onerror = null; // Prevent infinite loops
+        //event.target.src = "/assets/no-image.jpg";
+    });
     scrollImg.src = data.image.thumbnailUrl;
     scrollPicDiv.data = data;
     // scrollImg.onclick = () => {
