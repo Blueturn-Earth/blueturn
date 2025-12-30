@@ -60,7 +60,7 @@ export default class GoogleDriveProvider extends StorageProvider {
         }
       };
       alert("Requesting Access Token…");
-      this.tokenClient.requestAccessToken({ prompt: "consent" });
+      this.tokenClient.requestAccessToken(/*{ prompt: "consent" }*/);
     });
   }
 
