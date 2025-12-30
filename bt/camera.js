@@ -1,7 +1,7 @@
 import GoogleDriveProvider from './gdrive_provider.js';
 import {saveMetadata} from './firebase_save.js';
 import {processEXIF, addEXIF} from './exif.js';
-import {reloadAndSelectNewSkyPhoto} from './sky_photos.js';
+import {reloadAndSelectNewSkyPhoto, setSkyPhotosState} from './sky_photos.js';
 import {analyzeSkyFromImg} from './sky_analyzer.js'
 
 const modal = document.getElementById('photoModal');
@@ -197,6 +197,9 @@ async function addPhotoInputChange(event, camera)
   latestImageFile = imgFile;
 
   openNewPhotoWithFile(imgFile, camera);
+
+  // start showing pics
+  await setSkyPhotosState(true);
 }
 
 // When the user takes a picture
@@ -335,9 +338,9 @@ async function saveImage(imgFile) {
 saveImageBtn.addEventListener("click", async (e) => {
   // First do a user-triggered authentication
   await getStorageProvider().ensureAuth();
-  saveImageBtn.disabled = true;
   e.stopPropagation(); // empêche la popup de se fermer
-  if (!latestImageFile) return;
+  if (!latestImageFile) 
+    return;
 
   await saveImage(latestImageFile);
 });
