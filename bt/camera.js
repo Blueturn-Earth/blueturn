@@ -315,10 +315,16 @@ async function saveImage(imgFile) {
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
-    await reloadAndSelectNewSkyPhoto(docId);
   } catch (e) {    
     labelEl.textContent = "Upload failed";
     barEl.style.width = "0%";
+    console.error(e);
+    alert(e);
+  }
+
+  try {
+    await reloadAndSelectNewSkyPhoto(docId);
+  } catch (e) {    
     console.error(e);
     alert(e);
   }
