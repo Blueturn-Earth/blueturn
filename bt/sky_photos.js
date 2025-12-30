@@ -141,6 +141,8 @@ function createEarthPicDiv(data)
     return earthPicDiv;
 }
 
+let imgErrorCount = 0;
+
 function createScrollPicDiv(data)
 {
     let scrollPicDiv = document.querySelector(".sky-scroll-photo-thumb");
@@ -158,7 +160,9 @@ function createScrollPicDiv(data)
     scrollImg.addEventListener('error', function(event) {
         const msg = "Failed to load image source: " + event.target.src + ", Error: " + event.error?.message;
         console.error(msg);
-        alert(msg);
+        if (imgErrorCount == 0)
+            alert(msg);
+        imgErrorCount++;
         // Replace with a fallback image
         event.target.onerror = null; // Prevent infinite loops
         //event.target.src = "/assets/no-image.jpg";
@@ -260,6 +264,7 @@ async function updateSkyPhotos(isOn)
 
     let nPics = 0;
     sortedPicItems = [];
+    imgErrorCount = 0;
     for (const d of snap.docs) {
         const data = d.data();
         const timestamp = data.takenTime || data.createdAt;
