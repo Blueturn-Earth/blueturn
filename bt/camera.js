@@ -333,6 +333,8 @@ async function saveImage(imgFile) {
 }
 
 saveImageBtn.addEventListener("click", async (e) => {
+  // First do a user-triggered authentication
+  await getStorageProvider().ensureAuth();
   saveImageBtn.disabled = true;
   e.stopPropagation(); // empêche la popup de se fermer
   if (!latestImageFile) return;
