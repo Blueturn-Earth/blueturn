@@ -154,10 +154,9 @@ function createScrollPicDiv(data)
     scrollImg.onload = function() {
         const msg = "Loaded image " + scrollImg.src;
         console.log(msg);
-        alert(msg);
     };
     scrollImg.addEventListener('error', function(event) {
-        const msg = "Failed to load image source: " + event.target.src + ", Error event: " + event.type + ", message: " + event.message + ", detail: " + event.detail;
+        const msg = "Failed to load image source: " + event.target.src + ", Error event type: " + event.type + ", message: " + event.message + ", detail: " + event.detail;
         console.error(msg);
         alert(msg);
         // Replace with a fallback image
