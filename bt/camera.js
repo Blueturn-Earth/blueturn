@@ -1,7 +1,7 @@
 import GoogleDriveProvider from './gdrive_provider.js';
 import {saveMetadata} from './firebase_save.js';
 import {processEXIF, addEXIF} from './exif.js';
-import {reloadAndSelectNewSkyPhoto} from './sky_photos.js';
+import {reloadAndSelectNewSkyPhoto, setSkyPhotosState} from './sky_photos.js';
 import {analyzeSkyFromImg} from './sky_analyzer.js'
 
 const modal = document.getElementById('photoModal');
@@ -90,7 +90,7 @@ function updateModal(newData)
     modalGPS.style.color = gpsOK ? "lightgreen" : "pink";
     latestGPS = newData.gps;
   }
-  saveImageBtn.disabled = !skyOK || !tsOK || !gpsOK;
+  saveImageBtn.disabled = /*!skyOK ||*/ !tsOK || !gpsOK;
 }
 
 async function provideEXIF(imgFile, fromCamera)
@@ -164,10 +164,14 @@ function openNewPhotoWithFile(file, camera)
 
   // Show modal
   console.log("Loading new photo");
-  modalImage.src = url;
   modalImage.onload = () => {
     openNewPhotoWithImg(modalImage, file, camera);
   }
+  modalImage.onerror = () => {
+    alert("Failed to open " + file);
+    loading.style.display = "none";
+  }
+  modalImage.src = url;
 }
 
 console.log("Add camera input change handler");
@@ -193,6 +197,9 @@ async function addPhotoInputChange(event, camera)
   latestImageFile = imgFile;
 
   openNewPhotoWithFile(imgFile, camera);
+
+  // start showing pics
+  await setSkyPhotosState(true);
 }
 
 // When the user takes a picture
@@ -298,6 +305,7 @@ async function saveImage(imgFile) {
   labelEl.textContent = "Uploading…";
   labelEl.style.display = "block";
 
+  let docId;
   try {
     const uploadResult = await getStorageProvider().upload(blob, (p) => {
       barEl.style.width = `${Math.round(p * 100)}%`;
@@ -307,22 +315,32 @@ async function saveImage(imgFile) {
 
     const profile = getStorageProvider().getProfile();
 
-    const docId = await saveMetadata(uploadResult, profile, latestGPS, latestTakenTime, latestSkyRatio);
+    docId = await saveMetadata(uploadResult, profile, latestGPS, latestTakenTime, latestSkyRatio);
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
-    await reloadAndSelectNewSkyPhoto(docId);
-  } catch (e) {
+  } catch (e) {    
     labelEl.textContent = "Upload failed";
     barEl.style.width = "0%";
     console.error(e);
+    alert(e);
+    return;
+  }
+
+  try {
+    await reloadAndSelectNewSkyPhoto(docId);
+  } catch (e) {    
+    console.error(e);
+    alert(e);
   }
 }
 
 saveImageBtn.addEventListener("click", async (e) => {
-  saveImageBtn.disabled = true;
+  // First do a user-triggered authentication
+  await getStorageProvider().ensureAuth();
   e.stopPropagation(); // empêche la popup de se fermer
-  if (!latestImageFile) return;
+  if (!latestImageFile) 
+    return;
 
   await saveImage(latestImageFile);
 });
