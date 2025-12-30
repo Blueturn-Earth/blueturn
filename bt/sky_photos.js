@@ -156,7 +156,7 @@ function createScrollPicDiv(data)
         console.log(msg);
     };
     scrollImg.addEventListener('error', function(event) {
-        const msg = "Failed to load image source: " + event.target.src + ", Error event type: " + event.type + ", message: " + event.message + ", detail: " + event.detail;
+        const msg = "Failed to load image source: " + event.target.src + ", Error: " + event.error?.message;
         console.error(msg);
         alert(msg);
         // Replace with a fallback image
