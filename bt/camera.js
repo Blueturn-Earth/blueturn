@@ -2,7 +2,7 @@ import GoogleDriveProvider from './gdrive_provider.js';
 import {saveMetadata} from './firebase_save.js';
 import {processEXIF, addEXIF} from './exif.js';
 import {reloadAndSelectNewSkyPhoto} from './sky_photos.js';
-import {analyzeSkyFromURL} from './sky_analyzer.js'
+import {analyzeSkyFromImg} from './sky_analyzer.js'
 
 const modal = document.getElementById('photoModal');
 const modalImage = document.getElementById('modalImage');
@@ -16,6 +16,7 @@ const saveImageBtn = document.getElementById("saveImageBtn")
 let latestOrientation = { alpha: 0, beta: 0, gamma: 0 };
 let latestGPS = null;
 let latestTakenTime;
+let latestSkyRatio;
 let latestImageFile;
 
 // Ask for DeviceOrientation permission on iOS
@@ -62,31 +63,111 @@ addPhotoButton.addEventListener("click", async () => {
   addPhotoInput.click();
 });
 
-function updateModal()
+let skyOK, tsOK, gpsOK; 
+
+function updateModal(newData)
 {
-  const latestImageURL = URL.createObjectURL(latestImageFile);
+  if (newData.skyData !== undefined)
+  {
+    const skyText = "Sky pixel ratio: " + (newData.skyData.skyRatio*100).toFixed(0) + "%";
+    console.log("Got sky data: ", skyText);
+    modalSky.textContent = skyText;
+    skyOK = newData.skyData.isSkyPhoto;
+    modalSky.style.color = skyOK ? "lightgreen" : "pink";
+    latestSkyRatio = newData.skyData.skyRatio;
+  }
+  if (newData.timestamp !== undefined)
+  {
+    modalTimestamp.textContent = "Timestamp: " + newData.timestamp;
+    tsOK = !!newData.timestamp;
+    modalTimestamp.style.color = tsOK ? "lightgreen" : "pink";
+    latestTakenTime = newData.timestamp;
+  }
+  if (newData.gps !== undefined)
+  {
+    modalGPS.textContent = "GPS: " + (newData.gps ? `GPS: ${newData.gps.lat.toFixed(6)}, ${newData.gps.lon.toFixed(6)}` : "unavailable");
+    gpsOK = !!newData.gps;
+    modalGPS.style.color = gpsOK ? "lightgreen" : "pink";
+    latestGPS = newData.gps;
+  }
+  saveImageBtn.disabled = !skyOK || !tsOK || !gpsOK;
+}
 
-  // Show modal
-  modalImage.src = latestImageURL;
-  modalTimestamp.textContent = latestTakenTime;
-  modalGPS.textContent = latestGPS ? `GPS: ${latestGPS.lat.toFixed(6)}, ${latestGPS.lon.toFixed(6)}` : "GPS: unavailable";
+async function provideEXIF(imgFile, fromCamera)
+{
+  try {
+    let result;
+    if (fromCamera)
+      result = await addEXIF(imgFile);
+    else
+      result = await processEXIF(imgFile);
+    if (result.error)
+    {
+      console.error(result.error.message);
+      alert(result.error.message);
+    }
+    return {
+      takenTime: result.takenTime,
+      gps: result.gps,
+      error: result.error
+    };
+  }
+  catch(e) {
+    return {
+      error: e
+    };
+  }
+}
 
-  // Sky coverage
-  modalSky.textContent = "Analyzing sky...";
-  modalSky.style.color = "white";
-  analyzeSkyFromURL(latestImageURL)
-  .then(({isSky, skyRatio}) => {
-    modalSky.textContent = (isSky ? "Likely" : "Unlikely") + "sky photo (ratio=" + Math.trunc(skyRatio*100).toString() + "%)";
-    console.log(modalSky.textContent);
-    modalSky.style.color = isSky ? "lightgreen" : "pink";
-  });
+async function openNewPhotoWithImg(img, imgFile, camera)
+{
   console.log("Show modal");
   // All ready → Hide spinner + show modal
   loading.style.display = "none";
   modal.style.display = 'flex';
   labelEl.style.display = "none";
   barEl.style.width = "0%";
-  saveImageBtn.disabled = false;
+  modalSky.textContent = "Analyzing sky...";
+  modalSky.style.color = "white";
+  modalTimestamp.textContent = "Timestamp: Determining...";
+  modalTimestamp.style.color = "white";
+  modalGPS.textContent = "GPS: Determining...";
+  modalGPS.style.color = "white";
+  saveImageBtn.disabled = true;
+  skyOK = tsOK = gpsOK = undefined;
+
+  // Sky coverage
+  analyzeSkyFromImg(img)
+  .then((skyData) => {
+    updateModal({skyData: skyData});
+  })
+  .catch((error) => {
+    updateModal({error: error});
+  });
+  
+  provideEXIF(imgFile, camera)
+  .then((result) => {
+    updateModal({
+      timestamp: result.takenTime,
+      gps: result.gps,
+      error: result.error
+    });
+  })
+  .catch((error) => {
+    updateModal({error: error});
+  });
+}
+
+function openNewPhotoWithFile(file, camera)
+{
+  const url = URL.createObjectURL(file);
+
+  // Show modal
+  console.log("Loading new photo");
+  modalImage.src = url;
+  modalImage.onload = () => {
+    openNewPhotoWithImg(modalImage, file, camera);
+  }
 }
 
 console.log("Add camera input change handler");
@@ -101,6 +182,7 @@ async function addPhotoInputChange(event, camera)
   latestImageFile = undefined;
   latestTakenTime = undefined;
   latestGPS = undefined;
+  latestSkyRatio = undefined;
 
   const imgFile = event.target.files[0];
   if (!imgFile) return;
@@ -108,28 +190,9 @@ async function addPhotoInputChange(event, camera)
   // Show loading spinner immediately after accepting the photo
   loading.style.display = "flex";
 
-  try {
-    let result;
-    if (camera)
-      result = await addEXIF(imgFile);
-    else
-      result = await processEXIF(imgFile);
-    latestTakenTime = result.takenTime;
-    latestGPS = result.gps;
-  }
-  catch(e) {
-    console.error(e);
-    alert(e);
-    loading.style.display = "none";
-    modal.style.display = 'none';
-    labelEl.style.display = "none";
-    barEl.style.width = "0%";
-    return;
-  }
-
   latestImageFile = imgFile;
 
-  updateModal();
+  openNewPhotoWithFile(imgFile, camera);
 }
 
 // When the user takes a picture
@@ -244,7 +307,7 @@ async function saveImage(imgFile) {
 
     const profile = getStorageProvider().getProfile();
 
-    const docId = await saveMetadata(uploadResult, profile, latestGPS, latestTakenTime);
+    const docId = await saveMetadata(uploadResult, profile, latestGPS, latestTakenTime, latestSkyRatio);
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
