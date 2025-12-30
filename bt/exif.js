@@ -4,45 +4,52 @@ import * as exifr from 'https://cdn.jsdelivr.net/npm/exifr/dist/full.esm.js';
 export async function processEXIF(imgFile)
 {
     console.log("Trying to get GPS from EXIF");
-    let gps = undefined;
-
+    let takenTime = null;
+    let gps = null;
+    let error = null;
     const tags = await exifr.parse(imgFile, { 
-            tiff: true, 
-            ifd0: true, 
-            exif: true, 
-            gps: true,
-            pick: ['DateTimeOriginal','CreateDate','ModifyDate','GPSLatitude','GPSLongitude','GPSLatitudeRef','GPSLongitudeRef']
-        });
+        tiff: true, 
+        ifd0: true, 
+        exif: true, 
+        gps: true,
+        pick: ['DateTimeOriginal','CreateDate','ModifyDate','GPSLatitude','GPSLongitude','GPSLatitudeRef','GPSLongitudeRef']
+    });
   
     if (!tags)
     {
         const errorMsg = "No EXIF data in image file " + imgFile.name;
-        throw new Error(errorMsg);
-    }
-
-    if (tags.GPSLatitude && tags.GPSLongitude) {
-        const lat = tags.GPSLatitude[0] + tags.GPSLatitude[1]/60 + tags.GPSLatitude[2]/3600;
-        const lon = tags.GPSLongitude[0] + tags.GPSLongitude[1]/60 + tags.GPSLongitude[2]/3600;
-        gps = { lat, lon };
-        console.log("Got GPS from EXIF:", gps);
+        error = new Error(errorMsg);
     }
     else {
-        const errorMsg = "No GPS in image file " + imgFile.name;
-        throw new Error(errorMsg);
-    }
+        if (tags.GPSLatitude && tags.GPSLongitude) {
+            const lat = tags.GPSLatitude[0] + tags.GPSLatitude[1]/60 + tags.GPSLatitude[2]/3600;
+            const lon = tags.GPSLongitude[0] + tags.GPSLongitude[1]/60 + tags.GPSLongitude[2]/3600;
+            gps = { lat, lon };
+            console.log("Got GPS from EXIF:", gps);
+        }
+        else {
+            const errorMsg = "No GPS in image file " + imgFile.name;
+            console.log(errorMsg);
+            alert(errorMsg);
+            error = new Error(errorMsg);
+        }
 
-    const takenTime = 
-        tags.DateTimeOriginal || 
-        tags.CreateDate || 
-        tags.ModifyDate;
-    if (!takenTime) {
-        const errorMsg = "No Timestamp in image file " + imgFile.name;
-        throw new Error(errorMsg);
+        takenTime = 
+            tags.DateTimeOriginal || 
+            tags.CreateDate || 
+            tags.ModifyDate;
+        if (!takenTime) {
+            const errorMsg = "No Timestamp in image file " + imgFile.name;
+            console.log(errorMsg);
+            alert(errorMsg);
+            error = new Error(errorMsg);
+        }
+        console.log('EXIF date:', takenTime);
     }
-    console.log('EXIF date:', takenTime);
     return {
         takenTime: takenTime,
-        gps: gps
+        gps: gps,
+        error: error
     };
 }
 
@@ -94,19 +101,33 @@ async function getGeolocation()
             throw new Error("Geolocation timeout: " + geoError.message);
         }
     }
+    return gps;
 }
 
 export async function addEXIF(imgFile)
 {
+    const now = new Date();
     if (!navigator.geolocation) {
-        throw new Error("Geolocation not supported");
+        return {
+            takenTime: now,
+            gps: null,
+            error: e
+        };
     }
 
-    const now = new Date();
-    const gps = await getGeolocation();
+    try {
+        const gps = await getGeolocation();
 
-    return {
-        takenTime: now,
-        gps: gps
-    };
+        return {
+            takenTime: now,
+            gps: gps
+        };
+    }
+    catch(e) {
+        return {
+            takenTime: now,
+            gps: null,
+            error: e
+        };
+    }
 }
