@@ -389,7 +389,7 @@ skyPhotosBtn.addEventListener('click', () => {
     setSkyPhotosState(skyPhotosBtn.dataset.state === "off");
 });
 
-async function setSkyPhotosState(isOn)
+export async function setSkyPhotosState(isOn)
 {
     skyPhotosBtn.dataset.state = isOn ? "on" : "off";
     const showSkyPhotos = isOn;
