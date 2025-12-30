@@ -90,7 +90,7 @@ function updateModal(newData)
     modalGPS.style.color = gpsOK ? "lightgreen" : "pink";
     latestGPS = newData.gps;
   }
-  saveImageBtn.disabled = !skyOK || !tsOK || !gpsOK;
+  saveImageBtn.disabled = /*!skyOK ||*/ !tsOK || !gpsOK;
 }
 
 async function provideEXIF(imgFile, fromCamera)
