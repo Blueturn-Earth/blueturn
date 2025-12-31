@@ -79,7 +79,7 @@ function updateEarthSkyPhotoPosition(picItem)
         return;
     }
 
-    const picPos = gGetScreenCoordFromLatLon(earthPicDiv.data.gps.lat, earthPicDiv.data.gps.lon);
+    const picPos = gGetScreenCoordFromLatLon(picItem.data.gps.lat, picItem.data.gps.lon);
     if (!picPos || picPos.z < -0.2) {
         earthPicDiv.style.display = 'none';
     }
@@ -134,7 +134,6 @@ function createEarthPicDiv(data)
     const earthPicDiv = document.createElement('img');
     earthPicDiv.className = 'sky-earth-photo-thumb';
     earthPicDiv.src = data.image.thumbnailUrl;
-    earthPicDiv.data = data;
     earthPicDiv.onclick = () => {
         openPopupFromThumbnail(earthPicDiv);
     }
@@ -145,34 +144,7 @@ let imgErrorCount = 0;
 
 function createScrollPicDiv(data)
 {
-    let scrollPicDiv = document.querySelector(".sky-scroll-photo-thumb");
-    if (!scrollPicDiv) {
-        console.error("No sample scroller pic div available");
-        return;
-    }
-    if (scrollPicDiv.data)
-        scrollPicDiv = scrollPicDiv.cloneNode(true);
-    const scrollImg = scrollPicDiv.querySelector("img");
-    scrollImg.onload = function() {
-        const msg = "Loaded image " + scrollImg.src;
-        console.log(msg);
-    };
-    scrollImg.addEventListener('error', function(event) {
-        const msg = "Failed to load image source: " + event.target.src + ", Error: " + event.error?.message;
-        console.error(msg);
-        if (imgErrorCount == 0)
-            alert(msg);
-        imgErrorCount++;
-        // Replace with a fallback image
-        event.target.onerror = null; // Prevent infinite loops
-        //event.target.src = "/assets/no-image.jpg";
-    });
-    scrollImg.src = data.image.thumbnailUrl;
-    scrollPicDiv.data = data;
-    // scrollImg.onclick = () => {
-    //     openPopupFromThumbnail(scrollImg);
-    // }
-    return scrollPicDiv;
+    return skyPhotosScrollGallery.createItem(data.image.thumbnailUrl);//.replace(/=s\d+/, `=s${size}`);
 }
 
 function checkData(data)

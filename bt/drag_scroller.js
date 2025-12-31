@@ -2,6 +2,10 @@ export default class DragScroller
 {
   scroller;
   itemsGroup;
+  itemTemplate;
+  itemStyleDisplay;
+  startSpacer;
+  endSpacer;
   numItems = 0;
   isDown = false;
   startX;
@@ -20,6 +24,9 @@ export default class DragScroller
     this.scroller = document.getElementById(idName);
     this.defaultDisplayMode = this.scroller.style.display;
     this.itemsGroup = this.scroller.children[0];
+    this.itemTemplate = this.itemsGroup.children[0];
+    this.itemStyleDisplay = this.itemTemplate.style.display;
+    this.itemTemplate.style.display = 'none'; // hide template
 
     this.startSpacer = document.createElement('div');
     this.endSpacer   = document.createElement('div');
@@ -72,14 +79,32 @@ export default class DragScroller
     this.scroller.style.display = 'none';
   }
   
+  createItem(imageURL) {
+    const node = this.itemTemplate.cloneNode(true);
+    node.style.display = this.itemStyleDisplay;
+  
+    const itemImg = node.querySelector("img");
+    itemImg.onload = function() {
+        const msg = "Loaded image " + itemImg.src;
+        console.log(msg);
+    };
+    itemImg.addEventListener('error', function(event) {
+        const msg = "Failed to load image source: " + event.target.src + ", Error: " + event.error?.message;
+        console.error(msg);
+        if (imgErrorCount == 0)
+            alert(msg);
+        imgErrorCount++;
+        // Replace with a fallback image
+        event.target.onerror = null; // Prevent infinite loops
+        //event.target.src = "/assets/no-image.jpg";
+    });
+    itemImg.src = imageURL;
+
+    return node;
+  }
+  
   appendItem(node)
   {
-    // Remove sample node
-    if (this.numItems == 0)
-    {
-      this.itemsGroup.removeChild(this.itemsGroup.children[1]);
-    }
-
     if (this.itemsGroup.contains(node)) {
       console.warn("Node already in items group!");
       return;

@@ -148,14 +148,26 @@ export default class GoogleDriveProvider extends StorageProvider {
     return `https://drive.google.com/uc?id=${fileId}`;
   }
 
-  getThumbnailUrl(fileId) {
+  getFallbackThumbnailUrl(fileId) {
     return `https://drive.google.com/thumbnail?id=${fileId}`; //&sz=w200-h200`;
   }
 
   async uploadImageToService(blob, onProgress) {
     const fileId = await this.uploadToDrive(blob, onProgress);
     const publicUrl = await this.makeDriveFilePublic(fileId);
-    const thumbnailUrl = this.getThumbnailUrl(fileId);
+
+    const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailUrl`
+    );
+
+    let thumbnailUrl = this.getFallbackThumbnailUrl(fileId);
+    if (!res.ok) {
+        console.error(`Could not get actual thumbnail link for file Id ${fileId}: ${res.status}`);
+    }
+
+    const { fixedThumbnailUrl } = await res.json();
+    thumbnailUrl = fixedThumbnailUrl || thumbnailUrl;
+
     return {
       provider: "GoogleDrive",
       imageUrl: publicUrl,
