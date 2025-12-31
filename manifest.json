@@ -1,6 +1,6 @@
 {
-  "name": "Blueturn3",
-  "short_name": "Blueturn3",
+  "name": "Blueturn",
+  "short_name": "Blueturn",
   "start_url": "./index.html",
   "display": "fullscreen",
   "background_color": "#000000",
