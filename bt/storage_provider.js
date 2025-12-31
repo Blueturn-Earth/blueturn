@@ -9,6 +9,14 @@ export default class StorageProvider {
     throw new Error("unimplemented method");
   }
 
+  async getPersistentThumbnailUrl(fileId) {
+    throw new Error("unimplemented method");
+  }
+
+  async getPersistentImageUrl(fileId) {
+    throw new Error("unimplemented method");
+  }
+
   async upload(blob, onProgress) {
 
     return await this.uploadImageToService(blob, onProgress);

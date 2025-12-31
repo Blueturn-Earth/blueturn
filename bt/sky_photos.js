@@ -12,6 +12,7 @@ import { gZoom, gPivotEpicImageData } from './app.js';
 import { glZoomFactor } from './gl.js';
 import { gControlState } from './controlparams.js';
 import DragScroller from './drag_scroller.js'
+import {getStorageProvider} from './gdrive_provider.js';
 
 console.log("Sky Photos module loaded");
 
@@ -140,11 +141,9 @@ function createEarthPicDiv(data)
     return earthPicDiv;
 }
 
-let imgErrorCount = 0;
-
-function createScrollPicDiv(data)
+function createScrollPicDiv(thumbnailUrl)
 {
-    return skyPhotosScrollGallery.createItem(data.image.thumbnailUrl);//.replace(/=s\d+/, `=s${size}`);
+    return skyPhotosScrollGallery.createItem(thumbnailUrl);//.replace(/=s\d+/, `=s${size}`);
 }
 
 function checkData(data)
@@ -176,7 +175,7 @@ function setPic(docId, data, timeSec)
     if (!picsMap.has(docId)) {
         const picItem = {
             earthPicDiv: createEarthPicDiv(data),
-            scrollPicDiv: createScrollPicDiv(data),
+            scrollPicDiv: createScrollPicDiv(data.image.thumbnailUrl),
             data: data,
             timeSec: timeSec
         }
@@ -236,7 +235,6 @@ async function updateSkyPhotos(isOn)
 
     let nPics = 0;
     sortedPicItems = [];
-    imgErrorCount = 0;
     for (const d of snap.docs) {
         const data = d.data();
         const timestamp = data.takenTime || data.createdAt;
@@ -270,6 +268,13 @@ async function updateSkyPhotos(isOn)
                     timeSec += SECONDS_IN_DAY;
             }
         }
+
+        if (data.image.fileId)
+        {
+            data.image.thumbnailUrl = await getStorageProvider().getPersistentThumbnailUrl(data.image.fileId);
+            data.image.imageUrl = await getStorageProvider().getPersistentImageUrl(data.image.fileId);
+        }
+
         const picItem = setPic(d.id, data, timeSec);
         if (picItem) {
             sortedPicItems.push(picItem);

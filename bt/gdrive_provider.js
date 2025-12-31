@@ -1,6 +1,6 @@
 import StorageProvider from './storage_provider.js';
 
-export default class GoogleDriveProvider extends StorageProvider {
+class GoogleDriveProvider extends StorageProvider {
   constructor(clientId = '509580731574-fk6ovov57h0b2tq083jv4860qa8ofhqg.apps.googleusercontent.com') {
     super();
     this.clientId = clientId;
@@ -63,6 +63,32 @@ export default class GoogleDriveProvider extends StorageProvider {
   getProfile()
   {
     return this.profile;
+  }
+
+  async getPersistentThumbnailUrl(fileId) {
+    const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailUrl`
+    );
+
+    if (!res.ok) {
+        console.error(`Could not get actual thumbnail link for file Id ${fileId}: ${res.status}`);
+    }
+
+    const thumbnailUrl = await res.json();
+    return thumbnailUrl;
+  }
+
+  async getPersistentImageUrl(fileId) {
+    const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=webContentUrl`
+    );
+
+    if (!res.ok) {
+        console.error(`Could not get actual image URL for file Id ${fileId}: ${res.status}`);
+    }
+
+    const imageUrl = await res.json();
+    return imageUrl;
   }
 
   async uploadToDrive(blob, onProgress) {
@@ -148,30 +174,11 @@ export default class GoogleDriveProvider extends StorageProvider {
     return `https://drive.google.com/uc?id=${fileId}`;
   }
 
-  getFallbackThumbnailUrl(fileId) {
-    return `https://drive.google.com/thumbnail?id=${fileId}`; //&sz=w200-h200`;
-  }
-
   async uploadImageToService(blob, onProgress) {
     const fileId = await this.uploadToDrive(blob, onProgress);
-    const publicUrl = await this.makeDriveFilePublic(fileId);
-
-    const res = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailUrl`
-    );
-
-    let thumbnailUrl = this.getFallbackThumbnailUrl(fileId);
-    if (!res.ok) {
-        console.error(`Could not get actual thumbnail link for file Id ${fileId}: ${res.status}`);
-    }
-
-    const { fixedThumbnailUrl } = await res.json();
-    thumbnailUrl = fixedThumbnailUrl || thumbnailUrl;
 
     return {
       provider: "GoogleDrive",
-      imageUrl: publicUrl,
-      thumbnailUrl: thumbnailUrl,
       fileId: fileId
     }
   }
@@ -254,3 +261,13 @@ export default class GoogleDriveProvider extends StorageProvider {
     );
   }
 }
+
+let _storageProvider = null;
+
+export function getStorageProvider() {
+  if (!_storageProvider) {
+    _storageProvider = new GoogleDriveProvider();
+  }
+  return _storageProvider;
+}
+
