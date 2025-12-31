@@ -79,6 +79,8 @@ export default class DragScroller
     this.scroller.style.display = 'none';
   }
   
+  imgErrorCount = 0;
+
   createItem(imageURL) {
     const node = this.itemTemplate.cloneNode(true);
     node.style.display = this.itemStyleDisplay;
@@ -91,9 +93,9 @@ export default class DragScroller
     itemImg.addEventListener('error', function(event) {
         const msg = "Failed to load image source: " + event.target.src + ", Error: " + event.error?.message;
         console.error(msg);
-        if (imgErrorCount == 0)
+        if (this.imgErrorCount == 0)
             alert(msg);
-        imgErrorCount++;
+        this.imgErrorCount++;
         // Replace with a fallback image
         event.target.onerror = null; // Prevent infinite loops
         //event.target.src = "/assets/no-image.jpg";
@@ -131,6 +133,7 @@ export default class DragScroller
     }
     this.#updateSpacers();
     this.numItems = 0;
+    this.imgErrorCount = 0;
   }
 
   scrollToAlpha(alpha) {

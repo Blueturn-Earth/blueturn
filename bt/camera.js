@@ -1,4 +1,4 @@
-import GoogleDriveProvider from './gdrive_provider.js';
+import {getStorageProvider} from './gdrive_provider.js';
 import {saveMetadata} from './firebase_save.js';
 import {processEXIF, addEXIF} from './exif.js';
 import {reloadAndSelectNewSkyPhoto, setSkyPhotosState} from './sky_photos.js';
@@ -215,15 +215,6 @@ const barEl = progressEl.querySelector(".bar");
 const labelEl = progressEl.querySelector(".label");
 
 const SUPER_USER_ID = "115698886322844446345";
-
-let _storageProvider = null;
-
-function getStorageProvider() {
-  if (!_storageProvider) {
-    _storageProvider = new GoogleDriveProvider();
-  }
-  return _storageProvider;
-}
 
 document.getElementById("profileBtn").onclick = async () => {
   const forceNewLogin = true;
