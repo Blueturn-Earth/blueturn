@@ -135,7 +135,7 @@ async function setImgSrcFromFileId(imgElement, data, isThumbnail)
     imgElement.src = "";
     let url = null;
     if (isThumbnail) {
-        url = await getStorageProvider().getPersistentThumbnailUrl(fileId);
+        url = await getStorageProvider().getPersistentThumbnailUrl(data.image.fileId);
     }
     else {
         url = await getStorageProvider().getPersistentImageUrl(data.image.fileId);
