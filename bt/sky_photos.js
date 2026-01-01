@@ -344,7 +344,7 @@ async function updateSkyPhotos(isOn)
             }
         }
 
-        openPopupFromThumbnail(picImg);
+        openPopupFromThumbnail(picImg, picItem.data);
     })
 
     console.log("Pics created:", nPics);
