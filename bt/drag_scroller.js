@@ -84,7 +84,11 @@ export default class DragScroller
   createItem(imageURL) {
     const node = this.itemTemplate.cloneNode(true);
     node.style.display = this.itemStyleDisplay;
+
+    return node;
+  }
   
+  loadItemImage(node, imageURL) {
     const itemImg = node.querySelector("img");
     itemImg.onload = function() {
         const msg = "Loaded image " + itemImg.src;
@@ -101,10 +105,8 @@ export default class DragScroller
         //event.target.src = "/assets/no-image.jpg";
     });
     itemImg.src = imageURL;
-
-    return node;
   }
-  
+
   appendItem(node)
   {
     if (this.itemsGroup.contains(node)) {
