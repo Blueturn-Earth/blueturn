@@ -272,7 +272,15 @@ async function updateSkyPhotos(isOn)
         if (data.image.fileId)
         {
             data.image.thumbnailUrl = await getStorageProvider().getPersistentThumbnailUrl(data.image.fileId);
+            if (!data.image.thumbnailUrl) {
+                console.warn("Could not get thumbnail URL for file Id ", data.image.fileId);
+                continue;
+            }
             data.image.imageUrl = await getStorageProvider().getPersistentImageUrl(data.image.fileId);
+            if (!data.image.imageUrl) {
+                console.warn("Could not get image URL for file Id ", data.image.fileId);
+                continue;
+            }
         }
 
         const picItem = setPic(d.id, data, timeSec);

@@ -69,29 +69,37 @@ class GoogleDriveProvider extends StorageProvider {
   }
 
   async getPersistentThumbnailUrl(fileId) {
-    const res = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailUrl&key=${this.apiKey}`
-    );
-
-    if (!res.ok) {
-        console.error(`Could not get actual thumbnail link for file Id ${fileId}: ${res.status}`);
+    try {
+      const res = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailUrl&key=${this.apiKey}`
+      );
+      if (!res.ok) {
+          console.error(`Error returned getting actual thumbnail link for file Id ${fileId}: ${res.status}`);
+          return null;
+      }
+      const data = await res.json();
+      return data.thumbnailUrl;
+    } catch (e) {
+        console.error(`Error getting thumbnail URL for file Id ${fileId}: `, e);
+        return null;
     }
-
-    const thumbnailUrl = await res.json();
-    return thumbnailUrl;
   }
 
   async getPersistentImageUrl(fileId) {
-    const res = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=webContentUrl&key=${this.apiKey}`
-    );
-
-    if (!res.ok) {
-        console.error(`Could not get actual image URL for file Id ${fileId}: ${res.status}`);
+    try {
+      const res = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${fileId}?fields=webContentUrl&key=${this.apiKey}`
+      );
+      if (!res.ok) {
+          console.error(`Error returned getting actual image link for file Id ${fileId}: ${res.status}`);
+          return null;
+      }
+      const data = await res.json();
+      return data.webContentUrl;
+    } catch (e) {
+        console.error(`Error getting actual image URL for file Id ${fileId}: `, e);
+        return null;
     }
-
-    const imageUrl = await res.json();
-    return imageUrl;
   }
 
   async uploadToDrive(blob, onProgress) {
