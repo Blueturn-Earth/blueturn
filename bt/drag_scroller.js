@@ -19,6 +19,7 @@ export default class DragScroller
   selectedItemIndex;
   onSelectItemCb;
   onSelectedItemClickCb;
+  onScrollAlphaCb;
 
   constructor(idName) {
     this.scroller = document.getElementById(idName);
@@ -69,6 +70,10 @@ export default class DragScroller
 
   setSelectedItemClickCb(cb) {
     this.onSelectedItemClickCb = cb;
+  }
+
+  setScrollAlphaCb(cb) {
+    this.onScrollAlphaCb = cb;
   }
 
   show() {
@@ -319,6 +324,10 @@ export default class DragScroller
       }
     }
 
+    if(this.onScrollAlphaCb) {
+      const alpha = this.getScrolledAlpha();
+      this.onScrollAlphaCb(alpha);
+    }
   }
 
   #onScroll = (e) =>

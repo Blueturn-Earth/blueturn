@@ -224,6 +224,20 @@ function selectPicItemIndex(index)
     gJumpToEpicTime(timeSec);
 }
 
+function selectPicItemAlpha(alpha)
+{
+    if (sortedPicItems.length == 0)
+        return;
+    const indexFloat = alpha * (sortedPicItems.length - 1);
+    const index0 = Math.floor(indexFloat);
+    const index1 = Math.ceil(indexFloat);
+    const boundAlpha = index0 == index1 ? 0 : (indexFloat - index0) / (index1 - index0);
+    const timeSec = (1.0 - boundAlpha) * sortedPicItems[index0].timeSec + boundAlpha * sortedPicItems[index1].timeSec;
+    gSetPlayState(false);
+    gControlState.blockSnapping = true;
+    gJumpToEpicTime(timeSec);
+}
+
 async function updateSkyPhotos(isOn)
 {
     if (!isOn) {
@@ -341,6 +355,10 @@ async function updateSkyPhotos(isOn)
 
         openPopupFromThumbnail(picImg, picItem.data);
     })
+
+    skyPhotosScrollGallery.setScrollAlphaCb((alpha) => {
+        selectPicItemAlpha(alpha);
+    });
 
     console.log("Pics created:", nPics);
 }
