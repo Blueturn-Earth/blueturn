@@ -80,8 +80,8 @@ class GoogleDriveProvider extends StorageProvider {
       const data = await res.json();
       return data.thumbnailLink;
     } catch (e) {
-        console.error(`Error getting thumbnail URL for file Id ${fileId}: `, e);
-        return null;
+        console.warn(`Error getting thumbnail URL for file Id ${fileId}: `, e);
+        return fetchPersistentImageUrl(fileId);
     }
   }
 
