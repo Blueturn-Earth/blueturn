@@ -102,11 +102,6 @@ async function provideEXIF(imgFile, fromCamera)
       result = await addEXIF(imgFile);
     else
       result = await processEXIF(imgFile);
-    if (result.error)
-    {
-      console.error(result.error.message);
-      alert(result.error.message);
-    }
     return {
       takenTime: result.takenTime,
       gps: result.gps,
@@ -114,6 +109,8 @@ async function provideEXIF(imgFile, fromCamera)
     };
   }
   catch(e) {
+    console.error(e.message);
+    alert(e.message);  
     return {
       error: e
     };

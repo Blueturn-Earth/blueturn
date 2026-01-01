@@ -1,6 +1,16 @@
 import tzLookup from 'https://esm.sh/@photostructure/tz-lookup@latest';
 import * as exifr from 'https://cdn.jsdelivr.net/npm/exifr/dist/full.esm.js';
 
+function dumpError(errorMsg)
+{
+    if (errorMsg && errorMsg !== "")
+    {
+        console.log(errorMsg);
+        alert(errorMsg);
+    }
+    error = new Error(errorMsg);
+}
+
 export async function processEXIF(imgFile)
 {
     console.log("Trying to get GPS from EXIF");
@@ -17,8 +27,7 @@ export async function processEXIF(imgFile)
   
     if (!tags)
     {
-        const errorMsg = "No EXIF data in image file " + imgFile.name;
-        error = new Error(errorMsg);
+        error = dumpError("No EXIF data in image file " + imgFile.name);
     }
     else {
         if (tags.GPSLatitude && tags.GPSLongitude) {
@@ -28,10 +37,7 @@ export async function processEXIF(imgFile)
             console.log("Got GPS from EXIF:", gps);
         }
         else {
-            const errorMsg = "No GPS in image file " + imgFile.name;
-            console.log(errorMsg);
-            alert(errorMsg);
-            error = new Error(errorMsg);
+            error = dumpError("No GPS in image file " + imgFile.name);
         }
 
         takenTime = 
@@ -39,10 +45,7 @@ export async function processEXIF(imgFile)
             tags.CreateDate || 
             tags.ModifyDate;
         if (!takenTime) {
-            const errorMsg = "No Timestamp in image file " + imgFile.name;
-            console.log(errorMsg);
-            alert(errorMsg);
-            error = new Error(errorMsg);
+            error = dumpError("No Timestamp in image file " + imgFile.name);
         }
         console.log('EXIF date:', takenTime);
     }
@@ -94,11 +97,11 @@ async function getGeolocation()
                     throw new Error("Geolocation error: " + geoError.message);
                 }
             }
-            throw new Error("No Geolocation permission: " + geoError.message);
+            throw new Error("");
         case 2: // POSITION_UNAVAILABLE
-            throw new Error("Geolocation unavailable: " + geoError.message);
+            throw new Error("Geolocation not available: " + geoError.message);
         case 3: // TIMEOUT
-            throw new Error("Geolocation timeout: " + geoError.message);
+            throw new Error("Geolocation timed out: " + geoError.message);
         }
     }
     return gps;
@@ -107,27 +110,27 @@ async function getGeolocation()
 export async function addEXIF(imgFile)
 {
     const now = new Date();
+    let gps;
+    let error;
     if (!navigator.geolocation) {
-        return {
-            takenTime: now,
-            gps: null,
-            error: e
-        };
+        error = dumpError("Geolocation not supported");
     }
-
-    try {
-        const gps = await getGeolocation();
-
-        return {
-            takenTime: now,
-            gps: gps
-        };
+    else {
+        try {
+            const gps = await getGeolocation();
+        }
+        catch(e) {
+            dumpError(e.message);
+            return {
+                takenTime: now,
+                gps: null,
+                error: e
+            };
+        }
     }
-    catch(e) {
-        return {
-            takenTime: now,
-            gps: null,
-            error: e
-        };
-    }
+    return {
+        takenTime: now,
+        gps: null,
+        error: e
+    };
 }
