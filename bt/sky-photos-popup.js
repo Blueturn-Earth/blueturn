@@ -19,7 +19,7 @@ window.addEventListener("popstate", (event) => {
 });
 
 export async function openPopupFromThumbnail(thumbImg, data) {
-  let url = await getStorageProvider().fetchPersistentImageUrl(data.image);
+  let url = await getStorageProvider().fetchPersistentThumbnailUrl(data.image, true, 2048);
 
   popupImg.src = url;
   popup.hidden = false;

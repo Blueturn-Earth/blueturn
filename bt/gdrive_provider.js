@@ -68,30 +68,40 @@ class GoogleDriveProvider extends StorageProvider {
     return this.profile;
   }
 
-  async fetchPersistentThumbnailUrl(imageField, noFallback = false) {
-    if (imageField.persistentThumbnailUrl && imageField.thumbnailUrl) {
-      return imageField.thumbnailUrl;
-    }
-    if (!imageField.fileId) {
-      console.warn("No file ID in image field to fetch thumbnail URL");
-      return imageField.thumbnailUrl;
-    }
-    try {
-      const res = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${imageField.fileId}?fields=thumbnailLink&key=${this.apiKey}`
-      );
-      if (!res.ok) {
-          console.warn(`Error returned getting actual thumbnail link for file Id ${imageField.fileId}: ${res.status} (${res.type})`);
-          return noFallback ? imageField.thumbnailUrl : this.fetchPersistentImageUrl(imageField, true);
+  async fetchPersistentThumbnailUrl(imageField, highRes = false, size = 2048) 
+  {
+    if (!imageField.persistentThumbnailUrl && imageField.thumbnailUrl) {
+      if (!imageField.fileId) {
+        console.warn("No file ID in image field to fetch thumbnail URL");
       }
-      const data = await res.json();
-      imageField.thumbnailUrl = data.thumbnailLink;
-      imageField.persistentThumbnailUrl = true;
-      return data.thumbnailLink;
-    } catch (e) {
-        console.warn(`Error getting thumbnail URL for file Id ${imageField.fileId}: `, e);
-        return noFallback ? imageField.thumbnailUrl : this.fetchPersistentImageUrl(imageField, true);
+      else {
+        try {
+          const res = await fetch(
+              `https://www.googleapis.com/drive/v3/files/${imageField.fileId}?fields=thumbnailLink&key=${this.apiKey}`
+          );
+          if (!res.ok) {
+              console.warn(`Error returned getting actual thumbnail link for file Id ${imageField.fileId}: ${res.status} (${res.type})`);
+          }
+          else {
+            const data = await res.json();
+            imageField.thumbnailUrl = data.thumbnailLink;
+            imageField.persistentThumbnailUrl = true;
+          }
+        } catch (e) {
+            console.warn(`Error getting thumbnail URL for file Id ${imageField.fileId}: `, e);
+        }
+      }
     }
+
+    let thumbnailUrl = imageField.thumbnailUrl;
+    if (highRes && thumbnailUrl) {
+      if (imageField.persistentThumbnailUrl)
+        thumbnailUrl = thumbnailUrl.replace(/=s\d+/, `=s${size}`);
+      else
+        thumbnailUrl += `&sz=${size}`;
+    }
+
+    return thumbnailUrl;
   }
 
   async fetchPersistentImageUrl(imageField, noFallback = false) {
@@ -108,7 +118,7 @@ class GoogleDriveProvider extends StorageProvider {
       );
       if (!res.ok) {
           console.warn(`Error returned getting actual image link for file Id ${imageField.fileId}: ${res.status} (${res.type})`);
-          return noFallback ? imageField.imageUrl : this.fetchPersistentThumbnailUrl(imageField, true);
+          return noFallback ? imageField.imageUrl : this.fetchPersistentThumbnailUrl(imageField, true, 2048);
       }
       const data = await res.json();
       imageField.imageUrl = data.webContentLink;
