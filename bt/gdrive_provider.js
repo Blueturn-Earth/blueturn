@@ -74,7 +74,7 @@ class GoogleDriveProvider extends StorageProvider {
           `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailUrl&key=${this.apiKey}`
       );
       if (!res.ok) {
-          console.error(`Error returned getting actual thumbnail link for file Id ${fileId}: ${res.status}`);
+          console.error(`Error returned getting actual thumbnail link for file Id ${fileId}: ${res.status} (${res.type})`);
           return null;
       }
       const data = await res.json();
@@ -91,7 +91,7 @@ class GoogleDriveProvider extends StorageProvider {
           `https://www.googleapis.com/drive/v3/files/${fileId}?fields=webContentUrl&key=${this.apiKey}`
       );
       if (!res.ok) {
-          console.error(`Error returned getting actual image link for file Id ${fileId}: ${res.status}`);
+          console.error(`Error returned getting actual image link for file Id ${fileId}: ${res.status} (${res.type})`);
           return null;
       }
       const data = await res.json();
