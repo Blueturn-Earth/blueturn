@@ -1,9 +1,12 @@
 import StorageProvider from './storage_provider.js';
 
-export default class GoogleDriveProvider extends StorageProvider {
-  constructor(clientId = '509580731574-fk6ovov57h0b2tq083jv4860qa8ofhqg.apps.googleusercontent.com') {
+class GoogleDriveProvider extends StorageProvider {
+  constructor(
+    clientId = '509580731574-fk6ovov57h0b2tq083jv4860qa8ofhqg.apps.googleusercontent.com',
+    apiKey = 'AIzaSyAE81-cmFyJDPhpH3At2kEY5KQOXNlvNks') {
     super();
     this.clientId = clientId;
+    this.apiKey = apiKey;
     this.accessToken = null;
     this.profile = null;
     this.tokenClient = google.accounts.oauth2.initTokenClient({
@@ -65,25 +68,69 @@ export default class GoogleDriveProvider extends StorageProvider {
     return this.profile;
   }
 
-  async uploadToDrive(blob, onProgress, onError) {
+  async fetchPersistentThumbnailUrl(imageField, noFallback = false) {
+    if (imageField.persistentThumbnailUrl && imageField.thumbnailUrl) {
+      return imageField.thumbnailUrl;
+    }
+    if (!imageField.fileId) {
+      console.warn("No file ID in image field to fetch thumbnail URL");
+      return imageField.thumbnailUrl;
+    }
+    try {
+      const res = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${imageField.fileId}?fields=thumbnailLink&key=${this.apiKey}`
+      );
+      if (!res.ok) {
+          console.warn(`Error returned getting actual thumbnail link for file Id ${imageField.fileId}: ${res.status} (${res.type})`);
+          return noFallback ? imageField.thumbnailUrl : this.fetchPersistentImageUrl(imageField, true);
+      }
+      const data = await res.json();
+      imageField.thumbnailUrl = data.thumbnailLink;
+      imageField.persistentThumbnailUrl = true;
+      return data.thumbnailLink;
+    } catch (e) {
+        console.warn(`Error getting thumbnail URL for file Id ${imageField.fileId}: `, e);
+        return noFallback ? imageField.thumbnailUrl : this.fetchPersistentImageUrl(imageField, true);
+    }
+  }
+
+  async fetchPersistentImageUrl(imageField, noFallback = false) {
+    if (imageField.persistentImageUrl && imageField.imageUrl) {
+      return imageField.imageUrl;
+    }
+    if (!imageField.fileId) {
+      console.warn("No file ID in image field to fetch image URL");
+      return imageField.imageUrl;
+    }
+    try {
+      const res = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${imageField.fileId}?fields=webContentLink&key=${this.apiKey}`
+      );
+      if (!res.ok) {
+          console.warn(`Error returned getting actual image link for file Id ${imageField.fileId}: ${res.status} (${res.type})`);
+          return noFallback ? imageField.imageUrl : this.fetchPersistentThumbnailUrl(imageField, true);
+      }
+      const data = await res.json();
+      imageField.imageUrl = data.webContentLink;
+      imageField.persistentImageUrl = true;
+      return data.webContentLink;
+    } catch (e) {
+        console.warn(`Error getting actual image URL for file Id ${imageField.fileId}: `, e);
+        return noFallback ? imageField.imageUrl : this.fetchPersistentThumbnailUrl(imageField, true);
+    }
+  }
+
+  async uploadToDrive(blob, onProgress) {
     console.log("Ensuring Drive auth…");
     await this.ensureAuth();
     if (!this.accessToken) {
-      const err = new Error("Failed to obtain Drive access token");
-      console.error(err);
-      onError && onError(err);
-      throw err;
+      throw new Error("Failed to obtain Drive access token");
     }
 
     let folderId;
-    try {
-      console.log("Ensuring SkyPhotos folder…");
-      folderId = await this.ensureSkyPhotosFolder();
-    } catch (e) {
-      console.error(e);
-      onError && onError(e);
-      throw e;
-    }
+    console.log("Ensuring SkyPhotos folder…");
+    folderId = await this.ensureSkyPhotosFolder();
+
     const metadata = {
         name: `Sky_${Date.now()}.jpg`,
         mimeType: "image/jpeg",
@@ -134,7 +181,7 @@ export default class GoogleDriveProvider extends StorageProvider {
         console.log("Starting upload to Drive with progress tracking…: ", metadata);
         xhr.send(form);
     });
-}
+  }
 
   async makeDriveFilePublic(fileId) {
     console.log("Making Drive file public: ", fileId);
@@ -160,8 +207,8 @@ export default class GoogleDriveProvider extends StorageProvider {
     return `https://drive.google.com/thumbnail?id=${fileId}`; //&sz=w200-h200`;
   }
 
-  async uploadImageToService(blob, onProgress, onError) {
-    const fileId = await this.uploadToDrive(blob, onProgress, onError);
+  async uploadImageToService(blob, onProgress) {
+    const fileId = await this.uploadToDrive(blob, onProgress);
     const publicUrl = await this.makeDriveFilePublic(fileId);
     const thumbnailUrl = this.getThumbnailUrl(fileId);
     return {
@@ -227,21 +274,15 @@ export default class GoogleDriveProvider extends StorageProvider {
   }
 
   async ensureSkyPhotosFolder() {
-    try {
-      // Decompose UploadProvided.PATH
-      const folders = this.PATH.split("/");
-      let parentId = "root";
-      for (const folder of folders) {
-        console.log("Ensuring folder exists: ", folder);
-        parentId = await this.getOrCreateFolder(folder, parentId);
-      };
-      const skyPhotosId = parentId;
-      return skyPhotosId;
-    } 
-    catch (e) {
-      console.error("Error ensuring SkyPhotos folder:", e);
-      throw e;
-    }
+    // Decompose UploadProvided.PATH
+    const folders = this.PATH.split("/");
+    let parentId = "root";
+    for (const folder of folders) {
+      console.log("Ensuring folder exists: ", folder);
+      parentId = await this.getOrCreateFolder(folder, parentId);
+    };
+    const skyPhotosId = parentId;
+    return skyPhotosId;
   }
 
   async deletePhoto(fileId) {
@@ -256,3 +297,13 @@ export default class GoogleDriveProvider extends StorageProvider {
     );
   }
 }
+
+let _storageProvider = null;
+
+export function getStorageProvider() {
+  if (!_storageProvider) {
+    _storageProvider = new GoogleDriveProvider();
+  }
+  return _storageProvider;
+}
+

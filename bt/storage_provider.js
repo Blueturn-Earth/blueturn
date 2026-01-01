@@ -9,12 +9,20 @@ export default class StorageProvider {
     throw new Error("unimplemented method");
   }
 
-  async upload(blob, onProgress, onError) {
-
-    return await this.uploadImageToService(blob, onProgress, onError);
+  async fetchPersistentThumbnailUrl(imageField, noFallback = false) {
+    throw new Error("unimplemented method");
   }
 
-  async uploadImageToService(blob, onProgress, onError) {
+  async fetchPersistentImageUrl(imageField, noFallback = false) {
+    throw new Error("unimplemented method");
+  }
+
+  async upload(blob, onProgress) {
+
+    return await this.uploadImageToService(blob, onProgress);
+  }
+
+  async uploadImageToService(blob, onProgress) {
     console.error("unimplemented method");
     // That's the format we have to return
     return {

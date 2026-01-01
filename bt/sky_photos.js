@@ -12,6 +12,7 @@ import { gZoom, gPivotEpicImageData } from './app.js';
 import { glZoomFactor } from './gl.js';
 import { gControlState } from './controlparams.js';
 import DragScroller from './drag_scroller.js'
+import {getStorageProvider} from './gdrive_provider.js';
 
 console.log("Sky Photos module loaded");
 
@@ -79,7 +80,7 @@ function updateEarthSkyPhotoPosition(picItem)
         return;
     }
 
-    const picPos = gGetScreenCoordFromLatLon(earthPicDiv.data.gps.lat, earthPicDiv.data.gps.lon);
+    const picPos = gGetScreenCoordFromLatLon(picItem.data.gps.lat, picItem.data.gps.lon);
     if (!picPos || picPos.z < -0.2) {
         earthPicDiv.style.display = 'none';
     }
@@ -129,44 +130,58 @@ function updateEarthSkyPhotoPosition(picItem)
     return scaleAlpha;
 }
 
+async function setImgSrcFromFileId(imgElement, data, isThumbnail)
+{
+    imgElement.src = "";
+    if (isThumbnail) {
+        data.image.thumbnailUrl = await getStorageProvider().fetchPersistentThumbnailUrl(data.image);
+        imgElement.src = data.image.thumbnailUrl;
+    }
+    else {
+        data.image.imageUrl = await getStorageProvider().fetchPersistentImageUrl(data.image);
+        imgElement.src = data.image.imageUrl;
+    }
+}
+
 function createEarthPicDiv(data)
 {
     const earthPicDiv = document.createElement('img');
     earthPicDiv.className = 'sky-earth-photo-thumb';
-    earthPicDiv.src = data.image.thumbnailUrl;
-    earthPicDiv.data = data;
+    if (data.image.thumbnailUrl)
+        earthPicDiv.src = data.image.thumbnailUrl;
+    else if(data.image.fileId)
+        setImgSrcFromFileId(earthPicDiv, data, true);
+    else {
+        console.warn("No thumbnail URL or file ID for sky photo");
+        earthPicDiv.src = "";
+    }
     earthPicDiv.onclick = () => {
-        openPopupFromThumbnail(earthPicDiv);
+        openPopupFromThumbnail(earthPicDiv, data);
     }
     return earthPicDiv;
 }
 
-function createScrollPicDiv(data)
+async function loadScrollPicDivImage(scrollPicDiv, data)
 {
-    let scrollPicDiv = document.querySelector(".sky-scroll-photo-thumb");
-    if (!scrollPicDiv) {
-        console.error("No sample scroller pic div available");
-        return;
-    }
-    if (scrollPicDiv.data)
-        scrollPicDiv = scrollPicDiv.cloneNode(true);
-    const scrollImg = scrollPicDiv.querySelector("img");
-    scrollImg.src = data.image.thumbnailUrl;
-    scrollPicDiv.data = data;
-    // scrollImg.onclick = () => {
-    //     openPopupFromThumbnail(scrollImg);
-    // }
-    return scrollPicDiv;
+    data.image.thumbnailUrl = await getStorageProvider().fetchPersistentThumbnailUrl(data.image);
+    skyPhotosScrollGallery.loadItemImage(scrollPicDiv, data.image.thumbnailUrl);
 }
 
-function checkData(data)
+function createScrollPicDiv(data)
+{
+    const node = skyPhotosScrollGallery.createItem();//.replace(/=s\d+/, `=s${size}`);
+    loadScrollPicDivImage(node, data);
+    return node;
+}
+
+function checkData(docId, data)
 {
     if (!data) {
         console.warn("No data for pic:", docId);
         return false;
     }
-    if (!data.image || !data.image.thumbnailUrl) {
-        console.warn("No image field for pic data:", docId);
+    if (!data.image || !data.image.fileId) {
+        console.warn("No image field or file id for pic data:", docId);
         return false;
     }
     if (!data.gps || data.gps.lat === undefined || data.gps.lon === undefined) {
@@ -182,7 +197,7 @@ function checkData(data)
 
 function setPic(docId, data, timeSec)
 {
-    if (!docId || !checkData(data))
+    if (!docId || !checkData(docId, data))
         return null;
 
     if (!picsMap.has(docId)) {
@@ -211,6 +226,7 @@ function selectPicItemIndex(index)
     const picItem = sortedPicItems[index];
     const timeSec = picItem.timeSec;
     gSetPlayState(false);
+    gControlState.blockSnapping = true;
     gJumpToEpicTime(timeSec);
 }
 
@@ -281,6 +297,7 @@ async function updateSkyPhotos(isOn)
                     timeSec += SECONDS_IN_DAY;
             }
         }
+
         const picItem = setPic(d.id, data, timeSec);
         if (picItem) {
             sortedPicItems.push(picItem);
@@ -328,7 +345,7 @@ async function updateSkyPhotos(isOn)
             }
         }
 
-        openPopupFromThumbnail(picImg);
+        openPopupFromThumbnail(picImg, picItem.data);
     })
 
     console.log("Pics created:", nPics);
@@ -389,10 +406,12 @@ skyPhotosBtn.addEventListener('click', () => {
     setSkyPhotosState(skyPhotosBtn.dataset.state === "off");
 });
 
-async function setSkyPhotosState(isOn)
+export async function setSkyPhotosState(isOn)
 {
     skyPhotosBtn.dataset.state = isOn ? "on" : "off";
     const showSkyPhotos = isOn;
+    if (showSkyPhotos)
+        gSetPlayState(false);
     gControlState.blockSnapping = showSkyPhotos;
     cameraButton.style.display = showSkyPhotos ? "block" : "none";
     addPhotoButton.style.display = showSkyPhotos ? "block" : "none";

@@ -23,7 +23,7 @@ function makeDocId(userId) {
   );
 }
 
-export async function saveMetadata(uploadResult, profile, gps, takenTime) {
+export async function saveMetadata(uploadResult, profile, gps, takenTime, skyRatio) {
   if (!db) {
     console.warn("No Firestore DB available, skipping metadata save");
     return;
@@ -41,6 +41,7 @@ export async function saveMetadata(uploadResult, profile, gps, takenTime) {
     image: uploadResult,
     takenTime: takenTime,
     gps: gps,
+    skyRatio: skyRatio,
     profile: profile
   };
   console.log("Saving doc to Firestore:", photoDoc);
