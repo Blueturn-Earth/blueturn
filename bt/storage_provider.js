@@ -9,11 +9,11 @@ export default class StorageProvider {
     throw new Error("unimplemented method");
   }
 
-  async fetchPersistentThumbnailUrl(fileId) {
+  async fetchPersistentThumbnailUrl(imageField, noFallback = false) {
     throw new Error("unimplemented method");
   }
 
-  async fetchPersistentImageUrl(fileId) {
+  async fetchPersistentImageUrl(imageField, noFallback = false) {
     throw new Error("unimplemented method");
   }
 

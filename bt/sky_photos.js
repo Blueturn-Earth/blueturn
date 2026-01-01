@@ -133,19 +133,13 @@ function updateEarthSkyPhotoPosition(picItem)
 async function setImgSrcFromFileId(imgElement, data, isThumbnail)
 {
     imgElement.src = "";
-    let url = null;
     if (isThumbnail) {
-        url = await getStorageProvider().fetchPersistentThumbnailUrl(data.image.fileId);
+        data.image.thumbnailUrl = await getStorageProvider().fetchPersistentThumbnailUrl(data.image);
+        imgElement.src = data.image.thumbnailUrl;
     }
     else {
-        url = await getStorageProvider().fetchPersistentImageUrl(data.image.fileId);
-    }
-    if (url) {
-        if (isThumbnail)
-            data.image.thumbnailUrl = url;
-        else
-            data.image.imageUrl = url;
-        imgElement.src = url;
+        data.image.imageUrl = await getStorageProvider().fetchPersistentImageUrl(data.image);
+        imgElement.src = data.image.imageUrl;
     }
 }
 
@@ -169,16 +163,8 @@ function createEarthPicDiv(data)
 
 async function loadScrollPicDivImage(scrollPicDiv, data)
 {
-    let thumbnailUrl;
-    if (data.image.thumbnailUrl)
-        thumbnailUrl = data.image.thumbnailUrl;
-    else if(data.image.fileId)
-        thumbnailUrl = data.image.thumbnailUrl = await getStorageProvider().fetchPersistentThumbnailUrl(data.image.fileId);
-    else {
-        console.warn("No thumbnail URL or file ID for sky photo");
-        thumbnailUrl = "";
-    }
-    skyPhotosScrollGallery.loadItemImage(scrollPicDiv, thumbnailUrl);
+    data.image.thumbnailUrl = await getStorageProvider().fetchPersistentThumbnailUrl(data.image);
+    skyPhotosScrollGallery.loadItemImage(scrollPicDiv, data.image.thumbnailUrl);
 }
 
 function createScrollPicDiv(data)
@@ -309,12 +295,6 @@ async function updateSkyPhotos(isOn)
                 while (timeSec < epicImageData1.timeSec)
                     timeSec += SECONDS_IN_DAY;
             }
-        }
-
-        if (data.image.fileId)
-        {
-            data.image.thumbnailUrl = null;
-            data.image.imageUrl = null;
         }
 
         const picItem = setPic(d.id, data, timeSec);

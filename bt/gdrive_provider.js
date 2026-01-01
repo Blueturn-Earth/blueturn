@@ -68,37 +68,55 @@ class GoogleDriveProvider extends StorageProvider {
     return this.profile;
   }
 
-  async fetchPersistentThumbnailUrl(fileId) {
+  async fetchPersistentThumbnailUrl(imageField, noFallback = false) {
+    if (imageField.persistentThumbnailUrl && imageField.thumbnailUrl) {
+      return imageField.thumbnailUrl;
+    }
+    if (!imageField.fileId) {
+      console.warn("No file ID in image field to fetch thumbnail URL");
+      return imageField.thumbnailUrl;
+    }
     try {
       const res = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailLink&key=${this.apiKey}`
+          `https://www.googleapis.com/drive/v3/files/${imageField.fileId}?fields=thumbnailLink&key=${this.apiKey}`
       );
       if (!res.ok) {
-          console.error(`Error returned getting actual thumbnail link for file Id ${fileId}: ${res.status} (${res.type})`);
-          return null;
+          console.warn(`Error returned getting actual thumbnail link for file Id ${imageField.fileId}: ${res.status} (${res.type})`);
+          return noFallback ? imageField.thumbnailUrl : this.fetchPersistentImageUrl(imageField, true);
       }
       const data = await res.json();
+      imageField.thumbnailUrl = data.thumbnailLink;
+      imageField.persistentThumbnailUrl = true;
       return data.thumbnailLink;
     } catch (e) {
-        console.warn(`Error getting thumbnail URL for file Id ${fileId}: `, e);
-        return fetchPersistentImageUrl(fileId);
+        console.warn(`Error getting thumbnail URL for file Id ${imageField.fileId}: `, e);
+        return noFallback ? imageField.thumbnailUrl : this.fetchPersistentImageUrl(imageField, true);
     }
   }
 
-  async fetchPersistentImageUrl(fileId) {
+  async fetchPersistentImageUrl(imageField, noFallback = false) {
+    if (imageField.persistentImageUrl && imageField.imageUrl) {
+      return imageField.imageUrl;
+    }
+    if (!imageField.fileId) {
+      console.warn("No file ID in image field to fetch image URL");
+      return imageField.imageUrl;
+    }
     try {
       const res = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${fileId}?fields=webContentLink&key=${this.apiKey}`
+          `https://www.googleapis.com/drive/v3/files/${imageField.fileId}?fields=webContentLink&key=${this.apiKey}`
       );
       if (!res.ok) {
-          console.error(`Error returned getting actual image link for file Id ${fileId}: ${res.status} (${res.type})`);
-          return null;
+          console.warn(`Error returned getting actual image link for file Id ${imageField.fileId}: ${res.status} (${res.type})`);
+          return noFallback ? imageField.imageUrl : this.fetchPersistentThumbnailUrl(imageField, true);
       }
       const data = await res.json();
+      imageField.imageUrl = data.webContentLink;
+      imageField.persistentImageUrl = true;
       return data.webContentLink;
     } catch (e) {
-        console.error(`Error getting actual image URL for file Id ${fileId}: `, e);
-        return null;
+        console.warn(`Error getting actual image URL for file Id ${imageField.fileId}: `, e);
+        return noFallback ? imageField.imageUrl : this.fetchPersistentThumbnailUrl(imageField, true);
     }
   }
 
@@ -187,9 +205,12 @@ class GoogleDriveProvider extends StorageProvider {
 
   async uploadImageToService(blob, onProgress) {
     const fileId = await this.uploadToDrive(blob, onProgress);
-
+    const publicUrl = await this.makeDriveFilePublic(fileId);
+    const thumbnailUrl = this.getThumbnailUrl(fileId);
     return {
       provider: "GoogleDrive",
+      imageUrl: publicUrl,
+      thumbnailUrl: thumbnailUrl,
       fileId: fileId
     }
   }
