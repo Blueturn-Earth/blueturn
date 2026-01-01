@@ -203,6 +203,10 @@ class GoogleDriveProvider extends StorageProvider {
     return `https://drive.google.com/uc?id=${fileId}`;
   }
 
+  getThumbnailUrl(fileId) {
+    return `https://drive.google.com/thumbnail?id=${fileId}`; //&sz=w200-h200`;
+  }
+
   async uploadImageToService(blob, onProgress) {
     const fileId = await this.uploadToDrive(blob, onProgress);
     const publicUrl = await this.makeDriveFilePublic(fileId);
