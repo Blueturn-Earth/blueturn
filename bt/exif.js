@@ -117,7 +117,7 @@ export async function addEXIF(imgFile)
     }
     else {
         try {
-            const gps = await getGeolocation();
+            gps = await getGeolocation();
         }
         catch(e) {
             dumpError(e.message);
@@ -130,7 +130,7 @@ export async function addEXIF(imgFile)
     }
     return {
         takenTime: now,
-        gps: null,
-        error: e
+        gps: gps,
+        error: error
     };
 }
