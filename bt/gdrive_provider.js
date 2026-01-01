@@ -71,7 +71,7 @@ class GoogleDriveProvider extends StorageProvider {
   async getPersistentThumbnailUrl(fileId) {
     try {
       const res = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailUrl&key=${this.apiKey}`
+          `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailLink&key=${this.apiKey}`
       );
       if (!res.ok) {
           console.error(`Error returned getting actual thumbnail link for file Id ${fileId}: ${res.status} (${res.type})`);
@@ -88,7 +88,7 @@ class GoogleDriveProvider extends StorageProvider {
   async getPersistentImageUrl(fileId) {
     try {
       const res = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${fileId}?fields=webContentUrl&key=${this.apiKey}`
+          `https://www.googleapis.com/drive/v3/files/${fileId}?fields=webContentLink&key=${this.apiKey}`
       );
       if (!res.ok) {
           console.error(`Error returned getting actual image link for file Id ${fileId}: ${res.status} (${res.type})`);
