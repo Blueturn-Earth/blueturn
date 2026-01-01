@@ -226,6 +226,7 @@ function selectPicItemIndex(index)
     const picItem = sortedPicItems[index];
     const timeSec = picItem.timeSec;
     gSetPlayState(false);
+    gControlState.blockSnapping = true;
     gJumpToEpicTime(timeSec);
 }
 
@@ -409,6 +410,8 @@ export async function setSkyPhotosState(isOn)
 {
     skyPhotosBtn.dataset.state = isOn ? "on" : "off";
     const showSkyPhotos = isOn;
+    if (showSkyPhotos)
+        gSetPlayState(false);
     gControlState.blockSnapping = showSkyPhotos;
     cameraButton.style.display = showSkyPhotos ? "block" : "none";
     addPhotoButton.style.display = showSkyPhotos ? "block" : "none";
