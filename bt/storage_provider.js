@@ -9,11 +9,7 @@ export default class StorageProvider {
     throw new Error("unimplemented method");
   }
 
-  async fetchPersistentThumbnailUrl(imageField, highRes = false, sizeLimit = 2048) {
-    throw new Error("unimplemented method");
-  }
-
-  async fetchPersistentImageUrl(imageField, noFallback = false) {
+  async loadImageFromField(img, imageField, highRes = false, sizeLimit = 2048) {
     throw new Error("unimplemented method");
   }
 
