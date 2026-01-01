@@ -130,30 +130,72 @@ function updateEarthSkyPhotoPosition(picItem)
     return scaleAlpha;
 }
 
+async function setImgSrcFromFileId(imgElement, data, isThumbnail)
+{
+    imgElement.src = "";
+    let url = null;
+    if (isThumbnail) {
+        url = await getStorageProvider().getPersistentThumbnailUrl(data.image.fileId);
+    }
+    else {
+        url = await getStorageProvider().getPersistentImageUrl(data.image.fileId);
+    }
+    if (url) {
+        if (isThumbnail)
+            data.image.thumbnailUrl = url;
+        else
+            data.image.imageUrl = url;
+        imgElement.src = url;
+    }
+}
+
 function createEarthPicDiv(data)
 {
     const earthPicDiv = document.createElement('img');
     earthPicDiv.className = 'sky-earth-photo-thumb';
-    earthPicDiv.src = data.image.thumbnailUrl;
+    if (data.image.thumbnailUrl)
+        earthPicDiv.src = data.image.thumbnailUrl;
+    else if(data.image.fileId)
+        setImgSrcFromFileId(earthPicDiv, data, true);
+    else {
+        console.warn("No thumbnail URL or file ID for sky photo");
+        earthPicDiv.src = "";
+    }
     earthPicDiv.onclick = () => {
-        openPopupFromThumbnail(earthPicDiv);
+        openPopupFromThumbnail(earthPicDiv, data);
     }
     return earthPicDiv;
 }
 
-function createScrollPicDiv(thumbnailUrl)
+async function loadScrollPicDivImage(scrollPicDiv, data)
 {
-    return skyPhotosScrollGallery.createItem(thumbnailUrl);//.replace(/=s\d+/, `=s${size}`);
+    let thumbnailUrl;
+    if (data.image.thumbnailUrl)
+        thumbnailUrl = data.image.thumbnailUrl;
+    else if(data.image.fileId)
+        thumbnailUrl = data.image.thumbnailUrl = await getStorageProvider().getPersistentThumbnailUrl(data.image.fileId);
+    else {
+        console.warn("No thumbnail URL or file ID for sky photo");
+        thumbnailUrl = "";
+    }
+    skyPhotosScrollGallery.loadItemImage(scrollPicDiv, thumbnailUrl);
 }
 
-function checkData(data)
+function createScrollPicDiv(data)
+{
+    const node = skyPhotosScrollGallery.createItem();//.replace(/=s\d+/, `=s${size}`);
+    loadScrollPicDivImage(node, data);
+    return node;
+}
+
+function checkData(docId, data)
 {
     if (!data) {
         console.warn("No data for pic:", docId);
         return false;
     }
-    if (!data.image || !data.image.thumbnailUrl) {
-        console.warn("No image field for pic data:", docId);
+    if (!data.image || !data.image.fileId) {
+        console.warn("No image field or file id for pic data:", docId);
         return false;
     }
     if (!data.gps || data.gps.lat === undefined || data.gps.lon === undefined) {
@@ -169,13 +211,13 @@ function checkData(data)
 
 function setPic(docId, data, timeSec)
 {
-    if (!docId || !checkData(data))
+    if (!docId || !checkData(docId, data))
         return null;
 
     if (!picsMap.has(docId)) {
         const picItem = {
             earthPicDiv: createEarthPicDiv(data),
-            scrollPicDiv: createScrollPicDiv(data.image.thumbnailUrl),
+            scrollPicDiv: createScrollPicDiv(data),
             data: data,
             timeSec: timeSec
         }
@@ -271,16 +313,8 @@ async function updateSkyPhotos(isOn)
 
         if (data.image.fileId)
         {
-            data.image.thumbnailUrl = await getStorageProvider().getPersistentThumbnailUrl(data.image.fileId);
-            if (!data.image.thumbnailUrl) {
-                console.warn("Could not get thumbnail URL for file Id ", data.image.fileId);
-                continue;
-            }
-            data.image.imageUrl = await getStorageProvider().getPersistentImageUrl(data.image.fileId);
-            if (!data.image.imageUrl) {
-                console.warn("Could not get image URL for file Id ", data.image.fileId);
-                continue;
-            }
+            data.image.thumbnailUrl = null;
+            data.image.imageUrl = null;
         }
 
         const picItem = setPic(d.id, data, timeSec);

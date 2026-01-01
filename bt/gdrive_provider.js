@@ -78,7 +78,7 @@ class GoogleDriveProvider extends StorageProvider {
           return null;
       }
       const data = await res.json();
-      return data.thumbnailUrl;
+      return data.thumbnailLink;
     } catch (e) {
         console.error(`Error getting thumbnail URL for file Id ${fileId}: `, e);
         return null;
@@ -95,7 +95,7 @@ class GoogleDriveProvider extends StorageProvider {
           return null;
       }
       const data = await res.json();
-      return data.webContentUrl;
+      return data.webContentLink;
     } catch (e) {
         console.error(`Error getting actual image URL for file Id ${fileId}: `, e);
         return null;
