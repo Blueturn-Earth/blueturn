@@ -1,9 +1,12 @@
 import StorageProvider from './storage_provider.js';
 
 class GoogleDriveProvider extends StorageProvider {
-  constructor(clientId = '509580731574-fk6ovov57h0b2tq083jv4860qa8ofhqg.apps.googleusercontent.com') {
+  constructor(
+    clientId = '509580731574-fk6ovov57h0b2tq083jv4860qa8ofhqg.apps.googleusercontent.com',
+    apiKey = 'AIzaSyAE81-cmFyJDPhpH3At2kEY5KQOXNlvNks') {
     super();
     this.clientId = clientId;
+    this.apiKey = apiKey;
     this.accessToken = null;
     this.profile = null;
     this.tokenClient = google.accounts.oauth2.initTokenClient({
@@ -67,7 +70,7 @@ class GoogleDriveProvider extends StorageProvider {
 
   async getPersistentThumbnailUrl(fileId) {
     const res = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailUrl`
+        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailUrl&key=${this.apiKey}`
     );
 
     if (!res.ok) {
@@ -80,7 +83,7 @@ class GoogleDriveProvider extends StorageProvider {
 
   async getPersistentImageUrl(fileId) {
     const res = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=webContentUrl`
+        `https://www.googleapis.com/drive/v3/files/${fileId}?fields=webContentUrl&key=${this.apiKey}`
     );
 
     if (!res.ok) {
