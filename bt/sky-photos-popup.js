@@ -22,7 +22,7 @@ export async function openPopupFromThumbnail(thumbImg, data) {
   let url = data.image.thumbnailUrl;
   if (!data.image.imageUrl) {
     if(data.image.fileId) {
-      data.image.imageUrl = await getStorageProvider().getPersistentImageUrl(data.image.fileId);
+      data.image.imageUrl = await getStorageProvider().fetchPersistentImageUrl(data.image.fileId);
       if (data.image.imageUrl) {
         url = data.image.imageUrl;
       }
@@ -34,7 +34,7 @@ export async function openPopupFromThumbnail(thumbImg, data) {
   }
   if (!url && !data.image.thumbnailUrl) {
     if(data.image.fileId) {
-      data.image.thumbnailUrl = await getStorageProvider().getPersistentThumbnailUrl(data.image.fileId);
+      data.image.thumbnailUrl = await getStorageProvider().fetchPersistentThumbnailUrl(data.image.fileId);
       if (data.image.thumbnailUrl) {
         url = data.image.thumbnailUrl;
       }

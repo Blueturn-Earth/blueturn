@@ -135,10 +135,10 @@ async function setImgSrcFromFileId(imgElement, data, isThumbnail)
     imgElement.src = "";
     let url = null;
     if (isThumbnail) {
-        url = await getStorageProvider().getPersistentThumbnailUrl(data.image.fileId);
+        url = await getStorageProvider().fetchPersistentThumbnailUrl(data.image.fileId);
     }
     else {
-        url = await getStorageProvider().getPersistentImageUrl(data.image.fileId);
+        url = await getStorageProvider().fetchPersistentImageUrl(data.image.fileId);
     }
     if (url) {
         if (isThumbnail)
@@ -173,7 +173,7 @@ async function loadScrollPicDivImage(scrollPicDiv, data)
     if (data.image.thumbnailUrl)
         thumbnailUrl = data.image.thumbnailUrl;
     else if(data.image.fileId)
-        thumbnailUrl = data.image.thumbnailUrl = await getStorageProvider().getPersistentThumbnailUrl(data.image.fileId);
+        thumbnailUrl = data.image.thumbnailUrl = await getStorageProvider().fetchPersistentThumbnailUrl(data.image.fileId);
     else {
         console.warn("No thumbnail URL or file ID for sky photo");
         thumbnailUrl = "";

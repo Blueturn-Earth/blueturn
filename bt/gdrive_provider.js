@@ -68,7 +68,7 @@ class GoogleDriveProvider extends StorageProvider {
     return this.profile;
   }
 
-  async getPersistentThumbnailUrl(fileId) {
+  async fetchPersistentThumbnailUrl(fileId) {
     try {
       const res = await fetch(
           `https://www.googleapis.com/drive/v3/files/${fileId}?fields=thumbnailLink&key=${this.apiKey}`
@@ -85,7 +85,7 @@ class GoogleDriveProvider extends StorageProvider {
     }
   }
 
-  async getPersistentImageUrl(fileId) {
+  async fetchPersistentImageUrl(fileId) {
     try {
       const res = await fetch(
           `https://www.googleapis.com/drive/v3/files/${fileId}?fields=webContentLink&key=${this.apiKey}`
