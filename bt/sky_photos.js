@@ -130,41 +130,22 @@ function updateEarthSkyPhotoPosition(picItem)
     return scaleAlpha;
 }
 
-async function loadImgFromFileId(imgElement, data)
-{
-    imgElement.src = "";
-    data.image.thumbnailUrl = await getStorageProvider().fetchPersistentThumbnailUrl(data.image);
-    imgElement.src = data.image.thumbnailUrl;
-}
-
 function createEarthPicDiv(data)
 {
     const earthPicDiv = document.createElement('img');
     earthPicDiv.className = 'sky-earth-photo-thumb';
-    if (data.image.thumbnailUrl)
-        earthPicDiv.src = data.image.thumbnailUrl;
-    else if(data.image.fileId)
-        loadImgFromFileId(earthPicDiv, data, true);
-    else {
-        console.warn("No thumbnail URL or file ID for sky photo");
-        earthPicDiv.src = "";
-    }
+    getStorageProvider().loadImageFromField(earthPicDiv, data.image);
     earthPicDiv.onclick = () => {
         openPopupFromThumbnail(earthPicDiv, data);
     }
     return earthPicDiv;
 }
 
-async function loadScrollPicDivImage(scrollPicDiv, data)
-{
-    data.image.thumbnailUrl = await getStorageProvider().fetchPersistentThumbnailUrl(data.image);
-    skyPhotosScrollGallery.loadItemImage(scrollPicDiv, data.image.thumbnailUrl);
-}
-
 function createScrollPicDiv(data)
 {
     const node = skyPhotosScrollGallery.createItem();//.replace(/=s\d+/, `=s${size}`);
-    loadScrollPicDivImage(node, data);
+    const img = skyPhotosScrollGallery.getItemImg(node);
+    getStorageProvider().loadImageFromField(img, data.image);
     return node;
 }
 
@@ -413,9 +394,18 @@ const scrollCursor = document.getElementById('scrollCursor');
 cameraButton.style.display = 'none';
 addPhotoButton.style.display = 'none';
 scrollCursor.style.display = 'none';
-skyPhotosBtn.addEventListener('click', () => {
+skyPhotosBtn.addEventListener('click', async () => {
     // toggle
-    setSkyPhotosState(skyPhotosBtn.dataset.state === "off");
+    const isOn = skyPhotosBtn.dataset.state === "off";
+    if (isOn) {
+        await setSkyPhotosState(true);
+        selectPicItemIndex(sortedPicItems.length > 0 ? sortedPicItems.length - 1 : undefined);
+        gSetPlayState(true);
+    }
+    else {
+        setSkyPhotosState(false);
+        selectPicItemIndex(undefined);
+    }
 });
 
 export async function setSkyPhotosState(isOn)

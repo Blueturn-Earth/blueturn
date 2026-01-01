@@ -93,23 +93,8 @@ export default class DragScroller
     return node;
   }
   
-  loadItemImage(node, imageURL) {
-    const itemImg = node.querySelector("img");
-    itemImg.onload = function() {
-        const msg = "Loaded image " + itemImg.src;
-        console.log(msg);
-    };
-    itemImg.addEventListener('error', function(event) {
-        const msg = "Failed to load image source: " + event.target.src + ", Error: " + event.error?.message;
-        console.error(msg);
-        if (this.imgErrorCount == 0)
-            alert(msg);
-        this.imgErrorCount++;
-        // Replace with a fallback image
-        event.target.onerror = null; // Prevent infinite loops
-        //event.target.src = "/assets/no-image.jpg";
-    });
-    itemImg.src = imageURL;
+  getItemImg(node) {
+    return node.querySelector('img');
   }
 
   appendItem(node)
@@ -379,14 +364,14 @@ export default class DragScroller
 
     if (!closest) return;
 
-    const target =
-      this.#getItemCenter(closest) - viewportSize / 2;
+      const target =
+        this.#getItemCenter(closest) - viewportSize / 2;
 
-    this.scroller.scrollTo({
-      ...(this.isHorizontal ? { left: target } : { top: target }),
-      behavior: 'smooth'
-    });
-    this.#setSelectedIndex(closestChildIndex - 2); // skip start spacer+template
+      this.scroller.scrollTo({
+        ...(this.isHorizontal ? { left: target } : { top: target }),
+        behavior: 'smooth'
+      });
+      this.#setSelectedIndex(closestChildIndex - 2); // skip start spacer+template
   }
 
   #setSelectedIndex(index, withClickCb)

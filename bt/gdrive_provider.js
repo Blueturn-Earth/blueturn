@@ -130,6 +130,26 @@ class GoogleDriveProvider extends StorageProvider {
     }
   }
 
+  imgErrorCount = 0;
+
+  async loadImageFromField(img, imageField, highRes = false, sizeLimit = 2048) {
+    const url = await this.fetchPersistentThumbnailUrl(imageField, highRes, sizeLimit);
+    img.onload = function() {
+        console.log("Loaded image id=" + img.id + ", class=" + img.className + ", src=" + img.src);
+    };
+    img.addEventListener('error', function(event) {
+        const msg = "Failed to load image id=" + img.id + ", class=" + img.className + ", src=" + img.src + ", Error: " + event.error?.message;
+        console.error(msg);
+        if (this.imgErrorCount == 0)
+            alert(msg);
+        this.imgErrorCount++;
+        // Replace with a fallback image
+        event.target.onerror = null; // Prevent infinite loops
+        //event.target.src = "/assets/no-image.jpg";
+    });
+    img.src = url;
+  }
+
   async uploadToDrive(blob, onProgress) {
     console.log("Ensuring Drive auth…");
     await this.ensureAuth();
