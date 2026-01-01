@@ -132,7 +132,7 @@ export default class DragScroller
     // remove only non-spacer children, keep the first one
     for (let i = 0; i < this.numItems; i++)
     {
-      this.itemsGroup.removeChild(this.itemsGroup.children[i+2]);
+      this.itemsGroup.removeChild(this.itemsGroup.children[2]);
     }
     this.#updateSpacers();
     this.numItems = 0;
