@@ -130,17 +130,11 @@ function updateEarthSkyPhotoPosition(picItem)
     return scaleAlpha;
 }
 
-async function setImgSrcFromFileId(imgElement, data, isThumbnail)
+async function loadImgFromFileId(imgElement, data)
 {
     imgElement.src = "";
-    if (isThumbnail) {
-        data.image.thumbnailUrl = await getStorageProvider().fetchPersistentThumbnailUrl(data.image);
-        imgElement.src = data.image.thumbnailUrl;
-    }
-    else {
-        data.image.imageUrl = await getStorageProvider().fetchPersistentImageUrl(data.image);
-        imgElement.src = data.image.imageUrl;
-    }
+    data.image.thumbnailUrl = await getStorageProvider().fetchPersistentThumbnailUrl(data.image);
+    imgElement.src = data.image.thumbnailUrl;
 }
 
 function createEarthPicDiv(data)
@@ -150,7 +144,7 @@ function createEarthPicDiv(data)
     if (data.image.thumbnailUrl)
         earthPicDiv.src = data.image.thumbnailUrl;
     else if(data.image.fileId)
-        setImgSrcFromFileId(earthPicDiv, data, true);
+        loadImgFromFileId(earthPicDiv, data, true);
     else {
         console.warn("No thumbnail URL or file ID for sky photo");
         earthPicDiv.src = "";
