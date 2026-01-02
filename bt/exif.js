@@ -9,6 +9,7 @@ function dumpError(errorMsg)
         alert(errorMsg);
     }
     error = new Error(errorMsg);
+    return error;
 }
 
 export async function processEXIF(imgFile)
