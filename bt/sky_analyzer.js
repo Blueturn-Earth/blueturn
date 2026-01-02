@@ -40,21 +40,26 @@ function skyAnalyzer()
 
 export async function analyzeSkyFromImg(img)
 {
+    console.log("Analyzing sky coverage…");
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img,0,0);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    const code = '(' + skyAnalyzer.toString() + ').call(self);';
+    const blob = new Blob([code], { type: 'application/javascript' });
+    return analyzeSkyFromBlob(blob);
+}
+
+export async function analyzeSkyFromBlob(blob)
+{
+    const skyAnalyzerWorkerUrl = URL.createObjectURL(blob);
+
+    const skyAnalyzerWorker = new Worker(skyAnalyzerWorkerUrl);
+
     return new Promise(resolve => {
-        console.log("Analyzing sky coverage…");
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img,0,0);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-        const code = '(' + skyAnalyzer.toString() + ').call(self);';
-        const blob = new Blob([code], { type: 'application/javascript' });
-        const skyAnalyzerWorkerUrl = URL.createObjectURL(blob);
-
-        const skyAnalyzerWorker = new Worker(skyAnalyzerWorkerUrl);
-
         skyAnalyzerWorker.onmessage = function(skyAnalysisResult) {
             console.log("Result from sky analysis worker:", skyAnalysisResult);
             resolve(skyAnalysisResult.data);

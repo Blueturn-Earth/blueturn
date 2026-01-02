@@ -2,7 +2,7 @@ import {getStorageProvider, MB_USER_ID, BT_USER_ID} from './gdrive_provider.js';
 import {saveMetadata} from './firebase_save.js';
 import {processEXIF, addEXIF} from './exif.js';
 import {reloadAndSelectNewSkyPhoto, setSkyPhotosState} from './sky_photos.js';
-import {analyzeSkyFromImg} from './sky_analyzer.js'
+import {analyzeSkyFromImg, analyzeSkyFromBlob} from './sky_analyzer.js'
 import {safeSetCapturedImageInLocalStorage} from './safe_localStorage.js';
 
 if (window.navigator.standalone && window.screen.height === window.innerHeight) {
@@ -115,21 +115,18 @@ function updateModal(newData)
     modalSky.textContent = skyText;
     skyOK = newData.skyData.isSkyPhoto;
     modalSky.style.color = skyOK ? "lightgreen" : "pink";
-    latestSkyRatio = newData.skyData.skyRatio;
   }
   if (newData.timestamp !== undefined)
   {
     modalTimestamp.textContent = "Timestamp: " + newData.timestamp;
     tsOK = !!newData.timestamp;
     modalTimestamp.style.color = tsOK ? "lightgreen" : "pink";
-    latestTakenTime = newData.timestamp;
   }
   if (newData.gps !== undefined)
   {
     modalGPS.textContent = "GPS: " + (newData.gps ? `GPS: ${newData.gps.lat.toFixed(6)}, ${newData.gps.lon.toFixed(6)}` : "unavailable");
     gpsOK = !!newData.gps;
     modalGPS.style.color = gpsOK ? "lightgreen" : "pink";
-    latestGPS = newData.gps;
   }
   saveImageBtn.disabled = /*!skyOK ||*/ !tsOK || !gpsOK;
 }
@@ -182,6 +179,7 @@ async function openNewPhotoWithImg(img, imgFile, fromCamera)
   analyzeSkyFromImg(img)
   .then((skyData) => {
     console.log("Sky analysis completed: ", skyData);
+    latestSkyRatio = skyData.skyRatio;
     updateModal({skyData: skyData});
   })
   .catch((error) => {
@@ -192,6 +190,8 @@ async function openNewPhotoWithImg(img, imgFile, fromCamera)
   provideEXIF(imgFile, fromCamera)
   .then((result) => {
     console.log("EXIF provided: ", result);
+    latestTakenTime = result.takenTime;
+    latestGPS = result.gps;
     updateModal({
       timestamp: result.takenTime,
       gps: result.gps,
@@ -448,6 +448,9 @@ async function loadPicsFromBTContent()
                 latestTakenTime = result.takenTime;
                 latestGPS = result.gps;
                 console.log("Extracted EXIF: takenTime=" + latestTakenTime + ", gps=" + latestGPS);
+                const skyData = await analyzeSkyFromBlob(blob);
+                latestSkyRatio = skyData.skyRatio;
+                console.log("Calculated sky ratio: " + latestSkyRatio);
                 // 2. save to GDrive + FB
                 console.log("Saving blob for ", url);
                 await saveBlob(blob);
