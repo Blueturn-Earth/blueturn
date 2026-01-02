@@ -8,6 +8,20 @@ if (window.navigator.standalone && window.screen.height === window.innerHeight) 
   console.warn("Running in fullscreen mode — camera may be unstable");
 }
 
+window.addEventListener("load", () => {
+  const pending = sessionStorage.getItem("cameraPending");
+  const imageItem = localStorage.getItem("capturedImage");
+
+  if (pending && imageItem) {
+    // We *intended* to come back from camera,
+    // but page was reloaded or restored
+    sessionStorage.removeItem("cameraPending");
+    localStorage.removeItem("capturedImage");
+
+    openNewPhotoWithFile(imageItem, true);
+  }
+});
+
 const modal = document.getElementById('photoModal');
 const modalImage = document.getElementById('modalImage');
 const modalTimestamp = document.getElementById('modalTimestamp');
@@ -53,6 +67,9 @@ cameraInput.style.display = "none";
 console.log("Add camera button click handler");
 // Capture photo and metadata
 cameraButton.addEventListener("click", async () => {
+  sessionStorage.setItem("cameraPending", "1");
+  sessionStorage.setItem("returnUrl", location.href);  
+  
   // Trigger camera
   cameraInput.click();
 });
@@ -121,7 +138,7 @@ async function provideEXIF(imgFile, fromCamera)
   }
 }
 
-async function openNewPhotoWithImg(img, imgFile, camera)
+async function openNewPhotoWithImg(img, imgFile, fromCamera)
 {
   console.log("Show modal");
   // All ready → Hide spinner + show modal
@@ -147,7 +164,7 @@ async function openNewPhotoWithImg(img, imgFile, camera)
     updateModal({error: error});
   });
   
-  provideEXIF(imgFile, camera)
+  provideEXIF(imgFile, fromCamera)
   .then((result) => {
     updateModal({
       timestamp: result.takenTime,
@@ -160,38 +177,12 @@ async function openNewPhotoWithImg(img, imgFile, camera)
   });
 }
 
-function openNewPhotoWithFile(file, camera)
-{
-  const url = URL.createObjectURL(file);
-
-  // Show modal
-  console.log("Loading new photo");
-  modalImage.onload = () => {
-    openNewPhotoWithImg(modalImage, file, camera);
-  }
-  modalImage.onerror = () => {
-    alert("Failed to open " + file);
-    loading.style.display = "none";
-  }
-  modalImage.src = url;
-}
-
-console.log("Add camera input change handler");
-
-async function cameraInputChange(event)
-{
-  return addPhotoInputChange(event, true);
-}
-
-async function addPhotoInputChange(event, camera)
+function openNewPhotoWithFile(imgFile, fromCamera)
 {
   latestImageFile = undefined;
   latestTakenTime = undefined;
   latestGPS = undefined;
   latestSkyRatio = undefined;
-
-  const imgFile = event.target.files[0];
-  if (!imgFile) return;
 
   // Show loading spinner immediately after accepting the photo
   loading.style.display = "flex";
@@ -199,16 +190,54 @@ async function addPhotoInputChange(event, camera)
   latestImageFile = imgFile;
   latestImageUploaded = false;
 
-  openNewPhotoWithFile(imgFile, camera);
+  const url = URL.createObjectURL(imgFile);
+
+  // Show modal
+  console.log("Loading new photo");
+  modalImage.onload = () => {
+    openNewPhotoWithImg(modalImage, imgFile, fromCamera);
+  }
+  modalImage.onerror = () => {
+    alert("Failed to open " + imgFile);
+    loading.style.display = "none";
+  }
+  modalImage.src = url;
 
   // start showing pics
-  await setSkyPhotosState(true);
+  setSkyPhotosState(true);
+}
+
+console.log("Add camera input change handler");
+
+function cameraInputChange(event)
+{
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    // Persist immediately
+    localStorage.setItem('capturedImage', reader.result);
+    localStorage.setItem('cameraPending', '0');
+
+    openNewPhotoWithFile(reader.result, true);
+  };
+
+}
+
+function fileInputChange(event)
+{
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  return openNewPhotoWithFile(file, false);
 }
 
 // When the user takes a picture
 cameraInput.addEventListener("change", cameraInputChange);
 // When the user adds a picture
-addPhotoInput.addEventListener("change", addPhotoInputChange);
+addPhotoInput.addEventListener("change", fileInputChange);
 
 // Close modal when clicking outside or on close button
 closeModal.addEventListener('click', () => modal.style.display='none');
