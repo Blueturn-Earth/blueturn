@@ -1,3 +1,5 @@
+import { getStorageProvider } from "./gdrive_provider.js";
+
 const popup = document.getElementById("photo-popup");
 const popupImg = document.getElementById("photo-popup-img");
 popup.hidden = true;  // hide by default
@@ -16,8 +18,8 @@ window.addEventListener("popstate", (event) => {
   }
 });
 
-export function openPopupFromThumbnail(thumbImg) {
-    popupImg.src = thumbImg.src + "&sz=w1600"; // Load higher-res image
-    popup.hidden = false;
-    history.pushState({ popup: true }, "");
+export async function openPopupFromThumbnail(thumbImg, data) {
+  getStorageProvider().loadImageFromField(popupImg, data.image, true, 2048);
+  popup.hidden = false;
+  history.pushState({ popup: true }, "");
 }

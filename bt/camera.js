@@ -1,4 +1,4 @@
-import GoogleDriveProvider from './gdrive_provider.js';
+import {getStorageProvider} from './gdrive_provider.js';
 import {saveMetadata} from './firebase_save.js';
 import {processEXIF, addEXIF} from './exif.js';
 import {reloadAndSelectNewSkyPhoto, setSkyPhotosState} from './sky_photos.js';
@@ -18,6 +18,7 @@ let latestGPS = null;
 let latestTakenTime;
 let latestSkyRatio;
 let latestImageFile;
+let latestImageUploaded;
 
 // Ask for DeviceOrientation permission on iOS
 function enableOrientation() {
@@ -101,11 +102,6 @@ async function provideEXIF(imgFile, fromCamera)
       result = await addEXIF(imgFile);
     else
       result = await processEXIF(imgFile);
-    if (result.error)
-    {
-      console.error(result.error.message);
-      alert(result.error.message);
-    }
     return {
       takenTime: result.takenTime,
       gps: result.gps,
@@ -113,6 +109,8 @@ async function provideEXIF(imgFile, fromCamera)
     };
   }
   catch(e) {
+    console.error(e.message);
+    alert(e.message);  
     return {
       error: e
     };
@@ -195,6 +193,7 @@ async function addPhotoInputChange(event, camera)
   loading.style.display = "flex";
 
   latestImageFile = imgFile;
+  latestImageUploaded = false;
 
   openNewPhotoWithFile(imgFile, camera);
 
@@ -209,21 +208,16 @@ addPhotoInput.addEventListener("change", addPhotoInputChange);
 
 // Close modal when clicking outside or on close button
 closeModal.addEventListener('click', () => modal.style.display='none');
+modal.addEventListener("click", () => {
+  if (latestImageUploaded)
+    modal.style.display='none';
+});
 
 const progressEl = document.getElementById("uploadProgress");
 const barEl = progressEl.querySelector(".bar");
 const labelEl = progressEl.querySelector(".label");
 
 const SUPER_USER_ID = "115698886322844446345";
-
-let _storageProvider = null;
-
-function getStorageProvider() {
-  if (!_storageProvider) {
-    _storageProvider = new GoogleDriveProvider();
-  }
-  return _storageProvider;
-}
 
 document.getElementById("profileBtn").onclick = async () => {
   const forceNewLogin = true;
@@ -319,6 +313,8 @@ async function saveImage(imgFile) {
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
+    saveImageBtn.disabled = true;
+    latestImageUploaded = true;
   } catch (e) {    
     labelEl.textContent = "Upload failed";
     barEl.style.width = "0%";

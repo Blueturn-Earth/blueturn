@@ -9,6 +9,10 @@ export default class StorageProvider {
     throw new Error("unimplemented method");
   }
 
+  async loadImageFromField(img, imageField, highRes = false, sizeLimit = 2048) {
+    throw new Error("unimplemented method");
+  }
+
   async upload(blob, onProgress) {
 
     return await this.uploadImageToService(blob, onProgress);
