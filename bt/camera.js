@@ -2,7 +2,7 @@ import {getStorageProvider, MB_USER_ID, BT_USER_ID} from './gdrive_provider.js';
 import {saveMetadata} from './firebase_save.js';
 import {processEXIF, addEXIF} from './exif.js';
 import {reloadAndSelectNewSkyPhoto, setSkyPhotosState} from './sky_photos.js';
-import {analyzeSkyFromImg, analyzeSkyFromBlob} from './sky_analyzer.js'
+import {analyzeSkyFromImg} from './sky_analyzer.js'
 import {safeSetCapturedImageInLocalStorage} from './safe_localStorage.js';
 
 if (window.navigator.standalone && window.screen.height === window.innerHeight) {
@@ -448,7 +448,8 @@ async function loadPicsFromBTContent()
                 latestTakenTime = result.takenTime;
                 latestGPS = result.gps;
                 console.log("Extracted EXIF: takenTime=" + latestTakenTime + ", gps=" + latestGPS);
-                const skyData = await analyzeSkyFromBlob(blob);
+                const img = await createImageBitmap(blob);
+                const skyData = await analyzeSkyFromImg(img);
                 latestSkyRatio = skyData.skyRatio;
                 console.log("Calculated sky ratio: " + latestSkyRatio);
                 // 2. save to GDrive + FB
