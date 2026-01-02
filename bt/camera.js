@@ -33,6 +33,7 @@ window.addEventListener("load", () => {
     localStorage.removeItem("capturedImage");
 
     const imgFile = dataURLtoFile(imgURL, "camera.jpg");
+    alert("Found pending camera capture. Restoring...");
 
     openNewPhoto(imgURL, imgFile, true);
   }
@@ -217,7 +218,7 @@ function openNewPhoto(imgURL, imgFile, fromCamera)
   // Show modal
   console.log("Loading new photo");
   modalImage.onload = () => {
-    console.log("New photo loaded, src=", modalImage.src);
+    console.log("New photo loaded");
     openNewPhotoWithImg(modalImage, imgFile, fromCamera);
   }
   modalImage.onerror = () => {
@@ -247,7 +248,7 @@ function cameraInputChange(event)
   reader.onload = () => {
     // Persist immediately
     const imgURL = reader.result;
-    console.log("Persisting captured image to localStorage: ", imgURL);
+    console.log("Persisting captured image to localStorage");
     localStorage.setItem('capturedImage', imgURL);
     localStorage.setItem('cameraPending', '0');
 
