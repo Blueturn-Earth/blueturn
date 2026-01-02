@@ -22,10 +22,12 @@ function dataURLtoFile(dataUrl, filename) {
 }
 
 window.addEventListener("load", () => {
+  alert("Page loaded, checking for pending camera capture...");
   const pending = sessionStorage.getItem("cameraPending");
   const imgURL = localStorage.getItem("capturedImage");
 
   if (pending && imgURL) {
+    alert("Found pending camera capture. Restoring...");
     console.log("Restoring from camera capture");
     // We *intended* to come back from camera,
     // but page was reloaded or restored
@@ -33,7 +35,6 @@ window.addEventListener("load", () => {
     localStorage.removeItem("capturedImage");
 
     const imgFile = dataURLtoFile(imgURL, "camera.jpg");
-    alert("Found pending camera capture. Restoring...");
 
     openNewPhoto(imgURL, imgFile, true);
   }
@@ -236,8 +237,10 @@ console.log("Add camera input change handler");
 
 function cameraInputChange(event)
 {
+  alert("Camera capture returned, processing...");
   const file = event.target.files && event.target.files[0];
   if (!file) {
+    alert("No file captured from camera");
     console.warn("No file captured from camera");
     return;
   }
@@ -246,12 +249,14 @@ function cameraInputChange(event)
   const reader = new FileReader();
 
   reader.onload = () => {
+    alert("Camera image ready, opening...");
     // Persist immediately
     const imgURL = reader.result;
     console.log("Persisting captured image to localStorage");
     localStorage.setItem('capturedImage', imgURL);
     localStorage.setItem('cameraPending', '0');
 
+    alert("Opening captured image...");
     openNewPhoto(imgURL, file, true);
   };
 
