@@ -3,6 +3,7 @@ import {saveMetadata} from './firebase_save.js';
 import {processEXIF, addEXIF} from './exif.js';
 import {reloadAndSelectNewSkyPhoto, setSkyPhotosState} from './sky_photos.js';
 import {analyzeSkyFromImg} from './sky_analyzer.js'
+import {safeSetCapturedImageInLocalStorage} from './safe_localStorage.js';
 
 if (window.navigator.standalone && window.screen.height === window.innerHeight) {
   console.warn("Running in fullscreen mode — camera may be unstable");
@@ -250,11 +251,11 @@ function cameraInputChange(event)
 
   reader.onload = () => {
     alert("Camera image ready, opening...");
-    // Persist immediately
+
     const imgURL = reader.result;
-    console.log("Persisting captured image to localStorage");
-    localStorage.setItem('capturedImage', imgURL);
-    localStorage.setItem('cameraPending', '0');
+
+    // Persist immediately, and asynchronously
+    safeSetCapturedImageInLocalStorage(imgURL);
 
     alert("Opening captured image...");
     openNewPhoto(imgURL, file, true);
