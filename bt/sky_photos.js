@@ -259,6 +259,7 @@ async function updateSkyPhotos(isOn)
         const timestampDate = timestamp.toDate();
         let timeSec = timestampDate.getTime() / 1000;
 
+/*        
         const boundPair = 
             await gEpicDB.fetchBoundKeyFrames(
                 timeSec,
@@ -286,7 +287,7 @@ async function updateSkyPhotos(isOn)
                     timeSec += SECONDS_IN_DAY;
             }
         }
-
+*/
         const picItem = setPic(d.id, data, timeSec);
         if (picItem) {
             sortedPicItems.push(picItem);
