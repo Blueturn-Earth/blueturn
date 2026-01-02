@@ -13,6 +13,7 @@ window.addEventListener("load", () => {
   const imageItem = localStorage.getItem("capturedImage");
 
   if (pending && imageItem) {
+    console.log("Restoring from camera capture");
     // We *intended* to come back from camera,
     // but page was reloaded or restored
     sessionStorage.removeItem("cameraPending");
@@ -69,7 +70,7 @@ console.log("Add camera button click handler");
 cameraButton.addEventListener("click", async () => {
   sessionStorage.setItem("cameraPending", "1");
   sessionStorage.setItem("returnUrl", location.href);  
-  
+  console.log("Camera button clicked, set pending flag with return URL: ", location.href);
   // Trigger camera
   cameraInput.click();
 });
@@ -119,9 +120,12 @@ async function provideEXIF(imgFile, fromCamera)
 {
   try {
     let result;
-    if (fromCamera)
+    if (fromCamera) {
+      console.log("Adding EXIF to camera image");
       result = await addEXIF(imgFile);
+    }
     else
+      console.log("Processing EXIF from uploaded image");
       result = await processEXIF(imgFile);
     return {
       takenTime: result.takenTime,
@@ -130,7 +134,7 @@ async function provideEXIF(imgFile, fromCamera)
     };
   }
   catch(e) {
-    console.error(e.message);
+    console.error("Error providing EXIF data: ", e.message);
     alert(e.message);  
     return {
       error: e
@@ -140,7 +144,7 @@ async function provideEXIF(imgFile, fromCamera)
 
 async function openNewPhotoWithImg(img, imgFile, fromCamera)
 {
-  console.log("Show modal");
+  console.log("Show new photo image in modal");
   // All ready → Hide spinner + show modal
   loading.style.display = "none";
   modal.style.display = 'flex';
@@ -158,14 +162,17 @@ async function openNewPhotoWithImg(img, imgFile, fromCamera)
   // Sky coverage
   analyzeSkyFromImg(img)
   .then((skyData) => {
+    console.log("Sky analysis completed: ", skyData);
     updateModal({skyData: skyData});
   })
   .catch((error) => {
+    console.error("Sky analysis failed: ", error);
     updateModal({error: error});
   });
   
   provideEXIF(imgFile, fromCamera)
   .then((result) => {
+    console.log("EXIF provided: ", result);
     updateModal({
       timestamp: result.takenTime,
       gps: result.gps,
@@ -173,12 +180,15 @@ async function openNewPhotoWithImg(img, imgFile, fromCamera)
     });
   })
   .catch((error) => {
+    console.error("EXIF providing failed: ", error);
     updateModal({error: error});
   });
 }
 
 function openNewPhotoWithFile(imgFile, fromCamera)
 {
+  console.log("Opening new photo from file:", imgFile);
+
   latestImageFile = undefined;
   latestTakenTime = undefined;
   latestGPS = undefined;
@@ -195,9 +205,11 @@ function openNewPhotoWithFile(imgFile, fromCamera)
   // Show modal
   console.log("Loading new photo");
   modalImage.onload = () => {
+    console.log("New photo loaded, src=", modalImage.src);
     openNewPhotoWithImg(modalImage, imgFile, fromCamera);
   }
   modalImage.onerror = () => {
+    console.error("Failed to load image: ", imgFile);
     alert("Failed to open " + imgFile);
     loading.style.display = "none";
   }
@@ -212,12 +224,17 @@ console.log("Add camera input change handler");
 function cameraInputChange(event)
 {
   const file = event.target.files && event.target.files[0];
-  if (!file) return;
+  if (!file) {
+    console.warn("No file captured from camera");
+    return;
+  }
 
+  console.log("File captured from camera: ", file);
   const reader = new FileReader();
 
   reader.onload = () => {
     // Persist immediately
+    console.log("Persisting captured image to localStorage: ", reader.result);
     localStorage.setItem('capturedImage', reader.result);
     localStorage.setItem('cameraPending', '0');
 
