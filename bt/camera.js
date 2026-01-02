@@ -241,6 +241,7 @@ function cameraInputChange(event)
     openNewPhotoWithFile(reader.result, true);
   };
 
+  reader.readAsDataURL(file);
 }
 
 function fileInputChange(event)
