@@ -2,6 +2,10 @@ export default class DragScroller
 {
   scroller;
   itemsGroup;
+  itemTemplate;
+  itemStyleDisplay;
+  startSpacer;
+  endSpacer;
   numItems = 0;
   isDown = false;
   startX;
@@ -15,11 +19,15 @@ export default class DragScroller
   selectedItemIndex;
   onSelectItemCb;
   onSelectedItemClickCb;
+  onScrollAlphaCb;
 
   constructor(idName) {
     this.scroller = document.getElementById(idName);
     this.defaultDisplayMode = this.scroller.style.display;
     this.itemsGroup = this.scroller.children[0];
+    this.itemTemplate = this.itemsGroup.children[0];
+    this.itemStyleDisplay = this.itemTemplate.style.display;
+    this.itemTemplate.style.display = 'none'; // hide template
 
     this.startSpacer = document.createElement('div');
     this.endSpacer   = document.createElement('div');
@@ -64,6 +72,10 @@ export default class DragScroller
     this.onSelectedItemClickCb = cb;
   }
 
+  setScrollAlphaCb(cb) {
+    this.onScrollAlphaCb = cb;
+  }
+
   show() {
     this.scroller.style.display = this.defaultDisplayMode;
   }
@@ -72,19 +84,27 @@ export default class DragScroller
     this.scroller.style.display = 'none';
   }
   
+  imgErrorCount = 0;
+
+  createItem(imageURL) {
+    const node = this.itemTemplate.cloneNode(true);
+    node.style.display = this.itemStyleDisplay;
+
+    return node;
+  }
+  
+  getItemImg(node) {
+    return node.querySelector('img');
+  }
+
   appendItem(node)
   {
-    // Remove sample node
-    if (this.numItems == 0)
-    {
-      this.itemsGroup.removeChild(this.itemsGroup.children[1]);
-    }
-
     if (this.itemsGroup.contains(node)) {
       console.warn("Node already in items group!");
       return;
     }
 
+    node.id = `scroll-item-${this.numItems}`;
     this.itemsGroup.insertBefore(node, this.endSpacer);
     this.#updateSpacers();
     this.#snapToNearest();
@@ -100,12 +120,13 @@ export default class DragScroller
   clearItems()
   {
     // remove only non-spacer children, keep the first one
-    for (let i = 2; i < this.numItems-1; i++)
+    for (let i = 0; i < this.numItems; i++)
     {
-      this.itemsGroup.removeChild(this.itemsGroup.children[i]);
+      this.itemsGroup.removeChild(this.itemsGroup.children[2]);
     }
     this.#updateSpacers();
     this.numItems = 0;
+    this.imgErrorCount = 0;
   }
 
   scrollToAlpha(alpha) {
@@ -150,15 +171,23 @@ export default class DragScroller
     if (index == this.selectedItemIndex)
     {
       if (this.onSelectedItemClickCb)
-        this.onSelectedItemClickCb(this.itemsGroup.children[index + 1], index); // skip start spacer
+        this.onSelectedItemClickCb(this.itemsGroup.children[index + 1], index); // skip start spacer+template
       return;
     }
 
     const children = this.itemsGroup.children;
     if (!children.length) return;
 
-    const childIindex = Math.max(0, Math.min(children.length - 2, index + 1)); // skip spacers
-    const item = children[childIindex];
+    // skip start spacer+template
+    const childIndex = index + 2; 
+    // forbid spacers
+    if (childIndex < 1 || childIndex >= children.length - 1)
+    {
+      console.warn("scrollToIndex: index out of bounds: ", index);
+      return;
+    }
+
+    const item = children[childIndex];
 
     const itemCenter = this.#getItemCenter(item);
     const viewportSize = this.isHorizontal
@@ -280,6 +309,10 @@ export default class DragScroller
       }
     }
 
+    if(this.onScrollAlphaCb) {
+      const alpha = this.getScrolledAlpha();
+      this.onScrollAlphaCb(alpha);
+    }
   }
 
   #onScroll = (e) =>
@@ -316,7 +349,7 @@ export default class DragScroller
     let childIndex = 0;
     for (const item of children) {
       // skip spacers
-      if (childIndex > 0 && childIndex < children.length - 1) {
+      if (childIndex > 1 && childIndex < children.length - 1) {
         const center = this.#getItemCenter(item);
         const dist = Math.abs(center - viewportCenter);
 
@@ -331,14 +364,14 @@ export default class DragScroller
 
     if (!closest) return;
 
-    const target =
-      this.#getItemCenter(closest) - viewportSize / 2;
+      const target =
+        this.#getItemCenter(closest) - viewportSize / 2;
 
-    this.scroller.scrollTo({
-      ...(this.isHorizontal ? { left: target } : { top: target }),
-      behavior: 'smooth'
-    });
-    this.#setSelectedIndex(closestChildIndex - 1); // skip start spacer
+      this.scroller.scrollTo({
+        ...(this.isHorizontal ? { left: target } : { top: target }),
+        behavior: 'smooth'
+      });
+      this.#setSelectedIndex(closestChildIndex - 2); // skip start spacer+template
   }
 
   #setSelectedIndex(index, withClickCb)
@@ -350,7 +383,7 @@ export default class DragScroller
       console.log("Selected item index: ", index);
       
       if (this.onSelectItemCb)
-        this.onSelectItemCb(this.itemsGroup.children[index + 1], index); // skip start spacer
+        this.onSelectItemCb(this.itemsGroup.children[index + 2], index); // skip start spacer+template
     }
 }
 
@@ -375,7 +408,7 @@ export default class DragScroller
       this.isHorizontal ? this.scroller.clientWidth : this.scroller.clientHeight;
 
     // skip spacers
-    const firstCenter = this.#getItemCenter(children[1]);
+    const firstCenter = this.#getItemCenter(children[2]);
     const lastCenter  = this.#getItemCenter(children[children.length - 2]);
 
     return {
@@ -414,6 +447,6 @@ export default class DragScroller
       node
     );
 
-    this.scrollToIndex(index - 1); // skip start spacer
+    this.scrollToIndex(index - 2); // skip start spacer+template
   };
 }
