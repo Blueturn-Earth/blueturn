@@ -8,18 +8,33 @@ if (window.navigator.standalone && window.screen.height === window.innerHeight) 
   console.warn("Running in fullscreen mode — camera may be unstable");
 }
 
+function dataURLtoFile(dataUrl, filename) {
+  const [header, base64] = dataUrl.split(',');
+  const mime = header.match(/:(.*?);/)[1];
+  const binary = atob(base64);
+
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return new File([bytes], filename, { type: mime });
+}
+
 window.addEventListener("load", () => {
   const pending = sessionStorage.getItem("cameraPending");
-  const imageItem = localStorage.getItem("capturedImage");
+  const imgURL = localStorage.getItem("capturedImage");
 
-  if (pending && imageItem) {
+  if (pending && imgURL) {
     console.log("Restoring from camera capture");
     // We *intended* to come back from camera,
     // but page was reloaded or restored
     sessionStorage.removeItem("cameraPending");
     localStorage.removeItem("capturedImage");
 
-    openNewPhotoWithFile(imageItem, true);
+    const imgFile = dataURLtoFile(imgURL, "camera.jpg");
+
+    openNewPhoto(imgURL, imgFile, true);
   }
 });
 
@@ -185,11 +200,10 @@ async function openNewPhotoWithImg(img, imgFile, fromCamera)
   });
 }
 
-function openNewPhotoWithFile(imgFile, fromCamera)
+function openNewPhoto(imgURL, imgFile, fromCamera)
 {
   console.log("Opening new photo from file:", imgFile);
 
-  latestImageFile = undefined;
   latestTakenTime = undefined;
   latestGPS = undefined;
   latestSkyRatio = undefined;
@@ -199,8 +213,6 @@ function openNewPhotoWithFile(imgFile, fromCamera)
 
   latestImageFile = imgFile;
   latestImageUploaded = false;
-
-  const url = URL.createObjectURL(imgFile);
 
   // Show modal
   console.log("Loading new photo");
@@ -213,7 +225,7 @@ function openNewPhotoWithFile(imgFile, fromCamera)
     alert("Failed to open " + imgFile);
     loading.style.display = "none";
   }
-  modalImage.src = url;
+  modalImage.src = imgURL;
 
   // start showing pics
   setSkyPhotosState(true);
@@ -234,11 +246,12 @@ function cameraInputChange(event)
 
   reader.onload = () => {
     // Persist immediately
-    console.log("Persisting captured image to localStorage: ", reader.result);
-    localStorage.setItem('capturedImage', reader.result);
+    const imgURL = reader.result;
+    console.log("Persisting captured image to localStorage: ", imgURL);
+    localStorage.setItem('capturedImage', imgURL);
     localStorage.setItem('cameraPending', '0');
 
-    openNewPhotoWithFile(reader.result, true);
+    openNewPhoto(imgURL, file, true);
   };
 
   reader.readAsDataURL(file);
@@ -249,7 +262,9 @@ function fileInputChange(event)
   const file = event.target.files && event.target.files[0];
   if (!file) return;
 
-  return openNewPhotoWithFile(file, false);
+  const url = URL.createObjectURL(file);
+
+  return openNewPhoto(url, file, false);
 }
 
 // When the user takes a picture
@@ -334,15 +349,14 @@ async function heicToJpeg(imgFile) {
 }
 
 async function saveImage(imgFile) {
-
-  let uploadFile = imgFile;
+  console.log("Saving image file: ", imgFile);
 
   if (needsConversion(imgFile)) {
     console.log("Image needs conversion before upload");
-    uploadFile = await heicToJpeg(imgFile);
+    imgFile = await heicToJpeg(imgFile);
   }
 
-  const dataURL = URL.createObjectURL(uploadFile);
+  const dataURL = URL.createObjectURL(imgFile);
 
   const blob = await (await fetch(dataURL)).blob();
   progressEl.classList.remove("hidden");
