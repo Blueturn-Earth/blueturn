@@ -4,6 +4,10 @@ import {processEXIF, addEXIF} from './exif.js';
 import {reloadAndSelectNewSkyPhoto, setSkyPhotosState} from './sky_photos.js';
 import {analyzeSkyFromImg} from './sky_analyzer.js'
 
+if (window.navigator.standalone && window.screen.height === window.innerHeight) {
+  console.warn("Running in fullscreen mode — camera may be unstable");
+}
+
 const modal = document.getElementById('photoModal');
 const modalImage = document.getElementById('modalImage');
 const modalTimestamp = document.getElementById('modalTimestamp');

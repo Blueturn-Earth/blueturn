@@ -2,7 +2,7 @@
   "name": "Blueturn",
   "short_name": "Blueturn",
   "start_url": "./index.html",
-  "display": "fullscreen",
+  "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
   "icons": [
