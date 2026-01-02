@@ -23,12 +23,12 @@ function dataURLtoFile(dataUrl, filename) {
 }
 
 window.addEventListener("load", () => {
-  alert("Page loaded, checking for pending camera capture...");
+  //alert("Page loaded, checking for pending camera capture...");
   const pending = sessionStorage.getItem("cameraPending");
   const imgURL = localStorage.getItem("capturedImage");
 
   if (pending && imgURL) {
-    alert("Found pending camera capture. Restoring...");
+    //alert("Found pending camera capture. Restoring...");
     console.log("Restoring from camera capture");
     // We *intended* to come back from camera,
     // but page was reloaded or restored
@@ -226,7 +226,7 @@ function openNewPhoto(imgURL, imgFile, fromCamera)
   }
   modalImage.onerror = () => {
     console.error("Failed to load image: ", imgFile);
-    alert("Failed to open " + imgFile);
+    //alert("Failed to open " + imgFile);
     loading.style.display = "none";
   }
   modalImage.src = imgURL;
@@ -239,10 +239,10 @@ console.log("Add camera input change handler");
 
 function cameraInputChange(event)
 {
-  alert("Camera capture returned, processing...");
+  //alert("Camera capture returned, processing...");
   const file = event.target.files && event.target.files[0];
   if (!file) {
-    alert("No file captured from camera");
+    //alert("No file captured from camera");
     console.warn("No file captured from camera");
     return;
   }
@@ -251,14 +251,14 @@ function cameraInputChange(event)
   const reader = new FileReader();
 
   reader.onload = () => {
-    alert("Camera image ready, opening...");
+    //alert("Camera image ready, opening...");
 
     const imgURL = reader.result;
 
     // Persist immediately, and asynchronously
     safeSetCapturedImageInLocalStorage(imgURL);
 
-    alert("Opening captured image...");
+    //alert("Opening captured image...");
     openNewPhoto(imgURL, file, true);
   };
 
@@ -400,7 +400,7 @@ async function saveImage(imgFile) {
     await reloadAndSelectNewSkyPhoto(docId);
   } catch (e) {    
     console.error(e);
-    alert(e);
+    //alert(e);
   }
 }
 
