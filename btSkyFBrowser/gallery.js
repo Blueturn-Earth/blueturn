@@ -18,77 +18,185 @@ import { db, auth } from "./firebase.js";
 const PAGE_SIZE = 24;
 
 
-export function Gallery({ docs, onOpen, onDelete }) {
-    function observeImage(img) {
-        const obs = new IntersectionObserver(
-            ([entry]) => {
-            if (!entry.isIntersecting) return;
+export function Gallery() {
+    const [items, setItems] = React.useState([]);
+    const [lastDoc, setLastDoc] = React.useState(null);
+    const [hasMore, setHasMore] = React.useState(true);
+    const [loading, setLoading] = React.useState(false);
+    const [selected, setSelected] = React.useState(null);
 
-            img.src = img.dataset.src;
-            img.onload = () => {
-                img.style.opacity = "1";
-            };
 
-            obs.disconnect();
-            },
-            { rootMargin: "300px" }
+    const sentinelRef = React.useRef();
+
+
+    async function loadNext() {
+        if (loading || !hasMore) return;
+        setLoading(true);
+
+
+        let q = query(
+            collection(db, "images"),
+            orderBy("createdAt", "desc"),
+            limit(PAGE_SIZE)
         );
 
-        obs.observe(img);
-    }
 
-    function createTile(doc, {onOpen, onDelete}) 
-    {
-        const tpl = document.getElementById("tile-template");
-        const el = tpl.cloneNode(true);
+        if (lastDoc) q = query(q, startAfter(lastDoc));
 
-        el.style.display = "";
-        el.id = "";
 
-        // Elements
-        const thumb = el.querySelector(".thumb");
-        const full = el.querySelector(".full");
-        const avatar = el.querySelector(".avatar");
-        const ts = el.querySelector(".timestamp");
-        const del = el.querySelector(".delete");
+        const snap = await getDocs(q);
 
-        // Thumbnail (always)
-        thumb.src = doc.image.thumbnailUrl;
 
-        // Progressive full image
-        full.dataset.src = doc.image.imageUrl;
-        full.style.opacity = "0";
+        if (snap.empty) {
+            setHasMore(false);
+            setLoading(false);
+            return;
+        }
 
-        avatar.src = doc.profile.picture;
-        ts.textContent = new Date(
-            doc.createdAt.seconds * 1000
-        ).toLocaleString();
 
-        // Click handlers
-        thumb.onclick = () => onOpen(doc);
-        full.onclick = () => onOpen(doc);
-        del.onclick = (e) => {
-            e.stopPropagation();
-            onDelete(doc);
-        };
-
-        return el;
+        setItems(prev => [...prev, ...snap.docs.map(d => ({ id: d.id, ...d.data() }))]);
+        setLastDoc(snap.docs[snap.docs.length - 1]);
+        setLoading(false);
     }
 
     React.useEffect(() => {
-        const root = document.getElementById("gallery");
-        if (!root) return;
+        const obs = new IntersectionObserver(
+            ([e]) => e.isIntersecting && loadNext(),
+            { rootMargin: "300px" }
+        );
 
-        root.innerHTML = "";
 
-        docs.forEach(doc => {
-            const tile = createTile(doc, { onOpen, onDelete });
-            root.appendChild(tile);
+        if (sentinelRef.current) obs.observe(sentinelRef.current);
+            return () => obs.disconnect();
+    }, [lastDoc, hasMore]);
 
-            const fullImg = tile.querySelector(".full");
-            observeImage(fullImg);
-        });
-    }, [docs]);
+    console.log("Gallery render, items:", items.length, "hasMore:", hasMore, "selected:", selected);
 
-    return null;
+    return React.createElement(
+        "div",
+        { id: "gallery" },
+
+        // tiles
+        ...items.map(doc =>
+            console.log("Rendering gallery item:", doc) ||
+            React.createElement(
+                "div",
+                { className: "tile", key: doc.id },
+
+                React.createElement("img", {
+                    className: "thumb",
+                    src: doc.image.thumbnailUrl,
+                    loading: "lazy",
+                    onClick: () => setSelected(doc)
+                }),
+
+                React.createElement("img", {
+                    className: "avatar",
+                    src: doc.profile.picture
+                }),
+
+                React.createElement(
+                    "button",
+                    { 
+                        className: "delete", 
+                        onClick: () => handleDelete(doc) 
+                    },
+                    "×"
+                ),
+
+                React.createElement(
+                    "div",
+                    { className: "timestamp" },
+                    new Date(doc.takenTime ?
+                        doc.takenTime.seconds * 1000 :
+                        doc.createdAt.seconds * 1000).toLocaleString()
+                ),
+
+                doc.gps ?
+                    React.createElement(
+                        "div",
+                        { className: "gps" },
+                        `GPS: lat:${doc.gps.lat.toFixed(5)}` + 
+                        `, lon:${doc.gps.lon.toFixed(5)}` + 
+                        (doc.gps.alt ? `, alt:${doc.gps.alt.toFixed(1)}m` : "")
+                    ) : 
+                    null
+            )
+        ),
+
+        // sentinel
+        hasMore ? 
+            React.createElement("div", { ref: sentinelRef }) : 
+            null,
+        
+        selected ? 
+            console.log("Showing modal for selected item:", selected) ||
+            React.createElement(
+                "div",
+                {
+                    className: "modal-backdrop",
+                    onClick: () => setSelected(null)
+                },
+                React.createElement(
+                    "div",
+                    {
+                        className: "modal-content",
+                        onClick: e => e.stopPropagation()
+                    },
+                    React.createElement("img", {
+                        className: "modal-image",
+                        //src: selected.image.imageUrl
+                        src: selected.image.thumbnailUrl + "&sz=w1600"
+                        //src: `https://drive.google.com/file/d/${selected.image.fileId}`
+                        //src: `https://drive.google.com/uc?id=${selected.image.fileId}`
+                    }),
+                    React.createElement(
+                        "button",
+                        {
+                            className: "modal-close",
+                            onClick: () => setSelected(null)
+                        },
+                        "✕"
+                    )
+                )
+            ) : 
+            null
+    );
+
+    async function handleDelete(item) {
+        await requestGoogleAuth();
+
+        if (!googleAccessToken || !googleProfile || googleProfile.sub != SUPER_USER_ID) {
+            alert("You don't have permission to delete");
+            return;
+        }
+
+        if (!confirm("Delete this image from DB?")) 
+            return;
+        //Don't delete from Drive
+        /*
+        try {
+            // 1️⃣ delete Drive file (only if owner)
+            if (item.image.provider === "GoogleDrive") {
+                await deleteDriveFile(item.image.fileId);
+            }
+        }
+        catch (e) {
+            console.warn("Could not delete Drive file:", e);
+        }
+        */
+
+        try {
+            //console.log("Current Firebase user UID:", auth.currentUser?.uid);
+            console.log("Deleting Firestore document:", item.id);
+            // 2️⃣ delete Firestore document
+            await deleteDoc(doc(db, "images", item.id));
+            // Remove from local state
+            setItems(prev => prev.filter(i => i.id !== item.id));
+            setSelected(null);
+        }
+        catch (e) {
+            console.error("Could not delete Firestore document:", e);
+        }
+    }
 }
