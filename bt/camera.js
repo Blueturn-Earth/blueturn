@@ -142,9 +142,10 @@ async function provideEXIF(imgFile, fromCamera)
       console.log("Adding EXIF to camera image");
       result = await addEXIF(imgFile);
     }
-    else
+    else {
       console.log("Processing EXIF from uploaded image");
       result = await processEXIF(imgFile);
+    }
     return {
       takenTime: result.takenTime,
       gps: result.gps,
