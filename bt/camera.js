@@ -3,6 +3,43 @@ import {saveMetadata} from './firebase_save.js';
 import {processEXIF, addEXIF} from './exif.js';
 import {reloadAndSelectNewSkyPhoto, setSkyPhotosState} from './sky_photos.js';
 import {analyzeSkyFromImg} from './sky_analyzer.js'
+import {safeSetCapturedImageInLocalStorage} from './safe_localStorage.js';
+
+if (window.navigator.standalone && window.screen.height === window.innerHeight) {
+  console.warn("Running in fullscreen mode — camera may be unstable");
+}
+
+function dataURLtoFile(dataUrl, filename) {
+  const [header, base64] = dataUrl.split(',');
+  const mime = header.match(/:(.*?);/)[1];
+  const binary = atob(base64);
+
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return new File([bytes], filename, { type: mime });
+}
+
+window.addEventListener("load", () => {
+  //alert("Page loaded, checking for pending camera capture...");
+  const pending = sessionStorage.getItem("cameraPending");
+  const imgURL = localStorage.getItem("capturedImage");
+
+  if (pending && imgURL) {
+    //alert("Found pending camera capture. Restoring...");
+    console.log("Restoring from camera capture");
+    // We *intended* to come back from camera,
+    // but page was reloaded or restored
+    sessionStorage.removeItem("cameraPending");
+    localStorage.removeItem("capturedImage");
+
+    const imgFile = dataURLtoFile(imgURL, "camera.jpg");
+
+    openNewPhoto(imgURL, imgFile, true);
+  }
+});
 
 const modal = document.getElementById('photoModal');
 const modalImage = document.getElementById('modalImage');
@@ -49,6 +86,9 @@ cameraInput.style.display = "none";
 console.log("Add camera button click handler");
 // Capture photo and metadata
 cameraButton.addEventListener("click", async () => {
+  sessionStorage.setItem("cameraPending", "1");
+  sessionStorage.setItem("returnUrl", location.href);  
+  console.log("Camera button clicked, set pending flag with return URL: ", location.href);
   // Trigger camera
   cameraInput.click();
 });
@@ -98,10 +138,14 @@ async function provideEXIF(imgFile, fromCamera)
 {
   try {
     let result;
-    if (fromCamera)
+    if (fromCamera) {
+      console.log("Adding EXIF to camera image");
       result = await addEXIF(imgFile);
-    else
+    }
+    else {
+      console.log("Processing EXIF from uploaded image");
       result = await processEXIF(imgFile);
+    }
     return {
       takenTime: result.takenTime,
       gps: result.gps,
@@ -109,7 +153,7 @@ async function provideEXIF(imgFile, fromCamera)
     };
   }
   catch(e) {
-    console.error(e.message);
+    console.error("Error providing EXIF data: ", e.message);
     alert(e.message);  
     return {
       error: e
@@ -117,9 +161,9 @@ async function provideEXIF(imgFile, fromCamera)
   }
 }
 
-async function openNewPhotoWithImg(img, imgFile, camera)
+async function openNewPhotoWithImg(img, imgFile, fromCamera)
 {
-  console.log("Show modal");
+  console.log("Show new photo image in modal");
   // All ready → Hide spinner + show modal
   loading.style.display = "none";
   modal.style.display = 'flex';
@@ -137,14 +181,17 @@ async function openNewPhotoWithImg(img, imgFile, camera)
   // Sky coverage
   analyzeSkyFromImg(img)
   .then((skyData) => {
+    console.log("Sky analysis completed: ", skyData);
     updateModal({skyData: skyData});
   })
   .catch((error) => {
+    console.error("Sky analysis failed: ", error);
     updateModal({error: error});
   });
   
-  provideEXIF(imgFile, camera)
+  provideEXIF(imgFile, fromCamera)
   .then((result) => {
+    console.log("EXIF provided: ", result);
     updateModal({
       timestamp: result.takenTime,
       gps: result.gps,
@@ -152,42 +199,18 @@ async function openNewPhotoWithImg(img, imgFile, camera)
     });
   })
   .catch((error) => {
+    console.error("EXIF providing failed: ", error);
     updateModal({error: error});
   });
 }
 
-function openNewPhotoWithFile(file, camera)
+function openNewPhoto(imgURL, imgFile, fromCamera)
 {
-  const url = URL.createObjectURL(file);
+  console.log("Opening new photo from file:", imgFile);
 
-  // Show modal
-  console.log("Loading new photo");
-  modalImage.onload = () => {
-    openNewPhotoWithImg(modalImage, file, camera);
-  }
-  modalImage.onerror = () => {
-    alert("Failed to open " + file);
-    loading.style.display = "none";
-  }
-  modalImage.src = url;
-}
-
-console.log("Add camera input change handler");
-
-async function cameraInputChange(event)
-{
-  return addPhotoInputChange(event, true);
-}
-
-async function addPhotoInputChange(event, camera)
-{
-  latestImageFile = undefined;
   latestTakenTime = undefined;
   latestGPS = undefined;
   latestSkyRatio = undefined;
-
-  const imgFile = event.target.files[0];
-  if (!imgFile) return;
 
   // Show loading spinner immediately after accepting the photo
   loading.style.display = "flex";
@@ -195,16 +218,67 @@ async function addPhotoInputChange(event, camera)
   latestImageFile = imgFile;
   latestImageUploaded = false;
 
-  openNewPhotoWithFile(imgFile, camera);
+  // Show modal
+  console.log("Loading new photo");
+  modalImage.onload = () => {
+    console.log("New photo loaded");
+    openNewPhotoWithImg(modalImage, imgFile, fromCamera);
+  }
+  modalImage.onerror = () => {
+    console.error("Failed to load image: ", imgFile);
+    //alert("Failed to open " + imgFile);
+    loading.style.display = "none";
+  }
+  modalImage.src = imgURL;
 
   // start showing pics
-  await setSkyPhotosState(true);
+  setSkyPhotosState(true);
+}
+
+console.log("Add camera input change handler");
+
+function cameraInputChange(event)
+{
+  //alert("Camera capture returned, processing...");
+  const file = event.target.files && event.target.files[0];
+  if (!file) {
+    //alert("No file captured from camera");
+    console.warn("No file captured from camera");
+    return;
+  }
+
+  console.log("File captured from camera: ", file);
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    //alert("Camera image ready, opening...");
+
+    const imgURL = reader.result;
+
+    // Persist immediately, and asynchronously
+    safeSetCapturedImageInLocalStorage(imgURL);
+
+    //alert("Opening captured image...");
+    openNewPhoto(imgURL, file, true);
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function fileInputChange(event)
+{
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const url = URL.createObjectURL(file);
+
+  return openNewPhoto(url, file, false);
 }
 
 // When the user takes a picture
 cameraInput.addEventListener("change", cameraInputChange);
 // When the user adds a picture
-addPhotoInput.addEventListener("change", addPhotoInputChange);
+addPhotoInput.addEventListener("change", fileInputChange);
 
 // Close modal when clicking outside or on close button
 closeModal.addEventListener('click', () => modal.style.display='none');
@@ -283,15 +357,14 @@ async function heicToJpeg(imgFile) {
 }
 
 async function saveImage(imgFile) {
-
-  let uploadFile = imgFile;
+  console.log("Saving image file: ", imgFile);
 
   if (needsConversion(imgFile)) {
     console.log("Image needs conversion before upload");
-    uploadFile = await heicToJpeg(imgFile);
+    imgFile = await heicToJpeg(imgFile);
   }
 
-  const dataURL = URL.createObjectURL(uploadFile);
+  const dataURL = URL.createObjectURL(imgFile);
 
   const blob = await (await fetch(dataURL)).blob();
   progressEl.classList.remove("hidden");
@@ -327,7 +400,7 @@ async function saveImage(imgFile) {
     await reloadAndSelectNewSkyPhoto(docId);
   } catch (e) {    
     console.error(e);
-    alert(e);
+    //alert(e);
   }
 }
 
