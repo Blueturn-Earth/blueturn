@@ -12,6 +12,7 @@ import { gZoom, gPivotEpicImageData } from './app.js';
 import { glZoomFactor } from './gl.js';
 import { gControlState } from './controlparams.js';
 import DragScroller from './drag_scroller.js'
+import {getStorageProvider} from './gdrive_provider.js';
 
 console.log("Sky Photos module loaded");
 
@@ -22,6 +23,9 @@ skyPhotosScrollGallery.hide();
 
 function gGetScreenCoordFromLatLon(lat, lon)
 {
+    if(!gEpicImageData)
+        return null;
+
     return gCalculateScreenCoordFromLatLon(lat, lon, 
         gEpicImageData.centroid_matrix,
         gEpicImageData.earthRadius / 2.0 * Math.min(canvas.width, canvas.height),
@@ -76,17 +80,17 @@ function updateEarthSkyPhotoPosition(picItem)
         return;
     }
 
-    const picPos = gGetScreenCoordFromLatLon(earthPicDiv.data.gps.lat, earthPicDiv.data.gps.lon);
-    if (picPos.z < -0.2) {
+    const picPos = gGetScreenCoordFromLatLon(picItem.data.gps.lat, picItem.data.gps.lon);
+    if (!picPos || picPos.z < -0.2) {
         earthPicDiv.style.display = 'none';
-        scrollDivImg.style.border = `0px solid`;
-        return;
-    }    
-    earthPicDiv.style.display = 'block';
-    const dpr = window.devicePixelRatio || 1;
-    earthPicDiv.style.left = `${picPos.x / dpr}px`;
-    earthPicDiv.style.top = `${picPos.y / dpr}px`;
-    earthPicDiv.style.zIndex = picPos.z <= 0.0 ? '-1' : '5'; 
+    }
+    else {
+        earthPicDiv.style.display = 'block';
+        const dpr = window.devicePixelRatio || 1;
+        earthPicDiv.style.left = `${picPos.x / dpr}px`;
+        earthPicDiv.style.top = `${picPos.y / dpr}px`;
+        earthPicDiv.style.zIndex = picPos.z <= 0.0 ? '-1' : '5'; 
+    }
 
     // process timestamp
     const diffSec = timeDiffSecondsWithTZ(currentDate, timestampDate);
@@ -97,13 +101,16 @@ function updateEarthSkyPhotoPosition(picItem)
     const overScale = 0.35;
     const scaleAlpha = smoothstep
         (1.0 - Math.min(absDiffSec, scaleWindow) / scaleWindow);
+    if (scaleAlpha < 0.001) {
+        earthPicDiv.style.display = 'none';
+    }    
     const scaleFactor = scaleAlpha*(maxScale - minScale) + minScale;
     if (diffSec < 0) {
         earthPicDiv.style.opacity = 1;
         earthPicDiv.style.transform = `translate(-50%, -50%) scale(${scaleFactor})`;
     }
     else {
-        earthPicDiv.style.opacity = scaleFactor/maxScale;
+        earthPicDiv.style.opacity = scaleAlpha;
         const extraScaleFactor = (1.0 - scaleAlpha)*(overScale - maxScale) + maxScale;
         earthPicDiv.style.transform = `translate(-50%, -50%) scale(${extraScaleFactor})`;
     }
@@ -127,40 +134,29 @@ function createEarthPicDiv(data)
 {
     const earthPicDiv = document.createElement('img');
     earthPicDiv.className = 'sky-earth-photo-thumb';
-    earthPicDiv.src = data.image.thumbnailUrl;
-    earthPicDiv.data = data;
+    getStorageProvider().loadImageFromField(earthPicDiv, data.image);
     earthPicDiv.onclick = () => {
-        openPopupFromThumbnail(earthPicDiv);
+        openPopupFromThumbnail(earthPicDiv, data);
     }
     return earthPicDiv;
 }
 
 function createScrollPicDiv(data)
 {
-    let scrollPicDiv = document.querySelector(".sky-scroll-photo-thumb");
-    if (!scrollPicDiv) {
-        console.error("No sample scroller pic div available");
-        return;
-    }
-    if (scrollPicDiv.data)
-        scrollPicDiv = scrollPicDiv.cloneNode(true);
-    const scrollImg = scrollPicDiv.querySelector("img");
-    scrollImg.src = data.image.thumbnailUrl;
-    scrollPicDiv.data = data;
-    // scrollImg.onclick = () => {
-    //     openPopupFromThumbnail(scrollImg);
-    // }
-    return scrollPicDiv;
+    const node = skyPhotosScrollGallery.createItem();//.replace(/=s\d+/, `=s${size}`);
+    const img = skyPhotosScrollGallery.getItemImg(node);
+    getStorageProvider().loadImageFromField(img, data.image);
+    return node;
 }
 
-function checkData(data)
+function checkData(docId, data)
 {
     if (!data) {
         console.warn("No data for pic:", docId);
         return false;
     }
-    if (!data.image || !data.image.thumbnailUrl) {
-        console.warn("No image field for pic data:", docId);
+    if (!data.image || !data.image.fileId) {
+        console.warn("No image field or file id for pic data:", docId);
         return false;
     }
     if (!data.gps || data.gps.lat === undefined || data.gps.lon === undefined) {
@@ -176,7 +172,7 @@ function checkData(data)
 
 function setPic(docId, data, timeSec)
 {
-    if (!docId || !checkData(data))
+    if (!docId || !checkData(docId, data))
         return null;
 
     if (!picsMap.has(docId)) {
@@ -205,6 +201,21 @@ function selectPicItemIndex(index)
     const picItem = sortedPicItems[index];
     const timeSec = picItem.timeSec;
     gSetPlayState(false);
+    gControlState.blockSnapping = true;
+    gJumpToEpicTime(timeSec);
+}
+
+function selectPicItemAlpha(alpha)
+{
+    if (sortedPicItems.length == 0)
+        return;
+    const indexFloat = alpha * (sortedPicItems.length - 1);
+    const index0 = Math.floor(indexFloat);
+    const index1 = Math.ceil(indexFloat);
+    const boundAlpha = index0 == index1 ? 0 : (indexFloat - index0) / (index1 - index0);
+    const timeSec = (1.0 - boundAlpha) * sortedPicItems[index0].timeSec + boundAlpha * sortedPicItems[index1].timeSec;
+    gSetPlayState(false);
+    gControlState.blockSnapping = true;
     gJumpToEpicTime(timeSec);
 }
 
@@ -262,19 +273,20 @@ async function updateSkyPhotos(isOn)
         if (!epicImageData1 || !epicImageData0 || epicImageData1.timeSec - epicImageData0.timeSec > SECONDS_IN_DAY)
         {
             console.log("EPIC data not available at picture time ", timestampDate);
-            if (!epicImageData1 || timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)
+            if (!epicImageData1 || (epicImageData0 && (timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)))
             {
                 console.log("Closest EPIC data before picture time is at ", epicImageData0.date);
                 while (timeSec > epicImageData0.timeSec)
                     timeSec -= SECONDS_IN_DAY;
             }
-            else
+            if (!epicImageData0 || (epicImageData1 && (timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)))
             {
                 console.log("Closest EPIC data after picture time is at ", epicImageData1.date);
                 while (timeSec < epicImageData1.timeSec)
                     timeSec += SECONDS_IN_DAY;
             }
         }
+
         const picItem = setPic(d.id, data, timeSec);
         if (picItem) {
             sortedPicItems.push(picItem);
@@ -322,8 +334,12 @@ async function updateSkyPhotos(isOn)
             }
         }
 
-        openPopupFromThumbnail(picImg);
+        openPopupFromThumbnail(picImg, picItem.data);
     })
+
+    skyPhotosScrollGallery.setScrollAlphaCb((alpha) => {
+        selectPicItemAlpha(alpha);
+    });
 
     console.log("Pics created:", nPics);
 }
@@ -378,15 +394,26 @@ const scrollCursor = document.getElementById('scrollCursor');
 cameraButton.style.display = 'none';
 addPhotoButton.style.display = 'none';
 scrollCursor.style.display = 'none';
-skyPhotosBtn.addEventListener('click', () => {
+skyPhotosBtn.addEventListener('click', async () => {
     // toggle
-    setSkyPhotosState(skyPhotosBtn.dataset.state === "off");
+    const isOn = skyPhotosBtn.dataset.state === "off";
+    if (isOn) {
+        await setSkyPhotosState(true);
+        selectPicItemIndex(sortedPicItems.length > 0 ? sortedPicItems.length - 1 : undefined);
+        gSetPlayState(true);
+    }
+    else {
+        setSkyPhotosState(false);
+        selectPicItemIndex(undefined);
+    }
 });
 
-async function setSkyPhotosState(isOn)
+export async function setSkyPhotosState(isOn)
 {
     skyPhotosBtn.dataset.state = isOn ? "on" : "off";
     const showSkyPhotos = isOn;
+    if (showSkyPhotos)
+        gSetPlayState(false);
     gControlState.blockSnapping = showSkyPhotos;
     cameraButton.style.display = showSkyPhotos ? "block" : "none";
     addPhotoButton.style.display = showSkyPhotos ? "block" : "none";
