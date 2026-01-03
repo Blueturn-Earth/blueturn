@@ -226,7 +226,7 @@ export default class EpicDB {
                 return null; // No data for this day
 
             // faraway next
-            dayStr = this._getNextAvailableDay(timeSec);
+            dayStr = this._getNextAvailableDay(dayStr);
             if (!dayStr)
                 return null; // last day
         }

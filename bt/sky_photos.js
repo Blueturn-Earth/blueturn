@@ -189,6 +189,10 @@ function setPic(docId, data, timeSec)
         }
         picsMap.set(docId, picItem);
     }
+    else {
+        const picItem = picsMap.get(docId);
+        picItem.timeSec = timeSec;
+    }
     const returnedPicItem = picsMap.get(docId);
     return returnedPicItem;
 }
@@ -295,13 +299,13 @@ async function addSkyPhotos(docs, adjustTimeForMissingEpicData = false)
                 console.warn("EPIC data not available at picture time ", timestampDate);
                 if (!epicImageData1 || (epicImageData0 && (timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)))
                 {
-                    console.log("Closest EPIC data before picture time is at ", epicImageData0.date);
+                    console.log("Closest EPIC data before picture time is previous at ", epicImageData0.date);
                     while (timeSec > epicImageData0.timeSec)
                         timeSec -= SECONDS_IN_DAY;
                 }
-                if (!epicImageData0 || (epicImageData1 && (timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)))
+                else if (!epicImageData0 || (epicImageData1 && (timeSec - epicImageData0.timeSec > epicImageData1.timeSec - timeSec)))
                 {
-                    console.log("Closest EPIC data after picture time is at ", epicImageData1.date);
+                    console.log("Closest EPIC data after picture time is next at ", epicImageData1.date);
                     while (timeSec < epicImageData1.timeSec)
                         timeSec += SECONDS_IN_DAY;
                 }
@@ -329,7 +333,12 @@ async function addSkyPhotos(docs, adjustTimeForMissingEpicData = false)
         const earthPicDiv = picItem.earthPicDiv;
         const scrollPicDiv = picItem.scrollPicDiv;
         const timestamp = picItem.data.takenTime || picItem.data.createdAt;
-        console.log(`Pic #${i}: real date: \"${timestamp.toDate()}\", fake date:\"${new Date(sortedPicItems[i].timeSec * 1000)}\"`)
+        const realDate = gGetDateTimeStringFromTimeSec(timestamp.toDate().getTime() / 1000);
+        const fakeDate = gGetDateTimeStringFromTimeSec(sortedPicItems[i].timeSec);
+        if (realDate != fakeDate)
+            console.log(`Pic #${i}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
+        else
+            console.log(`Pic #${i}: date: \"${realDate}\"`);
         skyPhotosEarthGallery.appendChild(earthPicDiv);
         skyPhotosScrollGallery.appendItem(scrollPicDiv); 
     }
