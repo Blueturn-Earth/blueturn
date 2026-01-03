@@ -55,7 +55,10 @@ export default class EpicDataLoader
                 resolve(JSON.parse(text));
             })
             .catch(error => {
-                if (error && error.message && error.message.startsWith('Abort')) {
+                if (error && 
+                    (((typeof error === 'string' || error instanceof String) && error.startsWith('Abort')) ||
+                     (error.name && error.name.startsWith('Abort')) || 
+                     (error.message && error.message.startsWith('Abort')))) {
                     console.warn(error);
                     resolve(null); // Resolve with null if the request was aborted
                 }
