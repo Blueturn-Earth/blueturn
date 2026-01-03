@@ -109,10 +109,10 @@ export default class DragScroller
     this.#updateSpacers();
     this.#snapToNearest();
 
-    node.addEventListener('click', (e) => {
+    node.onclick = (e) => {
       //console.log(e.type);
       this.#onItemClick(node);
-    });
+    };
 
     this.numItems++;
   }
@@ -171,7 +171,7 @@ export default class DragScroller
     if (index == this.selectedItemIndex)
     {
       if (this.onSelectedItemClickCb)
-        this.onSelectedItemClickCb(this.itemsGroup.children[index + 1], index); // skip start spacer+template
+        this.onSelectedItemClickCb(this.itemsGroup.children[index + 2], index); // skip start spacer+template
       return;
     }
 
@@ -181,7 +181,7 @@ export default class DragScroller
     // skip start spacer+template
     const childIndex = index + 2; 
     // forbid spacers
-    if (childIndex < 1 || childIndex >= children.length - 1)
+    if (childIndex < 2 || childIndex >= children.length - 1)
     {
       console.warn("scrollToIndex: index out of bounds: ", index);
       return;
