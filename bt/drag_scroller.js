@@ -109,10 +109,10 @@ export default class DragScroller
     this.#updateSpacers();
     this.#snapToNearest();
 
-    node.addEventListener('click', (e) => {
+    node.onclick = (e) => {
       //console.log(e.type);
       this.#onItemClick(node);
-    });
+    };
 
     this.numItems++;
   }
