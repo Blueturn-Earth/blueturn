@@ -251,7 +251,6 @@ async function fetchSkyPhotoDocs()
 
 async function addSkyPhotos(docs, adjustTimeForMissingEpicData = false)
 {
-    buildingSkyPics = true;
     console.log("Adding sky pics to gallery, nDocs =" + docs.length + ", adjustTimeForMissingEpicData=" + adjustTimeForMissingEpicData);
     skyPhotosEarthGallery.style.display = 'block';
     skyPhotosScrollGallery.show();
@@ -318,6 +317,7 @@ async function addSkyPhotos(docs, adjustTimeForMissingEpicData = false)
         }
     }
 
+    buildingSkyPics = true;
     sortedPicItems = picItems;
     sortedPicItems.sort((a, b) => a.timeSec - b.timeSec);
     skyPhotosEarthGallery.innerHTML = '';
