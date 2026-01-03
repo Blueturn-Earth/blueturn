@@ -4,13 +4,12 @@ export default class BtEpicAPI extends BaseEpicAPI
     _EPIC_IMAGES_S3_URL = "https://storage.googleapis.com/content.blueturn.earth/images/";
     _EPIC_IMAGES_CDN_URL = "https://content.blueturn.earth/images/";
     _IMAGE_FORMAT = 'jpg';
-    _NO_CACHE = false;
+    _NO_CACHE = true;
 
-    constructor(useCDN = false, noCache = false)
+    constructor(useCDN = false)
     {
         super();
         this._EPIC_IMAGES_URL = useCDN ? this._EPIC_IMAGES_CDN_URL : this._EPIC_IMAGES_S3_URL;
-        this._NO_CACHE = noCache;
     }
 
     _getNoiseQueryString()
