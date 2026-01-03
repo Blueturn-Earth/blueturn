@@ -9,7 +9,7 @@ export default class NasaEpicAPI extends BaseEpicAPI
     _EPIC_JSON_URL = "https://epic.gsfc.nasa.gov/api/";
     _EPIC_IMAGE_URL = "https://api.nasa.gov/EPIC/archive/";
     _IMAGE_FORMAT = 'jpg';
-    _NO_CACHE = false;
+    _NO_CACHE = true;
 
     _todayDatesStr = new Date().toISOString().slice(0, 10);
 
