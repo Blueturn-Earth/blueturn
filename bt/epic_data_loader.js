@@ -14,7 +14,7 @@ export default class EpicDataLoader
     async _loadJsonCallURL(call, nocache = false)
     {
         return new Promise((resolve, reject) => {
-            if (gEpicAPI.isUsingCache() && !nocache) {
+            if (gEpicAPI.isUsingCache() && !nocache && !gEpicAPI._NO_CACHE) {
                 const cacheDate = localStorage.getItem(this.#CACHE_DATE);
                 const cachedData = localStorage.getItem(call);
                 if (cacheDate === gGetTodayDateStr() && cachedData) {
@@ -47,7 +47,7 @@ export default class EpicDataLoader
                 return response.text();
             })
             .then(text => {
-                if (gEpicAPI.isUsingCache() && !nocache) {
+                if (gEpicAPI.isUsingCache() && !nocache && !gEpicAPI._NO_CACHE) {
                     localStorage.setItem(this.#CACHE_DATE, gGetTodayDateStr());
                     localStorage.setItem(call, text);
                 }
