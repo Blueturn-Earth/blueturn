@@ -418,7 +418,7 @@ async function addCurrentSkyPhotos()
     return await addSkyPhotosFromQuery(q);
 }
 
-async function addSkyPhotosBefore(nDocsBefore = 5)
+async function addSkyPhotosBefore(nDocsBefore = 0)
 {
     if (picsMap.size == 0) {
         console.warn("No pics for adding sky photos before");
@@ -428,11 +428,17 @@ async function addSkyPhotosBefore(nDocsBefore = 5)
         return current[1].takenTime < min[1].takenTime ? current : min;
     });
     const refDoc = minimalTakenTimePicItemEntry[1].doc;
+    const queryConstraints = [
+        orderBy("takenTime", "asc"),
+        endBefore(refDoc)
+    ];
+    if (nDocsBefore > 0) {
+        queryConstraints.push(limitToLast(nDocsBefore));
+    }
     const q = query(
         collection(db, "images"),
-        orderBy("takenTime", "asc"),
-        endBefore(refDoc),
-        limitToLast(nDocsBefore));
+        ...queryConstraints
+    );
     return addSkyPhotosFromQuery(q);
 }
 
