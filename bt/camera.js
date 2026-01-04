@@ -1,7 +1,7 @@
 import {getStorageProvider} from './gdrive_provider.js';
-import {saveMetadata} from './firebase_save.js';
+import {db} from './db_factory.js';
 import {processEXIF, addEXIF} from './exif.js';
-import {reloadAndSelectNewSkyPhoto, setSkyPhotosState} from './sky_photos.js';
+import {setSkyPhotosState, selectPhotoByDocId} from './sky_photos.js';
 import {analyzeSkyFromImg} from './sky_analyzer.js'
 import {safeSetCapturedImageInLocalStorage} from './safe_localStorage.js';
 
@@ -230,9 +230,6 @@ function openNewPhoto(imgURL, imgFile, fromCamera)
     loading.style.display = "none";
   }
   modalImage.src = imgURL;
-
-  // start showing pics
-  setSkyPhotosState(true);
 }
 
 console.log("Add camera input change handler");
@@ -382,7 +379,13 @@ async function saveImage(imgFile) {
 
     const profile = getStorageProvider().getProfile();
 
-    docId = await saveMetadata(uploadResult, profile, latestGPS, latestTakenTime, latestSkyRatio);
+    docId = await db.saveRecord({
+      image: uploadResult,
+      takenTime: latestTakenTime,
+      gps: latestGPS,
+      skyRatio: latestSkyRatio,
+      profile: profile
+    });
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
@@ -397,7 +400,8 @@ async function saveImage(imgFile) {
   }
 
   try {
-    await reloadAndSelectNewSkyPhoto(docId);
+    await setSkyPhotosState(true);
+    selectPhotoByDocId(docId);
   } catch (e) {    
     console.error(e);
     //alert(e);

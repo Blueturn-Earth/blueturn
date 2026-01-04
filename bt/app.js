@@ -120,6 +120,7 @@ export async function gJumpToEpicTime(startTimeSec)
         if (gControlState.jumping && jumpingTimeSec != gJumpingTimeSec) {
             console.warn("Cancel jumping to time " + jumpingTimeSec);
             resolve(null);
+            return;
         }
 
         if (startTimeSec < gEpicDB.getOldestEpicImageTimeSec())
@@ -159,6 +160,7 @@ export async function gJumpToEpicTime(startTimeSec)
             if (gControlState.jumping && jumpingTimeSec != gJumpingTimeSec) {
                 console.warn("Cancel jumping to time " + jumpingTimeSec);
                 resolve(null);
+                return;
             }
             if (!boundPair) // likely aborted
             {
