@@ -96,26 +96,31 @@ function initStartTime()
     return date_time;
 }
 
+let gJumpingTimeSec;
+
 export async function gJumpToEpicTime(startTimeSec)
 {
-    if (gControlState.jumping)
-    {
-        console.warn("Already jumping to new date, ignoring request");
-        return;
-    }
-
     if (!gEpicDB.isReady())
     {
         console.error("EpicDB is not ready");
         return;
     }
 
+    if (gControlState.jumping) {
+        console.warn("Already jumping to time " + gJumpingTimeSec + ", will now jump to " + startTimeSec + "s instead");
+    }
+    gJumpingTimeSec = startTimeSec;
+    let jumpingTimeSec = gJumpingTimeSec;
+    gControlState.jumping = true;
+
     let date_time = gGetDateTimeStringFromTimeSec(startTimeSec);
     console.log("Jumping to ", date_time);
 
     return new Promise((resolve, reject) => {
-        gControlState.jumping = true;
-
+        if (gControlState.jumping && jumpingTimeSec != gJumpingTimeSec) {
+            console.warn("Cancel jumping to time " + jumpingTimeSec);
+            resolve(null);
+        }
 
         if (startTimeSec < gEpicDB.getOldestEpicImageTimeSec())
         {
@@ -151,6 +156,10 @@ export async function gJumpToEpicTime(startTimeSec)
         gUpdateLoadingText("Loading...");
         gEpicDB.fetchBoundKeyFrames(startTimeSec)
         .then((boundPair) => {
+            if (gControlState.jumping && jumpingTimeSec != gJumpingTimeSec) {
+                console.warn("Cancel jumping to time " + jumpingTimeSec);
+                resolve(null);
+            }
             if (!boundPair) // likely aborted
             {
                 gControlState.jumping = false;
