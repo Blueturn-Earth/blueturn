@@ -1,16 +1,6 @@
 import {gCalculateScreenCoordFromLatLon, gFindClosestIndexInSortedArray, gGetDateTimeStringFromTimeSec} from './utils.js';
 import {gEpicImageData, gEpicTimeSec, gEpicDB, gSetPlayState, gJumpToEpicTime} from '././app.js';
-import { db } from "./firebase_db.js";
-import { ensureAuthReady } from "./firebase_auth.js";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  endBefore,
-  limitToLast
-} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+import { db } from "./db_factory.js";
 import { openPopupFromThumbnail } from './sky-photos-popup.js';
 import { gZoom, gPivotEpicImageData } from './app.js';
 import { glZoomFactor } from './gl.js';
@@ -232,16 +222,9 @@ function selectPicItemAlpha(alpha)
 
 async function fetchSkyPhotoDocs(q)
 {
-    if (!db) {
-        console.warn("No Firestore DB available, skipping gallery");
-        return null;
-    }
-
-    await ensureAuthReady();
-
     let snap;
     try {
-        snap = await getDocs(q);
+        snap = await db.getRecords(q);
     } catch (e) {
         console.error("Error fetching gallery documents:", e);
         return null;
@@ -406,10 +389,9 @@ async function addCurrentSkyPhotos()
 {
     const dayBeforeLatestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec() - SECONDS_IN_DAY;
     const dayBeforeLatestEpicDate = new Date(dayBeforeLatestEpicTimeSec * 1000);
-    const q = query(
-        collection(db, "images"),
-        where("takenTime", ">=", dayBeforeLatestEpicDate),
-        orderBy("takenTime", "asc"));
+    const q = db.buildQuery(
+        db.where("takenTime", ">=", dayBeforeLatestEpicDate),
+        db.orderBy("takenTime", "asc"));
     return await addSkyPhotosFromQuery(q);
 }
 
@@ -424,24 +406,20 @@ async function addSkyPhotosBefore(nDocsBefore = 0)
     });
     const refDoc = minimalTakenTimePicItemEntry[1].doc;
     const queryConstraints = [
-        orderBy("takenTime", "asc"),
-        endBefore(refDoc)
+        db.orderBy("takenTime", "asc"),
+        db.endBefore(refDoc)
     ];
     if (nDocsBefore > 0) {
-        queryConstraints.push(limitToLast(nDocsBefore));
+        queryConstraints.push(db.limitToLast(nDocsBefore));
     }
-    const q = query(
-        collection(db, "images"),
-        ...queryConstraints
-    );
+    const q = db.buildQuery(...queryConstraints);
     return addSkyPhotosFromQuery(q);
 }
 
 async function addAllSkyPhotos()
 {
-    const q = query(
-        collection(db, "images"),
-        orderBy("takenTime", "asc")
+    const q = db.buildQuery(
+        db.orderBy("takenTime", "asc")
     );
     await addSkyPhotosFromQuery(q);
 }
