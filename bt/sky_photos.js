@@ -289,9 +289,9 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
     const realDate = gGetDateTimeStringFromTimeSec(timestamp.toDate().getTime() / 1000);
     const fakeDate = gGetDateTimeStringFromTimeSec(record.epicTimeSec);
     if (realDate != fakeDate)
-        console.log(`Pic #${i}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
+        console.log(`Pic docId=${picRecord.docId}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
     else
-        console.log(`Pic #${i}: date: \"${realDate}\"`);
+        console.log(`Pic docId=${picRecord.docId}: date: \"${realDate}\"`);
     skyPhotosEarthGallery.insertBefore(earthPicDiv, 
         skyPhotosEarthGallery.children.length == 0 ? null :
             skyPhotosEarthGallery.children[sortedIndex]);
