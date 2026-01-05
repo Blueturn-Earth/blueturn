@@ -32,7 +32,7 @@ export default class EpicDB {
             })
             .then(() => {
                 this._ready = true; // enough to get the latest
-                console.log("EPIC DB initialized successfully");
+                console.debug("EPIC DB initialized successfully");
                 resolve();
                 return this._loadEpicDay(this._epicFirstDay);
             })

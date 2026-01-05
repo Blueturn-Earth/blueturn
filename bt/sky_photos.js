@@ -10,8 +10,6 @@ import {getStorageProvider} from './gdrive_provider.js';
 
 const SECONDS_IN_DAY = 3600*24;
 
-console.log("Sky Photos module loaded");
-
 const canvas = document.getElementById('glcanvas');
 const skyPhotosEarthGallery = document.getElementById('skyPhotosEarthGallery');
 const skyPhotosScrollGallery = new DragScroller('skyPhotosScrollGallery');
@@ -320,8 +318,6 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
 
 function setSkyPhotosScrollGalleryCallbacks()
 {
-    console.log("Setting sky photos scroll gallery callbacks");
-
     skyPhotosScrollGallery.setSelectItemCb((node, index) => {
         if (buildingSkyPics)
             return;

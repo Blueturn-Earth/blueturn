@@ -173,8 +173,7 @@ export async function gJumpToEpicTime(startTimeSec)
             if (!epicImageData0 && !epicImageData1)
             {
                 // Should really not happen
-                console.error("Failed to fetch bound key EPIC frames - returned null")
-                console.log("Time: " + date_time);
+                console.error("Failed to fetch bound key EPIC frames at time " + date_time + " - returned null")
                 gUpdateLoadingText("No data for " + date_time);
                 gSetInitialEpicTimeSec(startTimeSec);
                 gControlState.jumping = false;
@@ -185,7 +184,7 @@ export async function gJumpToEpicTime(startTimeSec)
 
             if(!gControlState.blockSnapping)
             {
-                console.log("Adjusting time " + date_time + " to closest available EPIC image");
+                console.debug("Adjusting time " + date_time + " to closest available EPIC image");
                 if (epicImageData0 === epicImageData1) {
                     console.assert(epicImageData0.date == date_time);
                     console.assert(epicImageData1.date == date_time);
@@ -717,7 +716,7 @@ export function gUpdateEpicTime(time)
                         const TIME_DIFF_EPSILON = 1;
                         snapping = Math.abs(timeSec - closestEpicImageData.timeSec) > TIME_DIFF_EPSILON;
                         if (gControlState.snapping && !snapping) {
-                            console.log("Snapped to closest EPIC image: " + closestEpicImageData.date);
+                            console.debug("Snapped to closest EPIC image: " + closestEpicImageData.date);
                         }
                         if(snapping)
                             timeSec = gLerp(timeSec, closestEpicImageData.timeSec, SNAP_FACTOR);

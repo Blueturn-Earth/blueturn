@@ -76,14 +76,12 @@ function handleOrientation(e) {
   latestOrientation = { alpha: e.alpha, beta: e.beta, gamma: e.gamma };
 }
 
-console.log("Enabling device orientation");
 enableOrientation();
 
 const cameraButton = document.getElementById("cameraButton");
 const cameraInput = document.getElementById("cameraInput");
 cameraInput.style.display = "none";
 
-console.log("Add camera button click handler");
 // Capture photo and metadata
 cameraButton.addEventListener("click", async () => {
   sessionStorage.setItem("cameraPending", "1");
@@ -97,7 +95,6 @@ const addPhotoButton = document.getElementById("addPhotoButton");
 const addPhotoInput = document.getElementById("addPhotoInput");
 addPhotoInput.style.display = "none";
 
-console.log("Add Add-Photo button click handler");
 // Capture photo and metadata
 addPhotoButton.addEventListener("click", async () => {
   // Trigger camera
@@ -231,8 +228,6 @@ function openNewPhoto(imgURL, imgFile, fromCamera)
   }
   modalImage.src = imgURL;
 }
-
-console.log("Add camera input change handler");
 
 function cameraInputChange(event)
 {

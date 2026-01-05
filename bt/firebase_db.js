@@ -45,7 +45,7 @@ export default class FirebaseDB extends DB_Interface {
         this.#collection = collection;
         try {
             this.#app = initializeApp(this.#firebaseConfig);
-            console.log("Firebase app initialized");
+            console.debug("Firebase app initialized");
         } catch (e) {
             console.error("Firebase app initialization error:", e);
             this.#app = null;
@@ -54,7 +54,7 @@ export default class FirebaseDB extends DB_Interface {
         try {
             this.#db = this.#app ? getFirestore(this.#app) : null;
             if (this.#db) 
-                console.log("Firebase DB initialized");
+                console.debug("Firebase DB initialized");
             else
                 console.warn("Firebase DB not initialized");
         }
@@ -71,14 +71,14 @@ export default class FirebaseDB extends DB_Interface {
 
         try {
             this.#auth = getAuth();
-            console.log("Current Firebase user before signin:", this.#auth ? this.#auth.currentUser : null);
+            console.debug("Current Firebase user before signin:", this.#auth ? this.#auth.currentUser : null);
         } catch (e) {
             throw new Error("Firebase getAuth error:", e);
         }
 
         return new Promise((resolve, reject) => {
             const unsub = onAuthStateChanged(this.#auth, user => {
-                console.log("Firebase auth state changed, current user:", user);
+                //console.log("Firebase auth state changed, current user:", user);
                 if (user) {
                     unsub();
                     resolve(this.#auth);
@@ -86,7 +86,7 @@ export default class FirebaseDB extends DB_Interface {
             });
 
             if (!this.#auth.currentUser) {
-                console.log("No current user, signing in anonymously");
+                //console.debug("Signing in anonymously to Firebase");
                 signInAnonymously(this.#auth)
                 .catch(reject);
             }

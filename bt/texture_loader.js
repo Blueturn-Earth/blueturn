@@ -31,7 +31,6 @@ export class TextureLoader {
       return Promise.resolve(this._indexedDB);
     }
     return new Promise((resolve, reject) => {
-      console.log("Initializing IndexedDB...");
       const request = indexedDB.open("imageCacheDB", 1);
       request.onupgradeneeded = () => {
         console.log("IndexedDB upgrade needed");
