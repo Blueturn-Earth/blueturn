@@ -1,5 +1,5 @@
 import {getStorageProvider} from './gdrive_provider.js';
-import {saveMetadata} from './firebase_save.js';
+import {db} from './db_factory.js';
 import {processEXIF, addEXIF} from './exif.js';
 import {setSkyPhotosState, selectPhotoByDocId} from './sky_photos.js';
 import {analyzeSkyFromImg} from './sky_analyzer.js'
@@ -379,7 +379,13 @@ async function saveImage(imgFile) {
 
     const profile = getStorageProvider().getProfile();
 
-    docId = await saveMetadata(uploadResult, profile, latestGPS, latestTakenTime, latestSkyRatio);
+    docId = await db.saveRecord({
+      image: uploadResult,
+      takenTime: latestTakenTime,
+      gps: latestGPS,
+      skyRatio: latestSkyRatio,
+      profile: profile
+    });
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
