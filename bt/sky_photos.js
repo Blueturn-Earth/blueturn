@@ -36,7 +36,6 @@ function gGetScreenCoordFromLatLon(lat, lon)
     );
 }
 
-const picsMap = new Map();
 let picsSortedArray = [];
 
 function timeOfDayUTCSeconds(d) {
@@ -214,105 +213,91 @@ function selectPicItemAlpha(alpha)
     gJumpToEpicTime(timeSec);
 }
 
-async function addSkyPhotosFromRecords(skyPhotoRecords)
-{
-    console.log("Fetching sky photo docs");
+function getPicsSortedIndexForEpicTimeSec(epicTimeSec) {
+	var low = 0,
+		high = picsSortedArray.length;
 
-    if (!skyPhotoRecords || skyPhotoRecords.length == 0) {
-        console.warn("No sky photo docs fetched, skipping gallery update");
-        return null;
+	while (low < high) {
+		var mid = low + high >>> 1;
+		if (picsSortedArray[mid].epicTimeSec < epicTimeSec) low = mid + 1;
+		else high = mid;
+	}
+	return low;
+}
+
+skyPhotosDB.addNewSkyPhotoCallback((record) => {
+    console.log("Adding new sky photo for record ", record);
+    
+    const timestamp = record.takenTime || record.createdAt;
+    const timestampDate = timestamp.toDate();
+    let timeSec = timestampDate.getTime() / 1000;
+
+    if (!checkSkyPhotoRecord(record))
+    {
+        console.warn("Skipping pic due to missing data:", record.docId);
+        continue;
     }
-    console.log("Adding sky pics to gallery, nDocs =" + skyPhotoRecords.length);
-    skyPhotosEarthGallery.style.display = 'block';
-    skyPhotosScrollGallery.show();
+    if (timeSec > gEpicDB.getLatestEpicImageTimeSec())
+    {
+        while (timeSec > gEpicDB.getLatestEpicImageTimeSec())
+        {
+            timeSec -= SECONDS_IN_DAY;
+        }
+        const adjusted_timestampDate = new Date(timeSec * 1000);
+        console.log("Adjusted pic from " + timestampDate + " to ", adjusted_timestampDate + " to fit in EPIC range");
+    }
 
-    let numberOfNewPics = 0;
-    for (const record of skyPhotoRecords) {
-        if (!picsMap.has(record.docId)) {
-            const timestamp = record.takenTime || record.createdAt;
-            const timestampDate = timestamp.toDate();
-            let timeSec = timestampDate.getTime() / 1000;
-
-            if (!checkSkyPhotoRecord(record))
+    //if (adjustTimeForMissingEpicData)
+    {
+        const boundPair = 
+            await gEpicDB.fetchBoundKeyFrames(
+                timeSec,
+                false // don't request same day
+            );
+        const [epicImageData0, epicImageData1] = boundPair ? boundPair : [null, null];
+        if (!epicImageData0 && !epicImageData1) {
+            console.warn("Could not fetch EPIC image at picture time ", timestampDate);
+            continue;
+        }
+        if (!epicImageData1 || !epicImageData0 || epicImageData1.epicTimeSec - epicImageData0.epicTimeSec > 12 * 3600)
+        {
+            console.warn("EPIC data not available at picture time ", timestampDate);
+            if (!epicImageData1 || (epicImageData0 && (timeSec - epicImageData0.epicTimeSec < epicImageData1.epicTimeSec - timeSec)))
             {
-                console.warn("Skipping pic due to missing data:", record.docId);
-                continue;
-            }
-            if (timeSec > gEpicDB.getLatestEpicImageTimeSec())
-            {
-                while (timeSec > gEpicDB.getLatestEpicImageTimeSec())
-                {
+                console.log("Closest EPIC data before picture time is previous at ", epicImageData0.date);
+                while (timeSec > epicImageData0.epicTimeSec)
                     timeSec -= SECONDS_IN_DAY;
-                }
-                const adjusted_timestampDate = new Date(timeSec * 1000);
-                console.log("Adjusted pic from " + timestampDate + " to ", adjusted_timestampDate + " to fit in EPIC range");
             }
-
-            //if (adjustTimeForMissingEpicData)
+            else if (!epicImageData0 || (epicImageData1 && (timeSec - epicImageData0.epicTimeSec > epicImageData1.epicTimeSec - timeSec)))
             {
-                const boundPair = 
-                    await gEpicDB.fetchBoundKeyFrames(
-                        timeSec,
-                        false // don't request same day
-                    );
-                const [epicImageData0, epicImageData1] = boundPair ? boundPair : [null, null];
-                if (!epicImageData0 && !epicImageData1) {
-                    console.warn("Could not fetch EPIC image at picture time ", timestampDate);
-                    continue;
-                }
-                if (!epicImageData1 || !epicImageData0 || epicImageData1.epicTimeSec - epicImageData0.epicTimeSec > 12 * 3600)
-                {
-                    console.warn("EPIC data not available at picture time ", timestampDate);
-                    if (!epicImageData1 || (epicImageData0 && (timeSec - epicImageData0.epicTimeSec < epicImageData1.epicTimeSec - timeSec)))
-                    {
-                        console.log("Closest EPIC data before picture time is previous at ", epicImageData0.date);
-                        while (timeSec > epicImageData0.epicTimeSec)
-                            timeSec -= SECONDS_IN_DAY;
-                    }
-                    else if (!epicImageData0 || (epicImageData1 && (timeSec - epicImageData0.epicTimeSec > epicImageData1.epicTimeSec - timeSec)))
-                    {
-                        console.log("Closest EPIC data after picture time is next at ", epicImageData1.date);
-                        while (timeSec < epicImageData1.epicTimeSec)
-                            timeSec += SECONDS_IN_DAY;
-                    }
-                    const adjusted_timestampDate = new Date(timeSec * 1000);
-                    console.log("Adjusted pic from " + timestampDate + " to ", adjusted_timestampDate + " to fit in EPIC range");
-                }
+                console.log("Closest EPIC data after picture time is next at ", epicImageData1.date);
+                while (timeSec < epicImageData1.epicTimeSec)
+                    timeSec += SECONDS_IN_DAY;
             }
-            record.epicTimeSec = timeSec;
-            createPicElements(record);
-            picsMap.set(record.docId, record);
-            numberOfNewPics++;
+            const adjusted_timestampDate = new Date(timeSec * 1000);
+            console.log("Adjusted pic from " + timestampDate + " to ", adjusted_timestampDate + " to fit in EPIC range");
         }
     }
+    record.epicTimeSec = timeSec;
+    createPicElements(record);
 
-    buildingSkyPics = true;
-    picsSortedArray = [...picsMap.values()];
-    picsSortedArray.sort((a, b) => a.epicTimeSec - b.epicTimeSec);
-    skyPhotosEarthGallery.innerHTML = '';
-    skyPhotosScrollGallery.clearItems(); 
-
-    for(let i = 0; i < picsSortedArray.length; i++)
-    {
-        const picItem = picsSortedArray[i];
-        const earthPicDiv = picItem.earthPicDiv;
-        const scrollPicDiv = picItem.scrollPicDiv;
-        const picRecord = picItem;
-        const timestamp = picRecord.takenTime || picRecord.createdAt;
-        const realDate = gGetDateTimeStringFromTimeSec(timestamp.toDate().getTime() / 1000);
-        const fakeDate = gGetDateTimeStringFromTimeSec(picsSortedArray[i].epicTimeSec);
-        if (realDate != fakeDate)
-            console.log(`Pic #${i}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
-        else
-            console.log(`Pic #${i}: date: \"${realDate}\"`);
-        skyPhotosEarthGallery.appendChild(earthPicDiv);
-        skyPhotosScrollGallery.appendItem(scrollPicDiv); 
-    }
-    skyPhotosScrollGallery.show();
-
-    console.log("New pics created:", numberOfNewPics);
-    buildingSkyPics = false;
-}
+    const sortedIndex = getPicsSortedIndexForEpicTimeSec(timeSec);
+    const picItem = record;
+    const earthPicDiv = picItem.earthPicDiv;
+    const scrollPicDiv = picItem.scrollPicDiv;
+    const picRecord = picItem;
+    const realDate = gGetDateTimeStringFromTimeSec(timestamp.toDate().getTime() / 1000);
+    const fakeDate = gGetDateTimeStringFromTimeSec(picsSortedArray[i].epicTimeSec);
+    if (realDate != fakeDate)
+        console.log(`Pic #${i}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
+    else
+        console.log(`Pic #${i}: date: \"${realDate}\"`);
+    skyPhotosEarthGallery.insertBefore(earthPicDiv, 
+        skyPhotosEarthGallery.children.length == 0 ? null :
+            skyPhotosEarthGallery.children[sortedIndex]);
+    skyPhotosScrollGallery.insertItemBeforeIndex(scrollPicDiv, 
+        skyPhotosScrollGallery.numItems() == 0 ? -1 : sortedIndex); 
+});
 
 function setSkyPhotosScrollGalleryCallbacks()
 {
@@ -427,7 +412,7 @@ export function updateSkyPhotos()
 
     let closestEarthPicDiv;
     let maxAlpha = 0;
-    picsMap.forEach((picItem) => {
+    skyPhotosDB.forEachLocal((picItem) => {
         const alpha = updateSkyPhoto(picItem);
         if (alpha && alpha > maxAlpha) {
             closestEarthPicDiv = picItem.earthPicDiv;
@@ -467,6 +452,9 @@ export async function setSkyPhotosState(isOn)
         skyPhotosScrollGallery.hide();
         return;
     }
+
+    skyPhotosEarthGallery.style.display = 'block';
+    skyPhotosScrollGallery.show();
 
     return addSkyPhotos();
 }

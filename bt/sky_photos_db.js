@@ -25,7 +25,7 @@ class SkyPhotosDB {
         const query = this.db.buildQuery(
             this.db.orderBy("takenTime", "asc")
         );
-        const records = await this.db.getRecords(query);
+        const records = await this.db.fetchRecords(query);
         return records;
     }
 
@@ -35,7 +35,7 @@ class SkyPhotosDB {
             this.db.orderBy("takenTime", "asc")
         ];
         const query = this.db.buildQuery(...queryConstraints);
-        const records = await this.db.getRecords(query);
+        const records = await this.db.fetchRecords(query);
         return records;
     }
 
@@ -48,9 +48,24 @@ class SkyPhotosDB {
             queryConstraints.push(this.db.limitToLast(maxNumRecords));
         }
         const query = this.db.buildQuery(...queryConstraints);
-        const records = await this.db.getRecords(query);
+        const records = await this.db.fetchRecords(query);
         return records;
     }
+
+    addNewSkyPhotoCallback(cb)
+    {
+        return this.db.addNewRecordCallback(cb);
+    }
+
+    removeNewSkyPhotoCallback(cbId)
+    {
+        this.db.removeNewRecordCallback(cbId);
+    }
+
+    async forEachLocal(cb) {
+        return await this.db.forEachLocal(cb);
+    }
+
 }
 
 export const skyPhotosDB = new SkyPhotosDB();
