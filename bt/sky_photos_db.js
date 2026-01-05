@@ -39,10 +39,10 @@ class SkyPhotosDB {
         return records;
     }
 
-    async getSkyPhotosBeforeRecord(record, maxNumRecords) {
+    async getSkyPhotosBeforeDate(date, maxNumRecords) {
         const queryConstraints = [
             this.db.orderBy("takenTime"),
-            this.db.endBefore(record.takenTime)
+            this.db.endBefore(date)
         ];
         if (maxNumRecords > 0) {
             queryConstraints.push(this.db.limitToLast(maxNumRecords));

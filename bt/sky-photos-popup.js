@@ -18,8 +18,8 @@ window.addEventListener("popstate", (event) => {
   }
 });
 
-export async function openPopupFromThumbnail(thumbImg, data) {
-  getStorageProvider().loadImageFromField(popupImg, data.image, true, 2048);
+export async function openPopupFromThumbnail(thumbImg, record) {
+  getStorageProvider().loadImageFromField(popupImg, record.image, true, 2048);
   popup.hidden = false;
   history.pushState({ popup: true }, "");
 }
