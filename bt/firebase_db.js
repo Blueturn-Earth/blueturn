@@ -27,6 +27,8 @@ export default class FirebaseDB extends DB_Interface {
     #app;
     #db;
     #collection;
+    #local = new Map();
+    #newRecordCallbacks = new Map();
 
     #firebaseConfig = {
         apiKey: "AIzaSyCrF263rcJ3fyNyQtnfSSwPg4U-jvUeEYg",
@@ -123,7 +125,7 @@ export default class FirebaseDB extends DB_Interface {
             record.createdAt = serverTimestamp();
             await setDoc(doc(this.#db, this.#collection, record.docId), record);
             console.log("Saved document to Firestore:", record);
-            return record.docId;
+            return record;
         } catch (e) {
             console.error("Error saving record to Firestore:", e);
             throw e;
@@ -138,8 +140,8 @@ export default class FirebaseDB extends DB_Interface {
         return orderBy(...args);
     }
 
-    endBefore(...args) {
-        return endBefore(...args);
+    endBefore(fieldValue) {
+        return endBefore(fieldValue);
     }
 
     limitToLast(...args) {
@@ -152,8 +154,40 @@ export default class FirebaseDB extends DB_Interface {
             ...queryConstraints);
     }
 
-    async getRecords(q) {
+    #nextCbId = 0;
+
+    addNewRecordCallback(cb)
+    {
+        const cbId = this.#nextCbId;
+        this.#newRecordCallbacks.set(this.#nextCbId++, cb);
+        return cbId;
+    }
+
+    removeNewRecordCallback(cbId)
+    {
+        if (!this.#newRecordCallbacks.has(cbId))
+            throw new Error("cb id " + cbId + " not in callbacks");
+        this.#newRecordCallbacks.delete(cbId);
+    }
+
+    async forEachLocal(cb)
+    {
+        return await this.#local.forEach(cb);
+    }
+
+    async fetchRecords(query) {
         await this._authenticate();
-        return await getDocs(q);
+        const snap = await getDocs(query);
+        const docs = snap.docs.map(doc => doc.data());
+        await docs.forEach(async (docData) => {
+            if (!this.#local.has(docData.docId))
+            {
+                this.#local.set(docData.docId, docData);
+                await this.#newRecordCallbacks.forEach(async (cb) => {
+                    await cb(docData);
+                });
+            }
+        });
+        return docs;
     }
 }

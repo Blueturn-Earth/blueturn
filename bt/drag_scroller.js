@@ -99,13 +99,18 @@ export default class DragScroller
 
   appendItem(node)
   {
+    insertItemBeforeIndex(node, -1);
+  }
+
+  insertItemBeforeIndex(node, index)
+  {
     if (this.itemsGroup.contains(node)) {
       console.warn("Node already in items group!");
       return;
     }
 
     node.id = `scroll-item-${this.numItems}`;
-    this.itemsGroup.insertBefore(node, this.endSpacer);
+    this.itemsGroup.insertBefore(node, index < 0 ? this.endSpacer : this.itemsGroup.children[index + 2]);
     this.#updateSpacers();
     this.#snapToNearest();
 
@@ -127,6 +132,11 @@ export default class DragScroller
     this.#updateSpacers();
     this.numItems = 0;
     this.imgErrorCount = 0;
+  }
+
+  getNumItems()
+  {
+    return this.numItems;
   }
 
   scrollToAlpha(alpha) {
@@ -380,8 +390,11 @@ export default class DragScroller
     {
       this.selectedItemIndex = index;
       
-      console.log("Selected item index: ", index);
-      
+      if (index !== undefined)
+        console.log("Selected item index: ", index);
+      else
+        console.debug("No selected item");
+
       if (this.onSelectItemCb)
         this.onSelectItemCb(this.itemsGroup.children[index + 2], index); // skip start spacer+template
     }

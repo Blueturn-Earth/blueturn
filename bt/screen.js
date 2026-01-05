@@ -320,7 +320,7 @@ class Screen
             x: this.#lastMovePos.x - this.#startPos.x,
             y: this.#lastMovePos.y - this.#startPos.y
         };
-        console.log("try swype delta: x=" + dragDelta.x + ", y=" + dragDelta.y + ", time=" + dragDuration);
+        console.debug("try swype delta: x=" + dragDelta.x + ", y=" + dragDelta.y + ", time=" + dragDuration);
 
         if (dragDuration < this.#SWYPE_TIMEOUT_MS &&
             (Math.abs(dragDelta.x) > this.#MIN_SWYPE_DISTANCE ||
@@ -451,7 +451,7 @@ export let gScreen = new Screen();
 // Test
 function logEvent(e)
 {
-    console.log(e.eventStr + ": " + JSON.stringify(e));
+    console.debug(e.eventStr + ": " + JSON.stringify(e));
 }
 
 // gScreen.addEventListener("down", logEvent);

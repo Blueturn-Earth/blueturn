@@ -247,27 +247,34 @@ export class TextureLoader {
   }
 
   _evictIfNeeded(incomingSize, onEvict) {
-    while (this.totalMemory + incomingSize > this.maxMemory && this.textureCache.size > 0) {
-      // Find LRU entry
-      let oldestUrl = null;
-      let oldestTime = Infinity;
+    if (this.totalMemory + incomingSize > this.maxMemory && this.textureCache.size > 0) {
+      const targetMemorySize = this.maxMemory * .5;
+      let numEvictedImages = 0;
+      while (this.totalMemory + incomingSize > targetMemorySize && this.textureCache.size > 0) {
+        // Find LRU entry
+        let oldestUrl = null;
+        let oldestTime = Infinity;
 
-      for (const [url, entry] of this.textureCache.entries()) {
-        if (entry.lastUsed < oldestTime) {
-          oldestUrl = url;
-          oldestTime = entry.lastUsed;
+        for (const [url, entry] of this.textureCache.entries()) {
+          if (entry.lastUsed < oldestTime) {
+            oldestUrl = url;
+            oldestTime = entry.lastUsed;
+          }
+        }
+
+        if (oldestUrl) {
+          const entry = this.textureCache.get(oldestUrl);
+          this.gl.deleteTexture(entry.texture);
+          this.totalMemory -= entry.size;
+          this.textureCache.delete(oldestUrl);
+          numEvictedImages++;
+          onEvict?.(oldestUrl, entry.texture);
+        } else {
+          break;
         }
       }
 
-      if (oldestUrl) {
-        const entry = this.textureCache.get(oldestUrl);
-        this.gl.deleteTexture(entry.texture);
-        this.totalMemory -= entry.size;
-        this.textureCache.delete(oldestUrl);
-        onEvict?.(oldestUrl, entry.texture);
-      } else {
-        break;
-      }
+      console.debug("Evicted " + numEvictedImages + " images");
     }
   }
 

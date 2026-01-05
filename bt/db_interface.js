@@ -1,5 +1,5 @@
 export default class DB_Interface {
-    async saveRecord(record, collection = undefined) {
+    async saveRecord(record) {
         throw new Error("saveRecord not implemented");
     }
 
@@ -11,7 +11,7 @@ export default class DB_Interface {
         throw new Error("orderBy not implemented");
     }
 
-    endBefore(...args) {
+    endBefore(fieldValue) {
         throw new Error("endBefore not implemented");
     }
 
@@ -20,10 +20,25 @@ export default class DB_Interface {
     }
 
     buildQuery(...queryConstraints) {
-        throw new Error("query not implemented");
+        throw new Error("buildQuery not implemented");
     }
 
-    async getRecords(query) {
-        throw new Error("getRecords not implemented");
+    async fetchRecords(query) {
+        throw new Error("fetchRecords not implemented");
+    }
+
+    addNewRecordCallback(cb)
+    {
+        throw new Error("addNewRecordCallback not implemented");
+    }
+
+    removeNewRecordCallback(cbId)
+    {
+        throw new Error("removeNewRecordCallback not implemented");
+    }
+
+    async forEachLocal(cb)
+    {
+        throw new Error("forEachLocal not implemented");
     }
 }

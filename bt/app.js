@@ -114,7 +114,6 @@ export async function gJumpToEpicTime(startTimeSec)
     gControlState.jumping = true;
 
     let date_time = gGetDateTimeStringFromTimeSec(startTimeSec);
-    console.log("Jumping to ", date_time);
 
     return new Promise((resolve, reject) => {
         if (gControlState.jumping && jumpingTimeSec != gJumpingTimeSec) {
@@ -215,7 +214,6 @@ export async function gJumpToEpicTime(startTimeSec)
                 }
             }
 
-            console.log("Start time: " + date_time);
             gSetInitialEpicTimeSec(startTimeSec);
             gControlState.jumping = false;
             gControlState.jump = false;
