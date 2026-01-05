@@ -1,5 +1,5 @@
 export default class DB_Interface {
-    async saveRecord(record, collection = undefined) {
+    async saveRecord(record) {
         throw new Error("saveRecord not implemented");
     }
 
@@ -11,7 +11,7 @@ export default class DB_Interface {
         throw new Error("orderBy not implemented");
     }
 
-    endBefore(...args) {
+    endBefore(fieldValue) {
         throw new Error("endBefore not implemented");
     }
 

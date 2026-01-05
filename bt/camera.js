@@ -1,5 +1,5 @@
 import {getStorageProvider} from './gdrive_provider.js';
-import {db} from './db_factory.js';
+import {skyPhotosDB} from './sky_photos_db.js';
 import {processEXIF, addEXIF} from './exif.js';
 import {setSkyPhotosState, selectPhotoByDocId} from './sky_photos.js';
 import {analyzeSkyFromImg} from './sky_analyzer.js'
@@ -379,7 +379,7 @@ async function saveImage(imgFile) {
 
     const profile = getStorageProvider().getProfile();
 
-    docId = await db.saveRecord({
+    docId = await skyPhotosDB.saveSkyPhoto({
       image: uploadResult,
       takenTime: latestTakenTime,
       gps: latestGPS,

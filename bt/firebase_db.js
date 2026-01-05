@@ -123,7 +123,7 @@ export default class FirebaseDB extends DB_Interface {
             record.createdAt = serverTimestamp();
             await setDoc(doc(this.#db, this.#collection, record.docId), record);
             console.log("Saved document to Firestore:", record);
-            return record.docId;
+            return record;
         } catch (e) {
             console.error("Error saving record to Firestore:", e);
             throw e;
@@ -138,8 +138,8 @@ export default class FirebaseDB extends DB_Interface {
         return orderBy(...args);
     }
 
-    endBefore(...args) {
-        return endBefore(...args);
+    endBefore(fieldValue) {
+        return endBefore(fieldValue);
     }
 
     limitToLast(...args) {
@@ -154,6 +154,7 @@ export default class FirebaseDB extends DB_Interface {
 
     async getRecords(q) {
         await this._authenticate();
-        return await getDocs(q);
+        const snap = await getDocs(q);
+        return snap.docs.map(doc => doc.data());
     }
 }
