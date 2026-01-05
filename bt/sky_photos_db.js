@@ -21,7 +21,7 @@ class SkyPhotosDB {
         return savedRecord;
     }
 
-    async getAllSkyPhotos() {
+    async fetchAllSkyPhotos() {
         const query = this.db.buildQuery(
             this.db.orderBy("takenTime", "asc")
         );
@@ -29,7 +29,7 @@ class SkyPhotosDB {
         return records;
     }
 
-    async getSkyPhotosAfterDate(date) {
+    async fetchSkyPhotosAfterDate(date) {
         const queryConstraints = [
             this.db.where("takenTime", ">", date),
             this.db.orderBy("takenTime", "asc")
@@ -39,7 +39,7 @@ class SkyPhotosDB {
         return records;
     }
 
-    async getSkyPhotosBeforeDate(date, maxNumRecords) {
+    async fetchSkyPhotosBeforeDate(date, maxNumRecords) {
         const queryConstraints = [
             this.db.orderBy("takenTime"),
             this.db.endBefore(date)

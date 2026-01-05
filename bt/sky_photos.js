@@ -68,7 +68,7 @@ function updateSkyPhoto(picItem)
 {
     const earthPicDiv = picItem.earthPicDiv;
     const scrollDivImg = picItem.scrollPicDiv.querySelector("img");
-    const timestampTimeSec = picItem.timeSec;
+    const timestampTimeSec = picItem.epicTimeSec;
     const timestampDate = new Date(timestampTimeSec * 1000);
     const currentDate = new Date(gEpicTimeSec * 1000);
 
@@ -80,7 +80,7 @@ function updateSkyPhoto(picItem)
         return;
     }
 
-    const picRecord = picItem.record;
+    const picRecord = picItem;
     const picPos = gGetScreenCoordFromLatLon(picRecord.gps.lat, picRecord.gps.lon);
     if (!picPos || picPos.z < -0.2) {
         earthPicDiv.style.display = 'none';
@@ -173,25 +173,20 @@ function checkSkyPhotoRecord(record)
     return true;
 }
 
-function createPicItem(skyPhotoRecord, timeSec)
+function createPicElements(skyPhotoRecord)
 {
     if (!skyPhotoRecord) {
-        console.error("No record for pic");
-        return null;
+        console.error("Null skyPhotoRecord");
+        return;
     }
 
     if (!checkSkyPhotoRecord(skyPhotoRecord)) {
         console.error("Pic data invalid for record id:", skyPhotoRecord.docId);
-        return null;
+        return;
     }
 
-    const picItem = {
-        record: skyPhotoRecord,
-        timeSec: timeSec
-    };
-    picItem.earthPicDiv = createEarthPicDiv(skyPhotoRecord);
-    picItem.scrollPicDiv = createScrollPicDiv(skyPhotoRecord);
-    return picItem;
+    skyPhotoRecord.earthPicDiv = createEarthPicDiv(skyPhotoRecord);
+    skyPhotoRecord.scrollPicDiv = createScrollPicDiv(skyPhotoRecord);
 }
 
 function jumpToPicTime(index)
@@ -199,7 +194,7 @@ function jumpToPicTime(index)
     if (index == undefined)
         return;
     const picItem = picsSortedArray[index];
-    const timeSec = picItem.timeSec;
+    const timeSec = picItem.epicTimeSec;
     gSetPlayState(false);
     gControlState.blockSnapping = true;
     gJumpToEpicTime(timeSec);
@@ -213,7 +208,7 @@ function selectPicItemAlpha(alpha)
     const index0 = Math.floor(indexFloat);
     const index1 = Math.ceil(indexFloat);
     const boundAlpha = index0 == index1 ? 0 : (indexFloat - index0) / (index1 - index0);
-    const timeSec = (1.0 - boundAlpha) * picsSortedArray[index0].timeSec + boundAlpha * picsSortedArray[index1].timeSec;
+    const timeSec = (1.0 - boundAlpha) * picsSortedArray[index0].epicTimeSec + boundAlpha * picsSortedArray[index1].epicTimeSec;
     gSetPlayState(false);
     gControlState.blockSnapping = true;
     gJumpToEpicTime(timeSec);
@@ -265,34 +260,35 @@ async function addSkyPhotosFromRecords(skyPhotoRecords)
                     console.warn("Could not fetch EPIC image at picture time ", timestampDate);
                     continue;
                 }
-                if (!epicImageData1 || !epicImageData0 || epicImageData1.timeSec - epicImageData0.timeSec > 12 * 3600)
+                if (!epicImageData1 || !epicImageData0 || epicImageData1.epicTimeSec - epicImageData0.epicTimeSec > 12 * 3600)
                 {
                     console.warn("EPIC data not available at picture time ", timestampDate);
-                    if (!epicImageData1 || (epicImageData0 && (timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)))
+                    if (!epicImageData1 || (epicImageData0 && (timeSec - epicImageData0.epicTimeSec < epicImageData1.epicTimeSec - timeSec)))
                     {
                         console.log("Closest EPIC data before picture time is previous at ", epicImageData0.date);
-                        while (timeSec > epicImageData0.timeSec)
+                        while (timeSec > epicImageData0.epicTimeSec)
                             timeSec -= SECONDS_IN_DAY;
                     }
-                    else if (!epicImageData0 || (epicImageData1 && (timeSec - epicImageData0.timeSec > epicImageData1.timeSec - timeSec)))
+                    else if (!epicImageData0 || (epicImageData1 && (timeSec - epicImageData0.epicTimeSec > epicImageData1.epicTimeSec - timeSec)))
                     {
                         console.log("Closest EPIC data after picture time is next at ", epicImageData1.date);
-                        while (timeSec < epicImageData1.timeSec)
+                        while (timeSec < epicImageData1.epicTimeSec)
                             timeSec += SECONDS_IN_DAY;
                     }
                     const adjusted_timestampDate = new Date(timeSec * 1000);
                     console.log("Adjusted pic from " + timestampDate + " to ", adjusted_timestampDate + " to fit in EPIC range");
                 }
             }
-            const picItem = createPicItem(record, timeSec);
-            picsMap.set(record.docId, picItem);
+            record.epicTimeSec = timeSec;
+            createPicElements(record);
+            picsMap.set(record.docId, record);
             numberOfNewPics++;
         }
     }
 
     buildingSkyPics = true;
     picsSortedArray = [...picsMap.values()];
-    picsSortedArray.sort((a, b) => a.timeSec - b.timeSec);
+    picsSortedArray.sort((a, b) => a.epicTimeSec - b.epicTimeSec);
     skyPhotosEarthGallery.innerHTML = '';
     skyPhotosScrollGallery.clearItems(); 
 
@@ -301,10 +297,10 @@ async function addSkyPhotosFromRecords(skyPhotoRecords)
         const picItem = picsSortedArray[i];
         const earthPicDiv = picItem.earthPicDiv;
         const scrollPicDiv = picItem.scrollPicDiv;
-        const picRecord = picItem.record;
+        const picRecord = picItem;
         const timestamp = picRecord.takenTime || picRecord.createdAt;
         const realDate = gGetDateTimeStringFromTimeSec(timestamp.toDate().getTime() / 1000);
-        const fakeDate = gGetDateTimeStringFromTimeSec(picsSortedArray[i].timeSec);
+        const fakeDate = gGetDateTimeStringFromTimeSec(picsSortedArray[i].epicTimeSec);
         if (realDate != fakeDate)
             console.log(`Pic #${i}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
         else
@@ -349,7 +345,7 @@ function setSkyPhotosScrollGalleryCallbacks()
             }
         }
 
-        openPopupFromThumbnail(picImg, picItem.record);
+        openPopupFromThumbnail(picImg, picItem);
     });
 
     skyPhotosScrollGallery.setScrollAlphaCb((alpha) => {
@@ -362,10 +358,6 @@ function setSkyPhotosScrollGalleryCallbacks()
 
 async function addSkyPhotos()
 {
-    // All new pics
-    console.log("Clearing existing sky pics from gallery");
-    picsMap.clear();
-
     console.log("Adding current sky photos to gallery");
     await addCurrentSkyPhotos();
     console.log("Adding sky photos before first one in gallery");
@@ -379,7 +371,7 @@ async function addCurrentSkyPhotos()
 {
     const dayBeforeLatestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec() - SECONDS_IN_DAY;
     const dayBeforeLatestEpicDate = new Date(dayBeforeLatestEpicTimeSec * 1000);
-    const skyPhotoRecords = await skyPhotosDB.getSkyPhotosAfterDate(dayBeforeLatestEpicDate);
+    const skyPhotoRecords = await skyPhotosDB.fetchSkyPhotosAfterDate(dayBeforeLatestEpicDate);
     return await addSkyPhotosFromRecords(skyPhotoRecords);
 }
 
@@ -390,16 +382,16 @@ async function addSkyPhotosBefore(nDocsBefore = 0)
         return null;
     }
     const itemWithMinimalTakenTime = picsSortedArray.reduce((minItem, currentItem) => {
-        return (currentItem.record.takenTime < minItem.record.takenTime) ? currentItem : minItem;
+        return (currentItem.takenTime < minItem.takenTime) ? currentItem : minItem;
     });
-    const minimalTakenTime = itemWithMinimalTakenTime.record.takenTime;
-    const skyPhotoRecords = await skyPhotosDB.getSkyPhotosBeforeDate(minimalTakenTime, nDocsBefore);
+    const minimalTakenTime = itemWithMinimalTakenTime.takenTime;
+    const skyPhotoRecords = await skyPhotosDB.fetchSkyPhotosBeforeDate(minimalTakenTime, nDocsBefore);
     return await addSkyPhotosFromRecords(skyPhotoRecords);
 }
 
 async function addAllSkyPhotos()
 {
-    const records = await skyPhotosDB.getAllSkyPhotos();
+    const records = await skyPhotosDB.fetchAllSkyPhotos();
     return await addSkyPhotosFromRecords(records);
 }
 
@@ -409,10 +401,10 @@ export function updateSkyPhotos()
     {
         const currentDate = new Date(gEpicTimeSec * 1000);
         const currentTimeSec = currentDate.getTime() / 1000;
-        const closestPicIndex = gFindClosestIndexInSortedArray(picsSortedArray, currentTimeSec, picItem => picItem.timeSec);
+        const closestPicIndex = gFindClosestIndexInSortedArray(picsSortedArray, currentTimeSec, picItem => picItem.epicTimeSec);
         if (closestPicIndex < 0 || closestPicIndex >= picsSortedArray.length)
             return;
-        const closestPicTimeSec = picsSortedArray[closestPicIndex].timeSec;
+        const closestPicTimeSec = picsSortedArray[closestPicIndex].epicTimeSec;
         const prevPicIndex = closestPicTimeSec <= currentTimeSec ? closestPicIndex : closestPicIndex - 1;
         const nextPicIndex = closestPicTimeSec >= currentTimeSec ? closestPicIndex : closestPicIndex + 1;
         //console.log("indices: " + prevPicIndex + " - " + closestPicIndex + " - " + nextPicIndex);
@@ -424,8 +416,8 @@ export function updateSkyPhotos()
             currentTimeIndexFloat = closestPicIndex;
         else 
             currentTimeIndexFloat = prevPicIndex + 
-                (currentTimeSec - picsSortedArray[prevPicIndex].timeSec) / 
-                (picsSortedArray[nextPicIndex].timeSec - picsSortedArray[prevPicIndex].timeSec);
+                (currentTimeSec - picsSortedArray[prevPicIndex].epicTimeSec) / 
+                (picsSortedArray[nextPicIndex].epicTimeSec - picsSortedArray[prevPicIndex].epicTimeSec);
         const currentTimeAlpha = currentTimeIndexFloat / (picsSortedArray.length - 1);
         skyPhotosScrollGallery.scrollToAlpha(currentTimeAlpha);
         //skyPhotosScrollGallery.scrollToAlpha((Math.sin(currentTimeSec / 3600) + 1) / 2);
@@ -435,7 +427,7 @@ export function updateSkyPhotos()
 
     let closestEarthPicDiv;
     let maxAlpha = 0;
-    picsMap.forEach((picItem, docId) => {
+    picsMap.forEach((picItem) => {
         const alpha = updateSkyPhoto(picItem);
         if (alpha && alpha > maxAlpha) {
             closestEarthPicDiv = picItem.earthPicDiv;
@@ -481,7 +473,7 @@ export async function setSkyPhotosState(isOn)
 
 export async function selectPhotoByDocId(docId)
 {
-    const picItemIndex = picsSortedArray.findIndex(pic => pic.record.docId === docId);
+    const picItemIndex = picsSortedArray.findIndex(pic => pic.docId === docId);
     if (picItemIndex != undefined)
     {
         jumpToPicTime(picItemIndex);
