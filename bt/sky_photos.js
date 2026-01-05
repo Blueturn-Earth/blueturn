@@ -232,7 +232,7 @@ function getPicsSortedIndexForEpicTimeSec(epicTimeSec) {
 skyPhotosDB.addNewSkyPhotoCallback(async (record) => {    
     const timestamp = record.takenTime || record.createdAt;
     const timestampDate = timestamp.toDate();
-    console.log("Adding new sky photo for time ", timestampDate);
+    console.debug("Adding new sky photo for time ", timestampDate);
     let timeSec = timestampDate.getTime() / 1000;
 
     if (!checkSkyPhotoRecord(record))
@@ -294,7 +294,7 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
     record.epicTimeSec = timeSec;
     const sortedIndex = getPicsSortedIndexForEpicTimeSec(timeSec);
 
-    console.log("Placing new sky photo of time " + timestampDate + " at index " + sortedIndex + " / " + picsSortedArray.length);
+    console.debug("Placing new sky photo of time " + timestampDate + " at index " + sortedIndex + " / " + picsSortedArray.length);
 
     // insert in array
     const picItem = record;
@@ -308,9 +308,9 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
     const realDate = gGetDateTimeStringFromTimeSec(timestamp.toDate().getTime() / 1000);
     const fakeDate = gGetDateTimeStringFromTimeSec(record.epicTimeSec);
     if (realDate != fakeDate)
-        console.log(`Pic docId=${picRecord.docId}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
+        console.debug(`Pic docId=${picRecord.docId}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
     else
-        console.log(`Pic docId=${picRecord.docId}: date: \"${realDate}\"`);
+        console.debug(`Pic docId=${picRecord.docId}: date: \"${realDate}\"`);
     skyPhotosEarthGallery.insertBefore(earthPicDiv, 
         skyPhotosEarthGallery.children.length == 0 ? null :
             skyPhotosEarthGallery.children[sortedIndex]);

@@ -390,8 +390,11 @@ export default class DragScroller
     {
       this.selectedItemIndex = index;
       
-      console.log("Selected item index: ", index);
-      
+      if (index !== undefined)
+        console.log("Selected item index: ", index);
+      else
+        console.debug("No selected item");
+
       if (this.onSelectItemCb)
         this.onSelectItemCb(this.itemsGroup.children[index + 2], index); // skip start spacer+template
     }

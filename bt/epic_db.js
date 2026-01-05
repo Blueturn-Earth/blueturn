@@ -292,7 +292,7 @@ export default class EpicDB {
             return epicDayData.loading;
         }
 
-        console.log("Loading EPIC data for day " + dayStr);
+        console.debug("Loading EPIC data for day " + dayStr);
         if (!epicDayData)
             epicDayData = {};
         epicDayData.loading = this.#epicDataLoader.loadEpicDay(dayStr)

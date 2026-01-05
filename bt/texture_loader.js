@@ -274,7 +274,7 @@ export class TextureLoader {
         }
       }
 
-      console.log("Evicted " + numEvictedImages + " images");
+      console.debug("Evicted " + numEvictedImages + " images");
     }
   }
 
