@@ -360,8 +360,9 @@ async function addCurrentSkyPhotos()
 {
     const dayBeforeLatestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec() - SECONDS_IN_DAY;
     const dayBeforeLatestEpicDate = new Date(dayBeforeLatestEpicTimeSec * 1000);
-    const skyPhotoRecords = await skyPhotosDB.fetchSkyPhotosAfterDate(dayBeforeLatestEpicDate);
-    return await addSkyPhotosFromRecords(skyPhotoRecords);
+    buildingSkyPics = true;
+    await skyPhotosDB.fetchSkyPhotosAfterDate(dayBeforeLatestEpicDate);
+    buildingSkyPics = false;
 }
 
 async function addSkyPhotosBefore(nDocsBefore = 0)
@@ -374,14 +375,18 @@ async function addSkyPhotosBefore(nDocsBefore = 0)
         return (currentItem.takenTime < minItem.takenTime) ? currentItem : minItem;
     });
     const minimalTakenTime = itemWithMinimalTakenTime.takenTime;
+    buildingSkyPics = true;
     const skyPhotoRecords = await skyPhotosDB.fetchSkyPhotosBeforeDate(minimalTakenTime, nDocsBefore);
-    return await addSkyPhotosFromRecords(skyPhotoRecords);
+    await addSkyPhotosFromRecords(skyPhotoRecords);
+    buildingSkyPics = false;
 }
 
 async function addAllSkyPhotos()
 {
+    buildingSkyPics = true;
     const records = await skyPhotosDB.fetchAllSkyPhotos();
     return await addSkyPhotosFromRecords(records);
+    buildingSkyPics = false;
 }
 
 export function updateSkyPhotos()
