@@ -376,16 +376,14 @@ async function addSkyPhotosBefore(nDocsBefore = 0)
     });
     const minimalTakenTime = itemWithMinimalTakenTime.takenTime;
     buildingSkyPics = true;
-    const skyPhotoRecords = await skyPhotosDB.fetchSkyPhotosBeforeDate(minimalTakenTime, nDocsBefore);
-    await addSkyPhotosFromRecords(skyPhotoRecords);
+    await skyPhotosDB.fetchSkyPhotosBeforeDate(minimalTakenTime, nDocsBefore);
     buildingSkyPics = false;
 }
 
 async function addAllSkyPhotos()
 {
     buildingSkyPics = true;
-    const records = await skyPhotosDB.fetchAllSkyPhotos();
-    return await addSkyPhotosFromRecords(records);
+    await skyPhotosDB.fetchAllSkyPhotos();
     buildingSkyPics = false;
 }
 
