@@ -287,7 +287,7 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
     const scrollPicDiv = picItem.scrollPicDiv;
     const picRecord = picItem;
     const realDate = gGetDateTimeStringFromTimeSec(timestamp.toDate().getTime() / 1000);
-    const fakeDate = gGetDateTimeStringFromTimeSec(picsSortedArray[i].epicTimeSec);
+    const fakeDate = gGetDateTimeStringFromTimeSec(record.epicTimeSec);
     if (realDate != fakeDate)
         console.log(`Pic #${i}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
     else
