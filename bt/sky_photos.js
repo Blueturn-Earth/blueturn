@@ -229,11 +229,10 @@ function getPicsSortedIndexForEpicTimeSec(epicTimeSec) {
 	return low;
 }
 
-skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
-    console.log("Adding new sky photo for record ", record);
-    
+skyPhotosDB.addNewSkyPhotoCallback(async (record) => {    
     const timestamp = record.takenTime || record.createdAt;
     const timestampDate = timestamp.toDate();
+    console.log("Adding new sky photo for time ", timestampDate);
     let timeSec = timestampDate.getTime() / 1000;
 
     if (!checkSkyPhotoRecord(record))
@@ -262,12 +261,15 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
                 );
         }
         catch(e) {
-            console.warn("Error fetching EPIC image at picture time " + timestampDate + ", " + e.message);
+            console.warn("Error fetching EPIC image at picture time " + timestampDate + ", " + e);
             boundPair = null;
         }
         const [epicImageData0, epicImageData1] = boundPair ? boundPair : [null, null];
-        if (!epicImageData0 && !epicImageData1) {
-            console.warn("Could not fetch EPIC image at picture time ", timestampDate);
+        if (!boundPair) {
+            console.warn("Could not fetch EPIC data at picture time ", timestampDate);
+        }
+        else if (!epicImageData0 && !epicImageData1) {
+            console.warn("Could not fetch bound EPIC images at picture time ", timestampDate);
         }
         else if (!epicImageData1 || !epicImageData0 || epicImageData1.epicTimeSec - epicImageData0.epicTimeSec > 12 * 3600)
         {
@@ -288,14 +290,17 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
             console.log("Adjusted pic from " + timestampDate + " to ", adjusted_timestampDate + " to fit in EPIC range");
         }
     }
-    record.epicTimeSec = timeSec;
-    createPicElements(record);
 
+    record.epicTimeSec = timeSec;
     const sortedIndex = getPicsSortedIndexForEpicTimeSec(timeSec);
-    const picItem = record;
+
+    console.log("Placing new sky photo of time " + timestampDate + " at index " + sortedIndex + " / " + picsSortedArray.length);
 
     // insert in array
+    const picItem = record;
     picsSortedArray.splice(sortedIndex, 0, picItem);
+
+    createPicElements(record);
 
     const earthPicDiv = picItem.earthPicDiv;
     const scrollPicDiv = picItem.scrollPicDiv;
@@ -360,7 +365,8 @@ async function addSkyPhotos()
     console.log("Adding current sky photos to gallery");
     await addCurrentSkyPhotos();
     console.log("Adding sky photos before first one in gallery");
-    if (!addSkyPhotosBefore()) {
+    if (!addSkyPhotosBefore()) 
+    {
         console.warn("Adding all sky photos to gallery");
         addAllSkyPhotos();
     }
@@ -443,11 +449,11 @@ export function updateSkyPhotos()
 const skyPhotosBtn = document.getElementById('skyPhotosBtn');
 const scrollCursor = document.getElementById('scrollCursor');
 scrollCursor.style.display = 'none';
-skyPhotosBtn.addEventListener('click', async () => {
+skyPhotosBtn.addEventListener('click', () => {
     // toggle
     const isOn = skyPhotosBtn.dataset.state === "off";
     if (isOn) {
-        await setSkyPhotosState(true);
+        setSkyPhotosState(true);
         gSetPlayState(true);
     }
     else {

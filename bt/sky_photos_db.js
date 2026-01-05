@@ -29,20 +29,23 @@ class SkyPhotosDB {
         return records;
     }
 
-    async fetchSkyPhotosAfterDate(date) {
+    async fetchSkyPhotosAfterDate(date, maxNumRecords = 0) {
         const queryConstraints = [
-            this.db.where("takenTime", ">", date),
+            this.db.where("takenTime", ">=", date),
             this.db.orderBy("takenTime", "asc")
         ];
+        if (maxNumRecords > 0) {
+            queryConstraints.push(this.db.limitToLast(maxNumRecords));
+        }
         const query = this.db.buildQuery(...queryConstraints);
         const records = await this.db.fetchRecords(query);
         return records;
     }
 
-    async fetchSkyPhotosBeforeDate(date, maxNumRecords) {
+    async fetchSkyPhotosBeforeDate(date, maxNumRecords = 0) {
         const queryConstraints = [
-            this.db.orderBy("takenTime"),
-            this.db.endBefore(date)
+            this.db.where("takenTime", "<=", date),
+            this.db.orderBy("takenTime", "desc")
         ];
         if (maxNumRecords > 0) {
             queryConstraints.push(this.db.limitToLast(maxNumRecords));

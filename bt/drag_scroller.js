@@ -110,7 +110,7 @@ export default class DragScroller
     }
 
     node.id = `scroll-item-${this.numItems}`;
-    this.itemsGroup.insertBefore(node, index < 0 ? this.endSpacer : this.itemsGroup[index + 2]);
+    this.itemsGroup.insertBefore(node, index < 0 ? this.endSpacer : this.itemsGroup.children[index + 2]);
     this.#updateSpacers();
     this.#snapToNearest();
 
