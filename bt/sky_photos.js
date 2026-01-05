@@ -225,7 +225,7 @@ function getPicsSortedIndexForEpicTimeSec(epicTimeSec) {
 	return low;
 }
 
-skyPhotosDB.addNewSkyPhotoCallback((record) => {
+skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
     console.log("Adding new sky photo for record ", record);
     
     const timestamp = record.takenTime || record.createdAt;
@@ -235,7 +235,7 @@ skyPhotosDB.addNewSkyPhotoCallback((record) => {
     if (!checkSkyPhotoRecord(record))
     {
         console.warn("Skipping pic due to missing data:", record.docId);
-        continue;
+        return;
     }
     if (timeSec > gEpicDB.getLatestEpicImageTimeSec())
     {
@@ -257,7 +257,7 @@ skyPhotosDB.addNewSkyPhotoCallback((record) => {
         const [epicImageData0, epicImageData1] = boundPair ? boundPair : [null, null];
         if (!epicImageData0 && !epicImageData1) {
             console.warn("Could not fetch EPIC image at picture time ", timestampDate);
-            continue;
+            return;
         }
         if (!epicImageData1 || !epicImageData0 || epicImageData1.epicTimeSec - epicImageData0.epicTimeSec > 12 * 3600)
         {
