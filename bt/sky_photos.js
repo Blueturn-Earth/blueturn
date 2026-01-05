@@ -283,6 +283,10 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
 
     const sortedIndex = getPicsSortedIndexForEpicTimeSec(timeSec);
     const picItem = record;
+
+    // insert in array
+    picsSortedArray.splice(sortedIndex, 0, picItem);
+
     const earthPicDiv = picItem.earthPicDiv;
     const scrollPicDiv = picItem.scrollPicDiv;
     const picRecord = picItem;
