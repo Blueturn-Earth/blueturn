@@ -357,10 +357,15 @@ Promise.all([
   let wakeLock = null;
 
   async function requestWakeLock() {
+    if (!navigator.wakeLock)
+    {
+      console.warn("Navigator Wake Lock not supported");
+      return;
+    }
     try {
       wakeLock = await navigator.wakeLock.request('screen');
     } catch (err) {
-      console.error(`${err.name}, ${err.message}`);
+      console.error("Error requesting wake lock: ", err);
     }
   }
 
