@@ -65,6 +65,10 @@ function smoothstep (x) {
 
 function updateSkyPhoto(picItem)
 {
+    if (buildingSkyPics)
+        return 0;
+    if (!picItems || !picItem.earthPicDiv || !picItem.scrollPicDiv)
+        return 0;
     const earthPicDiv = picItem.earthPicDiv;
     const scrollDivImg = picItem.scrollPicDiv.querySelector("img");
     const timestampTimeSec = picItem.epicTimeSec;
@@ -76,7 +80,7 @@ function updateSkyPhoto(picItem)
     {
         earthPicDiv.style.display = 'none';
         scrollDivImg.style.border = `0px solid`;
-        return;
+        return 0;
     }
 
     const picRecord = picItem;
