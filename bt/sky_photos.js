@@ -67,7 +67,7 @@ function updateSkyPhoto(picItem)
 {
     if (buildingSkyPics)
         return 0;
-    if (!picItems || !picItem.earthPicDiv || !picItem.scrollPicDiv)
+    if (!picItem || !picItem.earthPicDiv || !picItem.scrollPicDiv)
         return 0;
     const earthPicDiv = picItem.earthPicDiv;
     const scrollDivImg = picItem.scrollPicDiv.querySelector("img");
