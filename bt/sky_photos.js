@@ -296,7 +296,7 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
         skyPhotosEarthGallery.children.length == 0 ? null :
             skyPhotosEarthGallery.children[sortedIndex]);
     skyPhotosScrollGallery.insertItemBeforeIndex(scrollPicDiv, 
-        skyPhotosScrollGallery.numItems() == 0 ? -1 : sortedIndex); 
+        skyPhotosScrollGallery.getNumItems() == 0 ? -1 : sortedIndex); 
 });
 
 function setSkyPhotosScrollGalleryCallbacks()
