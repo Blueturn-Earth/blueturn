@@ -253,17 +253,23 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
 
     //if (adjustTimeForMissingEpicData)
     {
-        const boundPair = 
-            await gEpicDB.fetchBoundKeyFrames(
-                timeSec,
-                false // don't request same day
-            );
+        let boundPair;
+        try {
+            boundPair = 
+                await gEpicDB.fetchBoundKeyFrames(
+                    timeSec,
+                    false // don't request same day
+                );
+        }
+        catch(e) {
+            console.warn("Error fetching EPIC image at picture time " + timestampDate + ", " + e.message);
+            boundPair = null;
+        }
         const [epicImageData0, epicImageData1] = boundPair ? boundPair : [null, null];
         if (!epicImageData0 && !epicImageData1) {
             console.warn("Could not fetch EPIC image at picture time ", timestampDate);
-            return;
         }
-        if (!epicImageData1 || !epicImageData0 || epicImageData1.epicTimeSec - epicImageData0.epicTimeSec > 12 * 3600)
+        else if (!epicImageData1 || !epicImageData0 || epicImageData1.epicTimeSec - epicImageData0.epicTimeSec > 12 * 3600)
         {
             console.warn("EPIC data not available at picture time ", timestampDate);
             if (!epicImageData1 || (epicImageData0 && (timeSec - epicImageData0.epicTimeSec < epicImageData1.epicTimeSec - timeSec)))
