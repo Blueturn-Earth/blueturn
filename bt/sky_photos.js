@@ -147,38 +147,10 @@ function createScrollPicDiv(data)
     return node;
 }
 
-function checkSkyPhotoRecord(record)
-{
-    const docId = record.docId;
-    const data = record;
-    if (!data) {
-        console.warn("No data for pic:", docId);
-        return false;
-    }
-    if (!data.image || !data.image.fileId) {
-        console.warn("No image field or file id for pic data:", docId);
-        return false;
-    }
-    if (!data.gps || data.gps.lat === undefined || data.gps.lon === undefined) {
-        console.warn("No GPS field for pic data:", docId);
-        return false;
-    }
-    if (!data.createdAt && !data.takenTime) {
-        console.warn("No timestamp (takenTime or createdAt) field for pic data:", docId);
-        return false;
-    }
-    return true;
-}
-
 function createPicElements(skyPhotoRecord)
 {
     if (!skyPhotoRecord) {
         console.error("Null skyPhotoRecord");
-        return;
-    }
-
-    if (!checkSkyPhotoRecord(skyPhotoRecord)) {
-        console.error("Pic data invalid for record id:", skyPhotoRecord.docId);
         return;
     }
 
@@ -224,77 +196,10 @@ function getPicsSortedIndexForEpicTimeSec(epicTimeSec) {
 }
 
 skyPhotosDB.addNewSkyPhotoCallback(async (record) => {    
-    const timestamp = record.takenTime || record.createdAt;
-    const timestampDate = timestamp.toDate();
-    console.debug("Adding new sky photo for time ", timestampDate);
-    let timeSec = timestampDate.getTime() / 1000;
+    const sortedIndex = getPicsSortedIndexForEpicTimeSec(record.epicTimeSec);
 
-    if (!checkSkyPhotoRecord(record))
-    {
-        console.warn("Skipping pic due to missing data:", record.docId);
-        return;
-    }
-    if (timeSec > gEpicDB.getLatestEpicImageTimeSec())
-    {
-        while (timeSec > gEpicDB.getLatestEpicImageTimeSec())
-        {
-            timeSec -= SECONDS_IN_DAY;
-        }
-        const adjusted_timestampDate = new Date(timeSec * 1000);
-        console.log("Adjusted pic from " + timestampDate + " to ", adjusted_timestampDate + " to fit in EPIC range");
-    }
-
-    //if (adjustTimeForMissingEpicData)
-    {
-        let boundPair;
-        try {
-            boundPair = 
-                await gEpicDB.fetchBoundKeyFrames(
-                    timeSec,
-                    false // don't request same day
-                );
-        }
-        catch(e) {
-            console.warn("Error fetching EPIC image at picture time " + timestampDate + ", " + e);
-            boundPair = null;
-        }
-        const [epicImageData0, epicImageData1] = boundPair ? boundPair : [null, null];
-        if (!boundPair) {
-            console.warn("Could not fetch EPIC data at picture time ", timestampDate);
-        }
-        else if (!epicImageData0 && !epicImageData1) {
-            console.warn("Could not fetch bound EPIC images at picture time ", timestampDate);
-        }
-        else if (!epicImageData1 || !epicImageData0 || epicImageData1.epicTimeSec - epicImageData0.epicTimeSec > 12 * 3600)
-        {
-            console.warn("EPIC data not available at picture time ", timestampDate);
-            if (!epicImageData1 || (epicImageData0 && (timeSec - epicImageData0.epicTimeSec < epicImageData1.epicTimeSec - timeSec)))
-            {
-                console.log("Closest EPIC data before picture time is previous at ", epicImageData0.date);
-                while (timeSec > epicImageData0.epicTimeSec)
-                    timeSec -= SECONDS_IN_DAY;
-            }
-            else if (!epicImageData0 || (epicImageData1 && (timeSec - epicImageData0.epicTimeSec > epicImageData1.epicTimeSec - timeSec)))
-            {
-                console.log("Closest EPIC data after picture time is next at ", epicImageData1.date);
-                while (timeSec < epicImageData1.epicTimeSec)
-                    timeSec += SECONDS_IN_DAY;
-            }
-            const adjusted_timestampDate = new Date(timeSec * 1000);
-            console.log("Adjusted pic from " + timestampDate + " to ", adjusted_timestampDate + " to fit in EPIC range");
-        }
-    }
-
-    record.epicTimeSec = timeSec;
-    const realDate = gGetDateTimeStringFromTimeSec(timestamp.toDate().getTime() / 1000);
-    const fakeDate = gGetDateTimeStringFromTimeSec(record.epicTimeSec);
-    if (realDate != fakeDate)
-        console.debug(`Pic docId=${record.docId}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
-    else
-        console.debug(`Pic docId=${record.docId}: date: \"${realDate}\"`);
-
-
-    const sortedIndex = getPicsSortedIndexForEpicTimeSec(timeSec);
+    const timestampTimeSec = record.epicTimeSec;
+    const timestampDate = new Date(timestampTimeSec * 1000);
 
     console.debug("Placing new sky photo of time " + timestampDate + " at index " + sortedIndex + " / " + picsSortedArray.length);
 
@@ -333,24 +238,7 @@ function setSkyPhotosScrollGalleryCallbacks()
     skyPhotosScrollGallery.setSelectedItemClickCb((node, index) => {
         if (buildingSkyPics)
             return;
-        const picItem = picsSortedArray[index];
-        let picImg = picItem.earthPicDiv;
-        if (!picImg) {
-            console.warn("No earthPicDiv in pic item #", index);
-            picImg = picItem.scrollPicDiv;
-            if (picImg) {
-                picImg = picImg.querySelector("img");
-                if (!picImg) {
-                    console.warn("No img under scrollPicDiv for pic item #", index);
-                    return;
-                }
-            }
-            else {
-                console.warn("No scrollPicDiv in pic item #", index);
-                return;
-            }
-        }
-
+        let picImg = skyPhotosScrollGallery.getItemImg(node);
         openPopupFromThumbnail(picImg, picItem);
     });
 
@@ -385,7 +273,7 @@ async function addCurrentSkyPhotos()
 
 async function addSkyPhotosBefore(nDocsBefore = 0)
 {
-    if (picsSortedArray.size == 0) {
+    if (picsSortedArray.length == 0) {
         console.warn("No pics for adding sky photos before");
         return null;
     }

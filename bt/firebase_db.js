@@ -175,19 +175,22 @@ export default class FirebaseDB extends DB_Interface {
         return await this.#local.forEach(cb);
     }
 
-    async fetchRecords(query) {
+    async fetchRecords(query, serialCb = true) {
         await this._authenticate();
         const snap = await getDocs(query);
         const docs = snap.docs.map(doc => doc.data());
-        await docs.forEach(async (docData) => {
+        for (const docData of docs) {
             if (!this.#local.has(docData.docId))
             {
                 this.#local.set(docData.docId, docData);
-                await this.#newRecordCallbacks.forEach(async (cb) => {
-                    await cb(docData);
-                });
+                for (const [cbId, cb] of this.#newRecordCallbacks) {
+                    if (serialCb)
+                        await cb(docData);
+                    else
+                        cb(docData);
+                };
             }
-        });
+        }
         return docs;
     }
 }
