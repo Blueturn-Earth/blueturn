@@ -61,14 +61,13 @@ function smoothstep (x) {
    return x * x * (3.0 - 2.0 * x);
 }
 
-function updateSkyPhoto(picItem)
+function updateEarthSkyPhoto(picItem)
 {
     if (buildingSkyPics)
         return 0;
-    if (!picItem || !picItem.earthPicDiv || !picItem.scrollPicDiv)
+    if (!picItem || !picItem.earthPicDiv)
         return 0;
     const earthPicDiv = picItem.earthPicDiv;
-    const scrollDivImg = picItem.scrollPicDiv.querySelector("img");
     const timestampTimeSec = picItem.epicTimeSec;
     const timestampDate = new Date(timestampTimeSec * 1000);
     const currentDate = new Date(gEpicTimeSec * 1000);
@@ -77,7 +76,6 @@ function updateSkyPhoto(picItem)
     if (Math.abs(dateDiff) > 12 * 3600)
     {
         earthPicDiv.style.display = 'none';
-        scrollDivImg.style.border = `0px solid`;
         return 0;
     }
 
@@ -126,8 +124,6 @@ function updateSkyPhoto(picItem)
     const borderFactor = borderAlpha*(maxBorderFactor - minBorderFactor) + minBorderFactor;
     const borderColor = Math.round(borderAlpha * 255);    
     earthPicDiv.style.border = `${borderFactor}px solid rgba(${borderColor}, ${borderColor}, ${borderColor}, ${borderAlpha})`;
-
-    scrollDivImg.style.border = earthPicDiv.style.border;
 
     return scaleAlpha;
 }
@@ -190,7 +186,7 @@ function createPicElements(skyPhotoRecord)
     skyPhotoRecord.scrollPicDiv = createScrollPicDiv(skyPhotoRecord);
 }
 
-function jumpToPicTime(index)
+function jumpToPicEpicTimeByIndex(index)
 {
     if (index == undefined)
         return;
@@ -201,7 +197,7 @@ function jumpToPicTime(index)
     gJumpToEpicTime(timeSec);
 }
 
-function selectPicItemAlpha(alpha)
+function setEpicTimeByPicsAlpha(alpha)
 {
     if (picsSortedArray.length == 0)
         return;
@@ -290,6 +286,14 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
     }
 
     record.epicTimeSec = timeSec;
+    const realDate = gGetDateTimeStringFromTimeSec(timestamp.toDate().getTime() / 1000);
+    const fakeDate = gGetDateTimeStringFromTimeSec(record.epicTimeSec);
+    if (realDate != fakeDate)
+        console.debug(`Pic docId=${record.docId}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
+    else
+        console.debug(`Pic docId=${record.docId}: date: \"${realDate}\"`);
+
+
     const sortedIndex = getPicsSortedIndexForEpicTimeSec(timeSec);
 
     console.debug("Placing new sky photo of time " + timestampDate + " at index " + sortedIndex + " / " + picsSortedArray.length);
@@ -303,25 +307,27 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
     const earthPicDiv = picItem.earthPicDiv;
     const scrollPicDiv = picItem.scrollPicDiv;
     const picRecord = picItem;
-    const realDate = gGetDateTimeStringFromTimeSec(timestamp.toDate().getTime() / 1000);
-    const fakeDate = gGetDateTimeStringFromTimeSec(record.epicTimeSec);
-    if (realDate != fakeDate)
-        console.debug(`Pic docId=${picRecord.docId}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
-    else
-        console.debug(`Pic docId=${picRecord.docId}: date: \"${realDate}\"`);
     skyPhotosEarthGallery.insertBefore(earthPicDiv, 
         skyPhotosEarthGallery.children.length == 0 ? null :
             skyPhotosEarthGallery.children[sortedIndex]);
-    skyPhotosScrollGallery.insertItemBeforeIndex(scrollPicDiv, 
+    skyPhotosScrollGallery.insertItemAtIndex(scrollPicDiv, 
         skyPhotosScrollGallery.getNumItems() == 0 ? -1 : sortedIndex); 
 });
 
 function setSkyPhotosScrollGalleryCallbacks()
 {
     skyPhotosScrollGallery.setSelectItemCb((node, index) => {
+        const scrollDivImg = node.querySelector("img");
+        scrollDivImg.style.border = `4px solid rgba(255, 255, 255, 1)`;
+
         if (buildingSkyPics)
             return;
-        jumpToPicTime(index);
+        jumpToPicEpicTimeByIndex(index);
+    });
+
+    skyPhotosScrollGallery.setUnselectItemCb((node, index) => {
+        const scrollDivImg = node.querySelector("img");
+        scrollDivImg.style.border = `0px solid`;
     });
 
     skyPhotosScrollGallery.setSelectedItemClickCb((node, index) => {
@@ -351,7 +357,7 @@ function setSkyPhotosScrollGalleryCallbacks()
     skyPhotosScrollGallery.setScrollAlphaCb((alpha) => {
         if (buildingSkyPics)
             return;
-        selectPicItemAlpha(alpha);
+        setEpicTimeByPicsAlpha(alpha);
     });
 
 }
@@ -401,6 +407,12 @@ async function addAllSkyPhotos()
 
 export function updateSkyPhotos()
 {
+    updateScrollSkyPhotos();
+    updateEarthSkyPhotos();
+}
+
+function updateScrollSkyPhotos()
+{
     if (picsSortedArray.length > 0)
     {
         const currentDate = new Date(gEpicTimeSec * 1000);
@@ -425,14 +437,16 @@ export function updateSkyPhotos()
         const currentTimeAlpha = currentTimeIndexFloat / (picsSortedArray.length - 1);
         skyPhotosScrollGallery.scrollToAlpha(currentTimeAlpha);
         //skyPhotosScrollGallery.scrollToAlpha((Math.sin(currentTimeSec / 3600) + 1) / 2);
-
-
     }
+}
+
+function updateEarthSkyPhotos()
+{
 
     let closestEarthPicDiv;
     let maxAlpha = 0;
     skyPhotosDB.forEachLocal((picItem) => {
-        const alpha = updateSkyPhoto(picItem);
+        const alpha = updateEarthSkyPhoto(picItem);
         if (alpha && alpha > maxAlpha) {
             closestEarthPicDiv = picItem.earthPicDiv;
             maxAlpha = alpha;
@@ -483,6 +497,6 @@ export async function selectPhotoByDocId(docId)
     const picItemIndex = picsSortedArray.findIndex(pic => pic.docId === docId);
     if (picItemIndex != undefined)
     {
-        jumpToPicTime(picItemIndex);
+        jumpToPicEpicTimeByIndex(picItemIndex);
     }
 }

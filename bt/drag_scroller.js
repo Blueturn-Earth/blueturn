@@ -16,8 +16,9 @@ export default class DragScroller
   startClientX;
   startClientY;
   isHorizontal;
-  selectedItemIndex;
+  #selectedItemIndex;
   onSelectItemCb;
+  onUnselectItemCb;
   onSelectedItemClickCb;
   onScrollAlphaCb;
 
@@ -68,6 +69,10 @@ export default class DragScroller
     this.onSelectItemCb = cb;
   }
 
+  setUnselectItemCb(cb) {
+    this.onUnselectItemCb = cb;
+  }
+
   setSelectedItemClickCb(cb) {
     this.onSelectedItemClickCb = cb;
   }
@@ -99,10 +104,10 @@ export default class DragScroller
 
   appendItem(node)
   {
-    insertItemBeforeIndex(node, -1);
+    insertItemAtIndex(node, -1);
   }
 
-  insertItemBeforeIndex(node, index)
+  insertItemAtIndex(node, index)
   {
     if (this.itemsGroup.contains(node)) {
       console.warn("Node already in items group!");
@@ -112,7 +117,11 @@ export default class DragScroller
     node.id = `scroll-item-${this.numItems}`;
     this.itemsGroup.insertBefore(node, index < 0 ? this.endSpacer : this.itemsGroup.children[index + 2]);
     this.#updateSpacers();
-    this.#snapToNearest();
+    
+    if(this.#selectedItemIndex !== undefined &&
+      this.#selectedItemIndex >= index) {
+        this.#setSelectedIndex(this.#selectedItemIndex + 1);
+    }
 
     node.onclick = (e) => {
       //console.log(e.type);
@@ -178,7 +187,7 @@ export default class DragScroller
     if (this.isDown) 
       return;
 
-    if (index == this.selectedItemIndex)
+    if (index == this.#selectedItemIndex)
     {
       if (this.onSelectedItemClickCb)
         this.onSelectedItemClickCb(this.itemsGroup.children[index + 2], index); // skip start spacer+template
@@ -215,7 +224,7 @@ export default class DragScroller
   }
 
   getSelectedItemIndex() {
-    return this.selectedItemIndex;
+    return this.#selectedItemIndex;
   }
 
   #updateOrientation() {
@@ -384,16 +393,26 @@ export default class DragScroller
       this.#setSelectedIndex(closestChildIndex - 2); // skip start spacer+template
   }
 
-  #setSelectedIndex(index, withClickCb)
+  #setSelectedIndex(index)
   {
-    if (index != this.selectedItemIndex)
+    if (index != this.#selectedItemIndex)
     {
-      this.selectedItemIndex = index;
+      if (this.#selectedItemIndex !== undefined)
+      {
+        console.log("Unselected item index: ", this.#selectedItemIndex);
+        if (this.onUnselectItemCb)
+          this.onUnselectItemCb(this.itemsGroup.children[this.#selectedItemIndex + 2], this.#selectedItemIndex); // skip start spacer+template
+      }
+
+      this.#selectedItemIndex = index;
       
-      if (index !== undefined)
-        console.log("Selected item index: ", index);
-      else
+      if (index === undefined)
+      {
         console.debug("No selected item");
+        return;
+      }
+
+      console.log("Selected item index: ", index);
 
       if (this.onSelectItemCb)
         this.onSelectItemCb(this.itemsGroup.children[index + 2], index); // skip start spacer+template
