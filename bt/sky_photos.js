@@ -317,7 +317,7 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
 function setSkyPhotosScrollGalleryCallbacks()
 {
     skyPhotosScrollGallery.setSelectItemCb((node, index) => {
-        const scrollDivImg = node.querySelector("img");
+        const scrollDivImg = skyPhotosScrollGallery.getItemImg(node);
         scrollDivImg.style.border = `4px solid rgba(255, 255, 255, 1)`;
 
         if (buildingSkyPics)
@@ -326,7 +326,7 @@ function setSkyPhotosScrollGalleryCallbacks()
     });
 
     skyPhotosScrollGallery.setUnselectItemCb((node, index) => {
-        const scrollDivImg = node.querySelector("img");
+        const scrollDivImg = skyPhotosScrollGallery.getItemImg(node);
         scrollDivImg.style.border = `0px solid`;
     });
 
