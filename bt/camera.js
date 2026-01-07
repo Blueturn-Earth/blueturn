@@ -413,3 +413,16 @@ saveImageBtn.addEventListener("click", async (e) => {
   await saveImage(latestImageFile);
 });
 
+const skyPhotosBtn = document.getElementById('skyPhotosBtn');
+skyPhotosBtn.addEventListener('click', () => {
+    // toggle
+    const isOn = skyPhotosBtn.dataset.state === "off";
+    skyPhotosBtn.dataset.state = isOn ? "on" : "off";
+    if (isOn) {
+        setSkyPhotosState(true);
+        gSetPlayState(true);
+    }
+    else {
+        setSkyPhotosState(false);
+    }
+});

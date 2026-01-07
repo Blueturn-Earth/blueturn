@@ -344,22 +344,8 @@ function updateEarthSkyPhotos()
         closestEarthPicDiv.style.zIndex = 10;
 }
 
-const skyPhotosBtn = document.getElementById('skyPhotosBtn');
-skyPhotosBtn.addEventListener('click', () => {
-    // toggle
-    const isOn = skyPhotosBtn.dataset.state === "off";
-    if (isOn) {
-        setSkyPhotosState(true);
-        gSetPlayState(true);
-    }
-    else {
-        setSkyPhotosState(false);
-    }
-});
-
 export async function setSkyPhotosState(isOn)
 {
-    skyPhotosBtn.dataset.state = isOn ? "on" : "off";
     const showSkyPhotos = isOn;
     if (showSkyPhotos)
         gSetPlayState(false);
