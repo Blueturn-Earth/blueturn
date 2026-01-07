@@ -298,6 +298,26 @@ export function gSetInitialEpicTimeSec(startTimeSec)
     }
 }
 
+const epicTimeChangeCallbacks = new Map();
+
+let nextCbId = 0;
+export function addEpicTimeChangeCallback(cb)
+{
+    epicTimeChangeCallbacks.set(nextCbId, cb);
+    cb(gSetEpicTimeSec);
+    return nextCbId++;
+}
+
+export function removeEpicTimeChangeCallback(cbId)
+{
+    if (!epicTimeChangeCallbacks.has(cbId))
+    {
+        console.error("No id " + cbId + " in epicTimeChangeCallbacks ");
+        return;
+    }
+    epicTimeChangeCallbacks.delete(cbId);
+}
+
 export function gSetEpicTimeSec(timeSec, noloop = false)
 {
     const argTimeSec = timeSec;
@@ -400,6 +420,11 @@ export function gSetEpicTimeSec(timeSec, noloop = false)
     }
 
     updateDateText(gEpicTimeSec);
+
+    for(const [cbId, cb] of epicTimeChangeCallbacks)
+    {
+        cb(gEpicTimeSec);
+    }
 
     return interpolationSuccess;
 }
