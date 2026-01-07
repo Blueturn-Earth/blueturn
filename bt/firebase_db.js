@@ -116,7 +116,7 @@ export default class FirebaseDB extends DB_Interface {
 
             await this._authenticate();
 
-            record.docId = this._makeDocId(profile.sub);
+            record.docId = this._makeDocId(record.profile.sub);
             console.log("Generated document ID:", record.docId);
 
             record.ownerUid = this.#auth.currentUser.uid; // 🔑 used for rules
