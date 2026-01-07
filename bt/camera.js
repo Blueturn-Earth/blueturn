@@ -373,14 +373,14 @@ async function saveImage(imgFile) {
     labelEl.textContent = "Finalizing…";
 
     const profile = getStorageProvider().getProfile();
-
-    docId = await skyPhotosDB.saveSkyPhoto({
+    const record = {
       image: uploadResult,
       takenTime: latestTakenTime,
       gps: latestGPS,
       skyRatio: latestSkyRatio,
       profile: profile
-    });
+    };
+    docId = await skyPhotosDB.saveSkyPhoto(record);
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
