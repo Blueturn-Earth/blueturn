@@ -1,8 +1,10 @@
 import { db } from './db_factory.js';
 import { gEpicDB } from './app.js';
-import { gGetDateTimeStringFromTimeSec } from './utils.js';
+import { gGetDateTimeStringFromTimeSec, gFindClosestIndexInSortedArray } from './utils.js';
 
 class SkyPhotosDB {
+    #epicTimeSortedArray = [];
+
     constructor() {
         this.db = db;
     }
@@ -23,7 +25,7 @@ class SkyPhotosDB {
         return savedRecord;
     }
 
-    async fetchAllSkyPhotos(serialCb = true) {
+    async fetchAllSkyPhotos() {
         const query = this.db.buildQuery(
             this.db.orderBy("takenTime", "asc")
         );
@@ -44,9 +46,18 @@ class SkyPhotosDB {
         return records;
     }
 
-    async fetchSkyPhotosBeforeDate(date, maxNumRecords = 0) {
+    async fetchMoreSkyPhotosBefore(maxNumRecords = 0) {
+        if (this.#epicTimeSortedArray.length == 0) {
+            console.warn("No pics for adding sky photos before - fetching all");
+            return fetchAllSkyPhotos();
+        }
+        const itemWithMinimalTakenTime = this.#epicTimeSortedArray.reduce((minItem, currentItem) => {
+            return (currentItem.takenTime < minItem.takenTime) ? currentItem : minItem;
+        });
+        const minimalTakenTime = itemWithMinimalTakenTime.takenTime;
+
         const queryConstraints = [
-            this.db.where("takenTime", "<=", date),
+            this.db.where("takenTime", "<=", minimalTakenTime),
             this.db.orderBy("takenTime", "desc")
         ];
         if (maxNumRecords > 0) {
@@ -59,11 +70,8 @@ class SkyPhotosDB {
 
     addNewSkyPhotoCallback(cb)
     {
-        const wrapCb = async (record) => {
-            await SkyPhotosDB._adjustEpicTimeSec(record);
-            await(cb(record));
-        };
-        return this.db.addNewRecordCallback(wrapCb);
+       return this.db.addNewRecordCallback(
+        this._newSkyPhotoWrapCallback(cb));
     }
 
     removeNewSkyPhotoCallback(cbId)
@@ -75,6 +83,101 @@ class SkyPhotosDB {
         return await this.db.forEachLocal(cb);
     }
 
+    getSkyPhotoAtEpicTimeIndex(index)
+    {
+        if (index < 0 || index >= this.#epicTimeSortedArray.length)
+            return null;
+        return this.#epicTimeSortedArray[index];
+    }
+
+    getEpicTimeSecByAlpha(alpha)
+    {
+        if (this.#epicTimeSortedArray.length == 0)
+            return null;
+        const indexFloat = alpha * (this.#epicTimeSortedArray.length - 1);
+        const index0 = Math.floor(indexFloat);
+        const index1 = Math.ceil(indexFloat);
+        const boundAlpha = index0 == index1 ? 0 : (indexFloat - index0) / (index1 - index0);
+        const timeSec = (1.0 - boundAlpha) * this.#epicTimeSortedArray[index0].epicTimeSec + boundAlpha * this.#epicTimeSortedArray[index1].epicTimeSec;
+        return timeSec;
+    }
+
+    getEpicTimeIndex(epicTimeSec) {
+        var low = 0,
+            high = this.#epicTimeSortedArray.length;
+
+        while (low < high) {
+            var mid = low + high >>> 1;
+            if (this.#epicTimeSortedArray[mid].epicTimeSec < epicTimeSec) low = mid + 1;
+            else high = mid;
+        }
+        return low;
+    }
+
+    getAlphaByEpicTimeSec(epicTimeSec)
+    {
+        if (this.#epicTimeSortedArray.length == 0)
+        {
+            return -1;
+        }
+
+        const currentDate = new Date(epicTimeSec * 1000);
+        const currentTimeSec = currentDate.getTime() / 1000;
+        const closestPicIndex = gFindClosestIndexInSortedArray(this.#epicTimeSortedArray, currentTimeSec, picItem => picItem.epicTimeSec);
+        if (closestPicIndex < 0 || closestPicIndex >= this.#epicTimeSortedArray.length)
+            return;
+        const closestPicTimeSec = this.#epicTimeSortedArray[closestPicIndex].epicTimeSec;
+        const prevPicIndex = closestPicTimeSec <= currentTimeSec ? closestPicIndex : closestPicIndex - 1;
+        const nextPicIndex = closestPicTimeSec >= currentTimeSec ? closestPicIndex : closestPicIndex + 1;
+        //console.log("indices: " + prevPicIndex + " - " + closestPicIndex + " - " + nextPicIndex);
+        let currentTimeIndexFloat;
+        if (prevPicIndex == nextPicIndex ||
+            prevPicIndex < 0 ||
+            nextPicIndex >= this.#epicTimeSortedArray.length
+        )
+            currentTimeIndexFloat = closestPicIndex;
+        else 
+            currentTimeIndexFloat = prevPicIndex + 
+                (currentTimeSec - this.#epicTimeSortedArray[prevPicIndex].epicTimeSec) / 
+                (this.#epicTimeSortedArray[nextPicIndex].epicTimeSec - this.#epicTimeSortedArray[prevPicIndex].epicTimeSec);
+        const currentTimeAlpha = currentTimeIndexFloat / (this.#epicTimeSortedArray.length - 1);
+
+        return currentTimeAlpha;
+    }
+
+    getEpicTimeIndexByDocId(docId)
+    {
+        return this.#epicTimeSortedArray.findIndex(pic => pic.docId === docId);
+    }
+
+    _addSkyPhotoToEpicSortedArray(record)
+    {
+        const sortedIndex = this.getEpicTimeIndex(record.epicTimeSec);
+
+        const timestampTimeSec = record.epicTimeSec;
+        const timestampDate = new Date(timestampTimeSec * 1000);
+
+        console.debug("Adding new sky photo of time " + timestampDate + " at index " + sortedIndex + " / " + this.#epicTimeSortedArray.length);
+
+        // insert in array
+        this.#epicTimeSortedArray.splice(sortedIndex, 0, record);
+
+        return sortedIndex;
+    }
+
+    _newSkyPhotoWrapCallback(cb)
+    {
+        const wrapCb = async (record) => {
+            await SkyPhotosDB._adjustEpicTimeSec(record);
+
+            const index = this._addSkyPhotoToEpicSortedArray(record);
+
+            await(cb(record, index));
+        };
+
+        return wrapCb;
+         
+    }
     static _checkSkyPhotoRecord(record)
     {
         const docId = record.docId;

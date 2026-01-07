@@ -4,6 +4,7 @@ import {processEXIF, addEXIF} from './exif.js';
 import {setSkyPhotosState, selectPhotoByDocId} from './sky_photos.js';
 import {analyzeSkyFromImg} from './sky_analyzer.js'
 import {safeSetCapturedImageInLocalStorage} from './safe_localStorage.js';
+import {gSetPlayState} from './app.js';
 
 if (window.navigator.standalone && window.screen.height === window.innerHeight) {
   console.warn("Running in fullscreen mode — camera may be unstable");

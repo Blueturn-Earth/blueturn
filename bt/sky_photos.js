@@ -34,8 +34,6 @@ function gGetScreenCoordFromLatLon(lat, lon)
     );
 }
 
-let picsSortedArray = [];
-
 function timeOfDayUTCSeconds(d) {
   return (
     d.getUTCHours()   * 3600 +
@@ -162,7 +160,12 @@ function jumpToPicEpicTimeByIndex(index)
 {
     if (index == undefined)
         return;
-    const picItem = picsSortedArray[index];
+    const picItem = skyPhotosDB.getSkyPhotoAtEpicTimeIndex(index);
+    if (!picItem)
+    {
+        console.error("No sky pic at index ", index);
+        return;
+    }
     const timeSec = picItem.epicTimeSec;
     gSetPlayState(false);
     gControlState.blockSnapping = true;
@@ -171,52 +174,32 @@ function jumpToPicEpicTimeByIndex(index)
 
 function setEpicTimeByPicsAlpha(alpha)
 {
-    if (picsSortedArray.length == 0)
+    const timeSec = skyPhotosDB.getEpicTimeSecByAlpha(alpha);
+    if (!timeSec) {
+        console.error("Could not resolve Epic Time by alpha ", alpha);
         return;
-    const indexFloat = alpha * (picsSortedArray.length - 1);
-    const index0 = Math.floor(indexFloat);
-    const index1 = Math.ceil(indexFloat);
-    const boundAlpha = index0 == index1 ? 0 : (indexFloat - index0) / (index1 - index0);
-    const timeSec = (1.0 - boundAlpha) * picsSortedArray[index0].epicTimeSec + boundAlpha * picsSortedArray[index1].epicTimeSec;
+    }
     gSetPlayState(false);
     gControlState.blockSnapping = true;
     gJumpToEpicTime(timeSec);
 }
 
-function getPicsSortedIndexForEpicTimeSec(epicTimeSec) {
-	var low = 0,
-		high = picsSortedArray.length;
+skyPhotosDB.addNewSkyPhotoCallback(async (record, index) => {    
+    const picItem = record;
 
-	while (low < high) {
-		var mid = low + high >>> 1;
-		if (picsSortedArray[mid].epicTimeSec < epicTimeSec) low = mid + 1;
-		else high = mid;
-	}
-	return low;
-}
-
-skyPhotosDB.addNewSkyPhotoCallback(async (record) => {    
-    const sortedIndex = getPicsSortedIndexForEpicTimeSec(record.epicTimeSec);
-
-    const timestampTimeSec = record.epicTimeSec;
+    const timestampTimeSec = picItem.epicTimeSec;
     const timestampDate = new Date(timestampTimeSec * 1000);
 
-    console.debug("Placing new sky photo of time " + timestampDate + " at index " + sortedIndex + " / " + picsSortedArray.length);
-
-    // insert in array
-    const picItem = record;
-    picsSortedArray.splice(sortedIndex, 0, picItem);
-
-    createPicElements(record);
+    console.debug("Placing new sky photo of time " + timestampDate + " at index " + index);
+    createPicElements(picItem);
 
     const earthPicDiv = picItem.earthPicDiv;
     const scrollPicDiv = picItem.scrollPicDiv;
-    const picRecord = picItem;
     skyPhotosEarthGallery.insertBefore(earthPicDiv, 
         skyPhotosEarthGallery.children.length == 0 ? null :
-            skyPhotosEarthGallery.children[sortedIndex]);
+            skyPhotosEarthGallery.children[index]);
     skyPhotosScrollGallery.insertItemAtIndex(scrollPicDiv, 
-        skyPhotosScrollGallery.getNumItems() == 0 ? -1 : sortedIndex); 
+        skyPhotosScrollGallery.getNumItems() == 0 ? -1 : index); 
 });
 
 function setSkyPhotosScrollGalleryCallbacks()
@@ -273,16 +256,8 @@ async function addCurrentSkyPhotos()
 
 async function addSkyPhotosBefore(nDocsBefore = 0)
 {
-    if (picsSortedArray.length == 0) {
-        console.warn("No pics for adding sky photos before");
-        return null;
-    }
-    const itemWithMinimalTakenTime = picsSortedArray.reduce((minItem, currentItem) => {
-        return (currentItem.takenTime < minItem.takenTime) ? currentItem : minItem;
-    });
-    const minimalTakenTime = itemWithMinimalTakenTime.takenTime;
     buildingSkyPics = true;
-    await skyPhotosDB.fetchSkyPhotosBeforeDate(minimalTakenTime, nDocsBefore);
+    await skyPhotosDB.fetchMoreSkyPhotosBefore(nDocsBefore);
     buildingSkyPics = false;
 }
 
@@ -301,31 +276,13 @@ export function updateSkyPhotos()
 
 function updateScrollSkyPhotos()
 {
-    if (picsSortedArray.length > 0)
+    const alpha = skyPhotosDB.getAlphaByEpicTimeSec(gEpicTimeSec);
+    if (alpha < 0 || alpha > 1)
     {
-        const currentDate = new Date(gEpicTimeSec * 1000);
-        const currentTimeSec = currentDate.getTime() / 1000;
-        const closestPicIndex = gFindClosestIndexInSortedArray(picsSortedArray, currentTimeSec, picItem => picItem.epicTimeSec);
-        if (closestPicIndex < 0 || closestPicIndex >= picsSortedArray.length)
-            return;
-        const closestPicTimeSec = picsSortedArray[closestPicIndex].epicTimeSec;
-        const prevPicIndex = closestPicTimeSec <= currentTimeSec ? closestPicIndex : closestPicIndex - 1;
-        const nextPicIndex = closestPicTimeSec >= currentTimeSec ? closestPicIndex : closestPicIndex + 1;
-        //console.log("indices: " + prevPicIndex + " - " + closestPicIndex + " - " + nextPicIndex);
-        let currentTimeIndexFloat;
-        if (prevPicIndex == nextPicIndex ||
-            prevPicIndex < 0 ||
-            nextPicIndex >= picsSortedArray.length
-        )
-            currentTimeIndexFloat = closestPicIndex;
-        else 
-            currentTimeIndexFloat = prevPicIndex + 
-                (currentTimeSec - picsSortedArray[prevPicIndex].epicTimeSec) / 
-                (picsSortedArray[nextPicIndex].epicTimeSec - picsSortedArray[prevPicIndex].epicTimeSec);
-        const currentTimeAlpha = currentTimeIndexFloat / (picsSortedArray.length - 1);
-        skyPhotosScrollGallery.scrollToAlpha(currentTimeAlpha);
-        //skyPhotosScrollGallery.scrollToAlpha((Math.sin(currentTimeSec / 3600) + 1) / 2);
+        //console.error("Could not get alpha from EPIC timeSec ", gEpicTimeSec);
+        return;
     }
+    skyPhotosScrollGallery.scrollToAlpha(alpha);
 }
 
 function updateEarthSkyPhotos()
@@ -365,7 +322,7 @@ export async function setSkyPhotosState(isOn)
 
 export async function selectPhotoByDocId(docId)
 {
-    const picItemIndex = picsSortedArray.findIndex(pic => pic.docId === docId);
+    const picItemIndex = skyPhotosDB.getEpicTimeIndexByDocId(docId);
     if (picItemIndex != undefined)
     {
         jumpToPicEpicTimeByIndex(picItemIndex);
