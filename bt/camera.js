@@ -420,10 +420,12 @@ skyPhotosBtn.addEventListener('click', () => {
     const isOn = skyPhotosBtn.dataset.state === "off";
     skyPhotosBtn.dataset.state = isOn ? "on" : "off";
     if (isOn) {
+        gSetPlayState(false);
+        gControlState.blockSnapping = true;
         setSkyPhotosState(true);
-        gSetPlayState(true);
     }
     else {
+        gControlState.blockSnapping = false;
         setSkyPhotosState(false);
     }
 });

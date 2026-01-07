@@ -304,10 +304,6 @@ function updateEarthSkyPhotos()
 export async function setSkyPhotosState(isOn)
 {
     const showSkyPhotos = isOn;
-    if (showSkyPhotos)
-        gSetPlayState(false);
-    gControlState.blockSnapping = showSkyPhotos;
-
     if (!showSkyPhotos) {
         skyPhotosEarthGallery.style.display = 'none';
         skyPhotosScrollGallery.hide();
