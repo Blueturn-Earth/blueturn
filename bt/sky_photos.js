@@ -345,8 +345,6 @@ function updateEarthSkyPhotos()
 }
 
 const skyPhotosBtn = document.getElementById('skyPhotosBtn');
-const scrollCursor = document.getElementById('scrollCursor');
-scrollCursor.style.display = 'none';
 skyPhotosBtn.addEventListener('click', () => {
     // toggle
     const isOn = skyPhotosBtn.dataset.state === "off";
@@ -366,7 +364,6 @@ export async function setSkyPhotosState(isOn)
     if (showSkyPhotos)
         gSetPlayState(false);
     gControlState.blockSnapping = showSkyPhotos;
-    scrollCursor.style.display = showSkyPhotos ? "block" : "none";
 
     if (!showSkyPhotos) {
         skyPhotosEarthGallery.style.display = 'none';
