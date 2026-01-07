@@ -16,8 +16,6 @@ const SECONDS_IN_DAY = 3600*24;
 const skyPhotosScrollGallery = new DragScroller('skyPhotosScrollGallery');
 skyPhotosScrollGallery.hide();
 
-let buildingSkyPics = false;
-
 setSkyPhotosScrollGalleryCallbacks();
 
 function createScrollPicDiv(data)
@@ -86,9 +84,6 @@ function setSkyPhotosScrollGalleryCallbacks()
     skyPhotosScrollGallery.setSelectItemCb((node, index) => {
         const scrollDivImg = skyPhotosScrollGallery.getItemImg(node);
         scrollDivImg.style.border = `4px solid rgba(255, 255, 255, 1)`;
-
-        if (buildingSkyPics)
-            return;
         jumpToPicEpicTimeByIndex(index);
     });
 
@@ -98,15 +93,11 @@ function setSkyPhotosScrollGalleryCallbacks()
     });
 
     skyPhotosScrollGallery.setSelectedItemClickCb((node, index) => {
-        if (buildingSkyPics)
-            return;
         let picImg = skyPhotosScrollGallery.getItemImg(node);
         openPopupFromThumbnail(picImg, picItem);
     });
 
     skyPhotosScrollGallery.setScrollAlphaCb((alpha) => {
-        if (buildingSkyPics)
-            return;
         setEpicTimeByPicsAlpha(alpha);
     });
 
@@ -128,23 +119,17 @@ async function addCurrentSkyPhotos()
 {
     const dayBeforeLatestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec() - SECONDS_IN_DAY;
     const dayBeforeLatestEpicDate = new Date(dayBeforeLatestEpicTimeSec * 1000);
-    buildingSkyPics = true;
     await skyPhotosDB.fetchSkyPhotosAfterDate(dayBeforeLatestEpicDate);
-    buildingSkyPics = false;
 }
 
 async function addSkyPhotosBefore(nDocsBefore = 0)
 {
-    buildingSkyPics = true;
     await skyPhotosDB.fetchMoreSkyPhotosBefore(nDocsBefore);
-    buildingSkyPics = false;
 }
 
 async function addAllSkyPhotos()
 {
-    buildingSkyPics = true;
     await skyPhotosDB.fetchAllSkyPhotos();
-    buildingSkyPics = false;
 }
 
 function updateScrollSkyPhotos(epicTimeSec)

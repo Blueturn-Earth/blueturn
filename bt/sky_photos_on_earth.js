@@ -19,8 +19,6 @@ const SECONDS_IN_DAY = 3600*24;
 const canvas = document.getElementById('glcanvas');
 const skyPhotosEarthGallery = document.getElementById('skyPhotosEarthGallery');
 
-let buildingSkyPics = false;
-
 function gGetScreenCoordFromLatLon(lat, lon)
 {
     if(!gEpicImageData)
@@ -63,8 +61,6 @@ function smoothstep (x) {
 
 function updateEarthSkyPhoto(picItem, epicTimeSec)
 {
-    if (buildingSkyPics)
-        return 0;
     if (!picItem || !picItem.earthPicDiv)
         return 0;
     const earthPicDiv = picItem.earthPicDiv;
@@ -209,28 +205,21 @@ async function addCurrentSkyPhotos()
 {
     const dayBeforeLatestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec() - SECONDS_IN_DAY;
     const dayBeforeLatestEpicDate = new Date(dayBeforeLatestEpicTimeSec * 1000);
-    buildingSkyPics = true;
     await skyPhotosDB.fetchSkyPhotosAfterDate(dayBeforeLatestEpicDate);
-    buildingSkyPics = false;
 }
 
 async function addSkyPhotosBefore(nDocsBefore = 0)
 {
-    buildingSkyPics = true;
     await skyPhotosDB.fetchMoreSkyPhotosBefore(nDocsBefore);
-    buildingSkyPics = false;
 }
 
 async function addAllSkyPhotos()
 {
-    buildingSkyPics = true;
     await skyPhotosDB.fetchAllSkyPhotos();
-    buildingSkyPics = false;
 }
 
 function updateEarthSkyPhotos(epicTimeSec)
 {
-
     let closestEarthPicDiv;
     let maxAlpha = 0;
     skyPhotosDB.forEachLocal((picItem) => {
