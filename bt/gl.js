@@ -14,7 +14,6 @@ import {
 } 
 from './app.js';
 import { gScreen } from './screen.js';
-import { updateSkyPhotos } from './sky_photos.js';
 import {gLerp} from './utils.js'
 
 const canvas = document.getElementById('glcanvas');
@@ -339,7 +338,6 @@ Promise.all([
     {
       gUpdateEpicTime(time);
       glUpdateUniforms();
-      updateSkyPhotos();
     
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.uniform3f(resLoc, canvas.width, canvas.height, 1.0);

@@ -1,9 +1,9 @@
-import {getStorageProvider} from './gdrive_provider.js';
-import {skyPhotosDB} from './sky_photos_db.js';
-import {processEXIF, addEXIF} from './exif.js';
-import {setSkyPhotosState, selectPhotoByDocId} from './sky_photos.js';
-import {analyzeSkyFromImg} from './sky_analyzer.js'
-import {safeSetCapturedImageInLocalStorage} from './safe_localStorage.js';
+import { getStorageProvider } from './gdrive_provider.js';
+import { skyPhotosDB } from './sky_photos_db.js';
+import { processEXIF, addEXIF } from './exif.js';
+import {analyzeSkyFromImg } from './sky_analyzer.js'
+import {safeSetCapturedImageInLocalStorage } from './safe_localStorage.js';
+import { setSkyPhotosState } from './topUI.js'
 
 if (window.navigator.standalone && window.screen.height === window.innerHeight) {
   console.warn("Running in fullscreen mode — camera may be unstable");
@@ -396,7 +396,11 @@ async function saveImage(imgFile) {
 
   try {
     await setSkyPhotosState(true);
-    selectPhotoByDocId(docId);
+    const picItemIndex = skyPhotosDB.getEpicTimeIndexByDocId(docId);
+    if (picItemIndex != undefined)
+    {
+        jumpToPicEpicTimeByIndex(picItemIndex);
+    }
   } catch (e) {    
     console.error(e);
     //alert(e);
@@ -412,4 +416,3 @@ saveImageBtn.addEventListener("click", async (e) => {
 
   await saveImage(latestImageFile);
 });
-

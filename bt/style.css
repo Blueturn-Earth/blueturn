@@ -217,12 +217,6 @@ html, body, canvas {
   content: url("./images/icons/clouds-on.svg");
 }
 
-.scroll-cursor {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-}
-
 #skyPhotoEarthGallery {
   display: none;
   position: absolute;
@@ -397,22 +391,6 @@ html, body, canvas {
   .sky-scroll-photo-thumb {
     height: 100%;
     aspect-ratio: 1;    /* <-- square based on height */
-  }
-}
-
-@media (min-aspect-ratio: 1/1) or (orientation: landscape) {
-  .scroll-cursor {
-    right: 45px;
-    top: 50%;
-    transform: translate(-50%) rotate(-90deg);
-  }
-}
-
-@media (max-aspect-ratio: 1/1) or (orientation: portrait) {
-  .scroll-cursor {
-    top: 45px;
-    left: 50%;
-    transform: translate(-50%) rotate(180deg);
   }
 }
 
