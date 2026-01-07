@@ -177,7 +177,8 @@ function setEpicTimeByPicsAlpha(alpha)
     gJumpToEpicTime(timeSec);
 }
 
-skyPhotosDB.addNewSkyPhotoCallback(async (record, index) => {    
+skyPhotosDB.addNewSkyPhotoCallback(async (record) => {    
+    const index = record.epicTimeIndex;
     const picItem = record;
 
     const timestampTimeSec = picItem.epicTimeSec;

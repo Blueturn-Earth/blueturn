@@ -29,6 +29,8 @@ export default class FirebaseDB extends DB_Interface {
     #collection;
     #local = new Map();
     #newRecordCallbacks = new Map();
+    #authPromise;
+    #fetchingPromise;
 
     #firebaseConfig = {
         apiKey: "AIzaSyCrF263rcJ3fyNyQtnfSSwPg4U-jvUeEYg",
@@ -76,21 +78,26 @@ export default class FirebaseDB extends DB_Interface {
             throw new Error("Firebase getAuth error:", e);
         }
 
-        return new Promise((resolve, reject) => {
-            const unsub = onAuthStateChanged(this.#auth, user => {
-                //console.log("Firebase auth state changed, current user:", user);
-                if (user) {
-                    unsub();
-                    resolve(this.#auth);
+        if (!this.#authPromise)
+        {
+            this.#authPromise = new Promise((resolve, reject) => {
+                const unsub = onAuthStateChanged(this.#auth, user => {
+                    //console.log("Firebase auth state changed, current user:", user);
+                    if (user) {
+                        unsub();
+                        resolve(this.#auth);
+                        this.#authPromise = null;
+                    }
+                });
+
+                if (!this.#auth.currentUser) {
+                    //console.debug("Signing in anonymously to Firebase");
+                    signInAnonymously(this.#auth)
+                    .catch(reject);
                 }
             });
-
-            if (!this.#auth.currentUser) {
-                //console.debug("Signing in anonymously to Firebase");
-                signInAnonymously(this.#auth)
-                .catch(reject);
-            }
-        });
+        }
+        return this.#authPromise;
     }
 
     _makeDocId(userId) {
@@ -175,13 +182,37 @@ export default class FirebaseDB extends DB_Interface {
         return await this.#local.forEach(cb);
     }
 
+    async _fetchDocs(query, fetchCount)
+    {
+        if (this.#fetchingPromise) {
+            console.log("Waiting on pending fetch before request #" + fetchCount + " ...");
+            await this.#fetchingPromise;
+            console.log("Pending fetch done");
+        }
+        console.log("Fetch request #" + fetchCount + " with query ", query);
+        const fetchingPromise = getDocs(query);
+        this.#fetchingPromise = fetchingPromise;
+        const snap = await fetchingPromise;
+        console.log("Fetch request #" + fetchCount + " done with " + snap.docs.length + " records");
+        this.#fetchingPromise = null;
+        return fetchingPromise;
+    }
+
+    #fetchCount = 0;
     async fetchRecords(query, serialCb = true) {
         await this._authenticate();
-        const snap = await getDocs(query);
-        const docs = snap.docs.map(doc => doc.data());
-        for (const docData of docs) {
-            if (!this.#local.has(docData.docId))
+
+        this.#fetchCount++;
+        const fetchCount = this.#fetchCount;
+        const snap = await this._fetchDocs(query, fetchCount);
+        let newRecordCount = 0;
+        const docs = snap.docs;
+        for (const doc of docs) {
+            if (!this.#local.has(doc.id))
             {
+                newRecordCount++;
+                const docData = doc.data();
+                docData.docId = doc.id;
                 this.#local.set(docData.docId, docData);
                 for (const [cbId, cb] of this.#newRecordCallbacks) {
                     if (serialCb)
@@ -191,6 +222,7 @@ export default class FirebaseDB extends DB_Interface {
                 };
             }
         }
+        console.log("Fetch request #" + fetchCount + " done with " + newRecordCount + " new records");
         return docs;
     }
 }

@@ -7,6 +7,7 @@ class SkyPhotosDB {
 
     constructor() {
         this.db = db;
+        this.db.addNewRecordCallback(async (record) => {await this._newSkyPhotoCallback(record);});
     }
 
     async saveSkyPhoto(record) {
@@ -70,8 +71,7 @@ class SkyPhotosDB {
 
     addNewSkyPhotoCallback(cb)
     {
-       return this.db.addNewRecordCallback(
-        this._newSkyPhotoWrapCallback(cb));
+       return this.db.addNewRecordCallback(cb);
     }
 
     removeNewSkyPhotoCallback(cbId)
@@ -165,19 +165,14 @@ class SkyPhotosDB {
         return sortedIndex;
     }
 
-    _newSkyPhotoWrapCallback(cb)
+    async _newSkyPhotoCallback(record)
     {
-        const wrapCb = async (record) => {
-            await SkyPhotosDB._adjustEpicTimeSec(record);
+        await SkyPhotosDB._adjustEpicTimeSec(record);
 
-            const index = this._addSkyPhotoToEpicSortedArray(record);
-
-            await(cb(record, index));
-        };
-
-        return wrapCb;
-         
+        const index = this._addSkyPhotoToEpicSortedArray(record);
+        record.epicTimeIndex = index;
     }
+
     static _checkSkyPhotoRecord(record)
     {
         const docId = record.docId;
