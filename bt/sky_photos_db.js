@@ -1,9 +1,12 @@
 import { db } from './db_factory.js';
 import { gEpicDB } from './app.js';
-import { gGetDateTimeStringFromTimeSec, gFindClosestIndexInSortedArray } from './utils.js';
-
+import { gGetDateTimeStringFromTimeSec, gFindClosestIndexInSortedArray, gGetDateTimeStringFromDate } from './utils.js';
+import { mergeSegment, intersectSegment, negativeCoverage, getIndexOfValueInArray } from './utils_coverage.js'
 class SkyPhotosDB {
     #epicTimeSortedArray = [];
+    #reachedMin = false;
+    #reachedMax = false;
+    #dateCoverage = [];
 
     constructor() {
         this.db = db;
@@ -26,46 +29,165 @@ class SkyPhotosDB {
         return savedRecord;
     }
 
-    async fetchAllSkyPhotos() {
-        const query = this.db.buildQuery(
-            this.db.orderBy("takenTime", "asc")
-        );
-        const records = await this.db.fetchRecords(query);
-        return records;
+    _markFirstReached()
+    {
+        if (this.#reachedMin)
+            return;
+        this.#reachedMin = true;
+        console.log("Fetched oldest record");
     }
 
-    async fetchSkyPhotosAfterDate(date, maxNumRecords = 0) {
-        const queryConstraints = [
-            this.db.where("takenTime", ">=", date),
-            this.db.orderBy("takenTime", "asc")
-        ];
-        if (maxNumRecords > 0) {
-            queryConstraints.push(this.db.limitToLast(maxNumRecords));
-        }
-        const query = this.db.buildQuery(...queryConstraints);
-        const records = await this.db.fetchRecords(query);
-        return records;
+    _markLastReached()
+    {
+        if (this.#reachedMax)
+            return;
+        this.#reachedMax = true;
+        console.log("Fetched most recent record");
     }
 
-    async fetchMoreSkyPhotosBefore(maxNumRecords = 0) {
-        if (this.#epicTimeSortedArray.length == 0) {
-            console.warn("No pics for adding sky photos before - fetching all");
-            return fetchAllSkyPhotos();
-        }
+    _getMinDate()
+    {
+        if (this.#epicTimeSortedArray.length == 0)
+            return;
         const itemWithMinimalTakenTime = this.#epicTimeSortedArray.reduce((minItem, currentItem) => {
-            return (currentItem.takenTime < minItem.takenTime) ? currentItem : minItem;
+            return (currentItem.takenTime.toDate() < minItem.takenTime.toDate()) ? currentItem : minItem;
         });
-        const minimalTakenTime = itemWithMinimalTakenTime.takenTime;
+        return itemWithMinimalTakenTime.takenTime.toDate();
+    }
 
+    _getMaxDate()
+    {
+        if (this.#epicTimeSortedArray.length == 0)
+            return;
+        const itemWithMaximalTakenTime = this.#epicTimeSortedArray.reduce((maxItem, currentItem) => {
+            return (currentItem.takenTime.toDate() > maxItem.takenTime.toDate()) ? currentItem : maxItem;
+        });
+        return itemWithMaximalTakenTime.takenTime.toDate();
+    }
+
+    _isBeyondMaxDate(date, inDB = true)
+    {
+        if (this.#epicTimeSortedArray.length == 0) {
+            if (this.#reachedMax) // means empty also in DB
+                return true;
+            if (inDB) // means there may be more to find
+                return false;
+            return true; // means locally empty
+        }
+        const maximalTakenTime = this._getMaxDate();
+        return (date >= maximalTakenTime && (!inDB || this.#reachedMax));
+    }
+    
+    _isBeyondMinDate(date, inDB = true)
+    {
+        if (this.#epicTimeSortedArray.length == 0) {
+            if (this.#reachedMin) // means empty also in DB
+                return true;
+            if (inDB) // means there may be more to find
+                return false;
+            return true; // means locally empty
+        }
+        if (this.#epicTimeSortedArray.length == 0 && !this.#reachedMax)
+            return false;
+        const minimalTakenTime = this._getMinDate();
+        return (date <= minimalTakenTime && (!inDB || this.#reachedMin))
+
+    }
+    
+    async fetchAll()
+    {
+        if (this.#reachedMax && this.#reachedMin)
+            return [];
         const queryConstraints = [
-            this.db.where("takenTime", "<=", minimalTakenTime),
             this.db.orderBy("takenTime", "desc")
         ];
-        if (maxNumRecords > 0) {
+        const query = this.db.buildQuery(...queryConstraints);
+        const records = await this.db.fetchRecords(query);
+
+        this._markLastReached();
+        if (maxCount <= 0 || records.length < maxCount) {
+            this._markFirstReached();
+        }
+
+        return records;
+    }
+
+    async fetchAroundDate(date, radiusCount)
+    {
+
+        const recordsAfter = await this.fetchDateRange(date, null, radiusCount);
+        if (recordsAfter.length < radiusCount)
+            this._markLastReached();
+        const maxBoundDate = recordsAfter.length > 0 ? recordsAfter[recordsAfter.length - 1] : date;
+        const recordsBefore = await this.fetchDateRange(null, date, radiusCount);
+        if (recordsBefore.length < radiusCount)
+            this._markFirstReached();
+        const minBoundDate = recordsBefore.length > 0 ? recordsBefore[recordsBefore.length] : date;
+        mergeSegment(this.#dateCoverage, minBoundDate, maxBoundDate);
+        const recordsAround = [...recordsBefore.toReversed(), ...recordsAfter];
+        return recordsAround;
+    }
+
+    _getCoverageString()
+    {
+        let logLines = "Updated DB fetch date coverage:\n";
+        for (let i = 0; i < this.#dateCoverage.length; i+=2) {
+            const date0 = this.#dateCoverage[i];
+            const date1 = this.#dateCoverage[i+1];
+            const dateStr0 = date0 ? gGetDateTimeStringFromDate(date0) : "-INF";
+            const dateStr1 = date1 ? gGetDateTimeStringFromDate(date1) : "+INF";
+            logLines += "[ " + dateStr0 + ", " + dateStr1 + "]\n";
+        }
+        return logLines;
+    }
+
+    async fetchDateRange(rangeStartEpicTimeDate, rangeEndEpicTimeDate, maxNumRecords, noIntersect = false)
+    {
+        if (rangeStartEpicTimeDate && rangeEndEpicTimeDate && rangeStartEpicTimeDate > rangeEndEpicTimeDate) {
+            console.warn("rangeStartEpicTimeDate=" + rangeStartEpicTimeDate + " > rangeEndEpicTimeDate=" + rangeEndEpicTimeDate);
+            return [];
+        }
+
+        if (!noIntersect) {
+            const addedCoverage = intersectSegment(
+                negativeCoverage(this.#dateCoverage),
+                rangeStartEpicTimeDate, 
+                rangeEndEpicTimeDate,
+                (date1, date2) => (date1?.getTime() == date2?.getTime())
+            );
+
+            this.#dateCoverage = mergeSegment(this.#dateCoverage, rangeStartEpicTimeDate, rangeEndEpicTimeDate);
+
+            if (addedCoverage.length > 0)
+                console.log(this._getCoverageString());
+
+            let records = [];
+            for (let i = 0; i < addedCoverage.length; i += 2) {
+                const segmentRecords = await this.fetchDateRange(addedCoverage[i], addedCoverage[i+1], maxNumRecords, true);
+                maxNumRecords -= segmentRecords.length;
+                records = [...records, ...segmentRecords];
+            }
+            return records;
+        }
+
+        if (rangeStartEpicTimeDate && this._isBeyondMaxDate(rangeStartEpicTimeDate))
+            return [];
+        if (rangeEndEpicTimeDate && this._isBeyondMinDate(rangeEndEpicTimeDate))
+            return [];
+
+        const queryConstraints = [];
+        if (rangeStartEpicTimeDate)
+            queryConstraints.push(this.db.where("takenTime", ">", rangeStartEpicTimeDate));
+        if (rangeEndEpicTimeDate)
+            queryConstraints.push(this.db.where("takenTime", "<", rangeEndEpicTimeDate));
+        queryConstraints.push(this.db.orderBy("takenTime", rangeStartEpicTimeDate ? "asc" : "desc"));
+        if ((!rangeStartEpicTimeDate || !rangeEndEpicTimeDate) && maxNumRecords > 0) {
             queryConstraints.push(this.db.limitToLast(maxNumRecords));
         }
         const query = this.db.buildQuery(...queryConstraints);
         const records = await this.db.fetchRecords(query);
+
+
         return records;
     }
 
@@ -103,15 +225,7 @@ class SkyPhotosDB {
     }
 
     getEpicTimeIndex(epicTimeSec) {
-        var low = 0,
-            high = this.#epicTimeSortedArray.length;
-
-        while (low < high) {
-            var mid = low + high >>> 1;
-            if (this.#epicTimeSortedArray[mid].epicTimeSec < epicTimeSec) low = mid + 1;
-            else high = mid;
-        }
-        return low;
+        return getIndexOfValueInArray(epicTimeSec, this.#epicTimeSortedArray, (record) => record.epicTimeSec);
     }
 
     getAlphaByEpicTimeSec(epicTimeSec)

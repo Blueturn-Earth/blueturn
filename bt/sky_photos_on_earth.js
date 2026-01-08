@@ -145,34 +145,6 @@ function createPicElements(skyPhotoRecord)
     skyPhotoRecord.earthPicDiv = createEarthPicDiv(skyPhotoRecord);
 }
 
-function jumpToPicEpicTimeByIndex(index)
-{
-    if (index == undefined)
-        return;
-    const picItem = skyPhotosDB.getSkyPhotoAtEpicTimeIndex(index);
-    if (!picItem)
-    {
-        console.error("No sky pic at index ", index);
-        return;
-    }
-    const timeSec = picItem.epicTimeSec;
-    gSetPlayState(false);
-    gControlState.blockSnapping = true;
-    gJumpToEpicTime(timeSec);
-}
-
-function setEpicTimeByPicsAlpha(alpha)
-{
-    const timeSec = skyPhotosDB.getEpicTimeSecByAlpha(alpha);
-    if (!timeSec) {
-        console.error("Could not resolve Epic Time by alpha ", alpha);
-        return;
-    }
-    gSetPlayState(false);
-    gControlState.blockSnapping = true;
-    gJumpToEpicTime(timeSec);
-}
-
 skyPhotosDB.addNewSkyPhotoCallback(async (record) => {    
     const index = record.epicTimeIndex;
     const picItem = record;
@@ -189,37 +161,26 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
             skyPhotosEarthGallery.children[index]);
 });
 
-async function addSkyPhotos()
+function fetchSkyPhotosAroundTimeSec(epicTimeSec)
 {
-    console.log("Adding current sky photos to gallery");
-    await addCurrentSkyPhotos();
-    console.log("Adding sky photos before first one in gallery");
-    if (!addSkyPhotosBefore()) 
-    {
-        console.warn("Adding all sky photos to gallery");
-        addAllSkyPhotos();
-    }
-}
-
-async function addCurrentSkyPhotos()
-{
-    const dayBeforeLatestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec() - SECONDS_IN_DAY;
-    const dayBeforeLatestEpicDate = new Date(dayBeforeLatestEpicTimeSec * 1000);
-    await skyPhotosDB.fetchSkyPhotosAfterDate(dayBeforeLatestEpicDate);
-}
-
-async function addSkyPhotosBefore(nDocsBefore = 0)
-{
-    await skyPhotosDB.fetchMoreSkyPhotosBefore(nDocsBefore);
-}
-
-async function addAllSkyPhotos()
-{
-    await skyPhotosDB.fetchAllSkyPhotos();
+    const latestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec();
+    const rangeStartEpicTimeSec = epicTimeSec - 24 * 3600; 
+    const rangeEndEpicTimeSec = epicTimeSec + 24 * 3600; 
+    const rangeStartEpicTimeDate = new Date(rangeStartEpicTimeSec * 1000);
+    const rangeEndEpicTimeDate = new Date(Math.min(rangeEndEpicTimeSec, latestEpicTimeSec) * 1000);
+    rangeStartEpicTimeDate.setUTCHours(0,0,0,0);
+    rangeEndEpicTimeDate.setUTCHours(23,59,59,999);
+    skyPhotosDB.fetchDateRange(rangeStartEpicTimeDate, rangeEndEpicTimeDate);
+    
+    if (rangeEndEpicTimeSec > latestEpicTimeSec)
+        skyPhotosDB.fetchDateRange(rangeEndEpicTimeDate, null);
 }
 
 function updateEarthSkyPhotos(epicTimeSec)
 {
+    // Async fetch
+    fetchSkyPhotosAroundTimeSec(epicTimeSec);
+
     let closestEarthPicDiv;
     let maxAlpha = 0;
     skyPhotosDB.forEachLocal((picItem) => {
@@ -241,7 +202,6 @@ addSkyPhotosToggleCallback((isOn) => {
         console.assert(epicTimeChangeCallbackId === undefined);
         if (epicTimeChangeCallbackId === undefined)
             epicTimeChangeCallbackId = addEpicTimeChangeCallback(updateEarthSkyPhotos);
-        addSkyPhotos();
     }
     else {
         skyPhotosEarthGallery.style.display = 'none';

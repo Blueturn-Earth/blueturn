@@ -1,5 +1,4 @@
 import { 
-    gEpicDB, 
     gSetPlayState, 
     gJumpToEpicTime, 
     addEpicTimeChangeCallback, 
@@ -10,8 +9,6 @@ import { gControlState } from './controlparams.js';
 import DragScroller from './drag_scroller.js'
 import { getStorageProvider } from './gdrive_provider.js';
 import { addSkyPhotosToggleCallback } from './topUI.js';
-
-const SECONDS_IN_DAY = 3600*24;
 
 const skyPhotosScrollGallery = new DragScroller('skyPhotosScrollGallery');
 skyPhotosScrollGallery.hide();
@@ -103,37 +100,18 @@ function setSkyPhotosScrollGalleryCallbacks()
 
 }
 
-async function addSkyPhotos()
+function fetchSkyPhotosAroundTimeSec(epicTimeSec)
 {
-    console.log("Adding current sky photos to gallery");
-    await addCurrentSkyPhotos();
-    console.log("Adding sky photos before first one in gallery");
-    if (!addSkyPhotosBefore()) 
-    {
-        console.warn("Adding all sky photos to gallery");
-        addAllSkyPhotos();
-    }
-}
-
-async function addCurrentSkyPhotos()
-{
-    const dayBeforeLatestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec() - SECONDS_IN_DAY;
-    const dayBeforeLatestEpicDate = new Date(dayBeforeLatestEpicTimeSec * 1000);
-    await skyPhotosDB.fetchSkyPhotosAfterDate(dayBeforeLatestEpicDate);
-}
-
-async function addSkyPhotosBefore(nDocsBefore = 0)
-{
-    await skyPhotosDB.fetchMoreSkyPhotosBefore(nDocsBefore);
-}
-
-async function addAllSkyPhotos()
-{
-    await skyPhotosDB.fetchAllSkyPhotos();
+    const RADIUS_COUNT = 3;
+    const epicDate = new Date(epicTimeSec * 1000);
+    skyPhotosDB.fetchAroundDate(epicDate, RADIUS_COUNT);
 }
 
 function updateScrollSkyPhotos(epicTimeSec)
 {
+    // Async fetch
+    fetchSkyPhotosAroundTimeSec(epicTimeSec);
+    
     const alpha = skyPhotosDB.getAlphaByEpicTimeSec(epicTimeSec);
     if (alpha < 0 || alpha > 1)
     {
@@ -151,7 +129,6 @@ addSkyPhotosToggleCallback((isOn) => {
         console.assert(epicTimeChangeCallbackId === undefined);
         if (epicTimeChangeCallbackId === undefined)
             epicTimeChangeCallbackId = addEpicTimeChangeCallback(updateScrollSkyPhotos);
-        addSkyPhotos();
     }
     else {
         skyPhotosScrollGallery.hide();
