@@ -107,7 +107,7 @@ export async function gJumpToEpicTime(startTimeSec)
     }
 
     if (gControlState.jumping) {
-        console.warn("Already jumping to time " + gJumpingTimeSec + ", will now jump to " + startTimeSec + "s instead");
+        console.debug("Already jumping to time " + gJumpingTimeSec + ", will now jump to " + startTimeSec + "s instead");
     }
     gJumpingTimeSec = startTimeSec;
     let jumpingTimeSec = gJumpingTimeSec;
@@ -117,7 +117,7 @@ export async function gJumpToEpicTime(startTimeSec)
 
     return new Promise((resolve, reject) => {
         if (gControlState.jumping && jumpingTimeSec != gJumpingTimeSec) {
-            console.warn("Cancel jumping to time " + jumpingTimeSec);
+            console.debug("Cancel jumping to time " + jumpingTimeSec);
             resolve(null);
             return;
         }
@@ -157,7 +157,7 @@ export async function gJumpToEpicTime(startTimeSec)
         gEpicDB.fetchBoundKeyFrames(startTimeSec)
         .then((boundPair) => {
             if (gControlState.jumping && jumpingTimeSec != gJumpingTimeSec) {
-                console.warn("Cancel jumping to time " + jumpingTimeSec);
+                console.debug("Cancel jumping to time " + jumpingTimeSec);
                 resolve(null);
                 return;
             }

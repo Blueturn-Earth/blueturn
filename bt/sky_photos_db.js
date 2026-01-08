@@ -176,7 +176,7 @@ class SkyPhotosDB {
                 this.#dateCoverage = mergeSegment(this.#dateCoverage, rangeStartEpicTimeDate, rangeEndEpicTimeDate);
 
             if (addedCoverage.length > 0)
-                console.log(this._getCoverageString());
+                console.debug(this._getCoverageString());
 
             let records = [];
             for (let i = 0; i < addedCoverage.length; i += 2) {
