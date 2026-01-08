@@ -377,9 +377,11 @@ export default class EpicDB {
         return epicImageData.textureLoading;
     }
 
+    #predictimeTimeSec;
     async _predictAndPreloadImages(timeSec) {
         // Predict and load frames based on the given timeSec and timeSpeed
         // This is a heuristic to load frames around the given time
+        this.#predictimeTimeSec = timeSec;
         let numLoadedForward = 0;
         if (gControlState.play && !gControlState.holding) {
             // Preload frames for the coming 10s
@@ -398,12 +400,15 @@ export default class EpicDB {
                 }
                 try {
                     const [epicImageData0, epicImageData1] = await this.fetchBoundKeyFrames(nextTime);
+                    if (timeSec != this.#predictimeTimeSec) return; // abort point
                     if (!epicImageData0.texture && !epicImageData0.textureLoading) {
                         await this._loadImage(epicImageData0);
+                        if (timeSec != this.#predictimeTimeSec) return; // abort point
                         numLoadedForward++;
                     }
                     if (!epicImageData1.texture && !epicImageData1.textureLoading) {
                         await this._loadImage(epicImageData1);
+                        if (timeSec != this.#predictimeTimeSec) return; // abort point
                         numLoadedForward++;
                     }
                 }
@@ -423,17 +428,21 @@ export default class EpicDB {
         {
             // Preload frames around the given timeSec
             let [epicImageData0, epicImageData1] = await this.fetchBoundKeyFrames(timeSec);
+            if (timeSec != this.#predictimeTimeSec) return; // abort point
             const SCROLL_PREDICT_NUM_FRAMES = 10;
             for (let i = 1; i <= SCROLL_PREDICT_NUM_FRAMES; i++) {
                 if (epicImageData1 && numLoadedForward < SCROLL_PREDICT_NUM_FRAMES)
                 {
                     const timeSec = epicImageData1.timeSec;
                     epicImageData1 = this._getNextEpicImage(timeSec, true);
-                    if (!epicImageData1)
+                    if (!epicImageData1) {
                         await this.fetchBoundKeyFrames(timeSec);
+                        if (timeSec != this.#predictimeTimeSec) return; // abort point
+                    }
                     epicImageData1 = this._getNextEpicImage(timeSec, true);
                     if (epicImageData1 && !epicImageData1.texture && !epicImageData1.textureLoading) {
                         await this._loadImage(epicImageData1);
+                        if (timeSec != this.#predictimeTimeSec) return; // abort point
                         numLoadedForward++;
                     }
                 }
@@ -441,11 +450,14 @@ export default class EpicDB {
                 {
                     const timeSec = epicImageData0.timeSec;
                     epicImageData0 = this._getPrevEpicImage(timeSec, true);
-                    if (!epicImageData0)
+                    if (!epicImageData0) {
                         await this.fetchBoundKeyFrames(timeSec);
+                        if (timeSec != this.#predictimeTimeSec) return; // abort point
+                    }
                     epicImageData0 = this._getPrevEpicImage(timeSec, true);
                     if (epicImageData0 && !epicImageData0.texture && !epicImageData0.textureLoading) {
                         await this._loadImage(epicImageData0);
+                        if (timeSec != this.#predictimeTimeSec) return; // abort point
                         numLoadedBackward++;
                     }
                 }
@@ -460,6 +472,9 @@ export default class EpicDB {
         }
         if (numLoadedBackward > 0) {
             //console.log("Preloaded (for scroll) " + numLoadedBackward + " epic images backward from " + gGetDateTimeStringFromTimeSec(timeSec));
+        }
+        if (timeSec == this.#predictimeTimeSec) {
+            this.#predictimeTimeSec = undefined;
         }
     }
 

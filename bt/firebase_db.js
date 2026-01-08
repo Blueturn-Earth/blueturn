@@ -224,7 +224,7 @@ export default class FirebaseDB extends DB_Interface {
         }
 
         if (newRecordCount > 0)
-            console.log("Fetch request #" + fetchCount + " done with " + newRecordCount + " new records");
+            console.debug("Fetch request #" + fetchCount + " done with " + newRecordCount + " new records");
         return docs;
     }
 }
