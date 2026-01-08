@@ -37,7 +37,7 @@ export default class EpicDataLoader
             const controller = new AbortController();
             const signal = controller.signal;            
             this._pendingLoads.set(call, controller);
-            console.log("Loading Epic Data URL: " + url);
+            console.debug("Loading Epic Data URL: " + url);
             url += "?" + gEpicAPI.getEpicCallURLSecretQuery(nocache)
             fetch(url, { mode: 'cors', cache: 'force-cache', signal })
             .then(response => {

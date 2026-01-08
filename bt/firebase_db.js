@@ -19,7 +19,7 @@ import {
     where,
     orderBy,
     endBefore,
-    limitToLast
+    limit
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
 export default class FirebaseDB extends DB_Interface {
@@ -27,6 +27,10 @@ export default class FirebaseDB extends DB_Interface {
     #app;
     #db;
     #collection;
+    #local = new Map();
+    #newRecordCallbacks = new Map();
+    #authPromise;
+    #fetchingPromise;
 
     #firebaseConfig = {
         apiKey: "AIzaSyCrF263rcJ3fyNyQtnfSSwPg4U-jvUeEYg",
@@ -43,7 +47,7 @@ export default class FirebaseDB extends DB_Interface {
         this.#collection = collection;
         try {
             this.#app = initializeApp(this.#firebaseConfig);
-            console.log("Firebase app initialized");
+            console.debug("Firebase app initialized");
         } catch (e) {
             console.error("Firebase app initialization error:", e);
             this.#app = null;
@@ -52,7 +56,7 @@ export default class FirebaseDB extends DB_Interface {
         try {
             this.#db = this.#app ? getFirestore(this.#app) : null;
             if (this.#db) 
-                console.log("Firebase DB initialized");
+                console.debug("Firebase DB initialized");
             else
                 console.warn("Firebase DB not initialized");
         }
@@ -69,26 +73,31 @@ export default class FirebaseDB extends DB_Interface {
 
         try {
             this.#auth = getAuth();
-            console.log("Current Firebase user before signin:", this.#auth ? this.#auth.currentUser : null);
+            console.debug("Current Firebase user before signin:", this.#auth ? this.#auth.currentUser : null);
         } catch (e) {
             throw new Error("Firebase getAuth error:", e);
         }
 
-        return new Promise((resolve, reject) => {
-            const unsub = onAuthStateChanged(this.#auth, user => {
-                console.log("Firebase auth state changed, current user:", user);
-                if (user) {
-                    unsub();
-                    resolve(this.#auth);
+        if (!this.#authPromise)
+        {
+            this.#authPromise = new Promise((resolve, reject) => {
+                const unsub = onAuthStateChanged(this.#auth, user => {
+                    //console.log("Firebase auth state changed, current user:", user);
+                    if (user) {
+                        unsub();
+                        resolve(this.#auth);
+                        this.#authPromise = null;
+                    }
+                });
+
+                if (!this.#auth.currentUser) {
+                    //console.debug("Signing in anonymously to Firebase");
+                    signInAnonymously(this.#auth)
+                    .catch(reject);
                 }
             });
-
-            if (!this.#auth.currentUser) {
-                console.log("No current user, signing in anonymously");
-                signInAnonymously(this.#auth)
-                .catch(reject);
-            }
-        });
+        }
+        return this.#authPromise;
     }
 
     _makeDocId(userId) {
@@ -123,7 +132,7 @@ export default class FirebaseDB extends DB_Interface {
             record.createdAt = serverTimestamp();
             await setDoc(doc(this.#db, this.#collection, record.docId), record);
             console.log("Saved document to Firestore:", record);
-            return record.docId;
+            return record;
         } catch (e) {
             console.error("Error saving record to Firestore:", e);
             throw e;
@@ -138,12 +147,12 @@ export default class FirebaseDB extends DB_Interface {
         return orderBy(...args);
     }
 
-    endBefore(...args) {
-        return endBefore(...args);
+    endBefore(fieldValue) {
+        return endBefore(fieldValue);
     }
 
-    limitToLast(...args) {
-        return limitToLast(...args);
+    limit(...args) {
+        return limit(...args);
     }
 
     buildQuery(...queryConstraints) {
@@ -152,8 +161,70 @@ export default class FirebaseDB extends DB_Interface {
             ...queryConstraints);
     }
 
-    async getRecords(q) {
+    #nextCbId = 0;
+
+    addNewRecordCallback(cb)
+    {
+        const cbId = this.#nextCbId;
+        this.#newRecordCallbacks.set(this.#nextCbId++, cb);
+        return cbId;
+    }
+
+    removeNewRecordCallback(cbId)
+    {
+        if (!this.#newRecordCallbacks.has(cbId))
+            throw new Error("cb id " + cbId + " not in callbacks");
+        this.#newRecordCallbacks.delete(cbId);
+    }
+
+    async forEachLocal(cb)
+    {
+        return await this.#local.forEach(cb);
+    }
+
+    async _fetchDocs(query, fetchCount)
+    {
+        if (this.#fetchingPromise) {
+            console.debug("Waiting on pending fetch before request #" + fetchCount + " ...");
+            await this.#fetchingPromise;
+            console.debug("Pending fetch done");
+        }
+        console.debug("Fetch request #" + fetchCount + " with query ", query);
+        const fetchingPromise = getDocs(query);
+        this.#fetchingPromise = fetchingPromise;
+        const snap = await fetchingPromise;
+        console.debug("Fetch request #" + fetchCount + " done with " + snap.docs.length + " records");
+        this.#fetchingPromise = null;
+        return fetchingPromise;
+    }
+
+    #fetchCount = 0;
+    async fetchRecords(query, serialCb = true) {
         await this._authenticate();
-        return await getDocs(q);
+
+        this.#fetchCount++;
+        const fetchCount = this.#fetchCount;
+        const snap = await this._fetchDocs(query, fetchCount);
+        let newRecordCount = 0;
+        const docs = snap.docs;
+        for (const doc of docs) {
+            if (!this.#local.has(doc.id))
+            {
+                newRecordCount++;
+                const docData = doc.data();
+                docData.docId = doc.id;
+                this.#local.set(docData.docId, docData);
+                for (const [cbId, cb] of this.#newRecordCallbacks) {
+                    if (serialCb)
+                        await cb(docData);
+                    else
+                        cb(docData);
+                };
+            }
+        }
+
+        if (newRecordCount > 0)
+            console.debug("Fetch request #" + fetchCount + " done with " + newRecordCount + " new records");
+        return docs;
     }
 }

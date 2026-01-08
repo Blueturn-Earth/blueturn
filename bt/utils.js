@@ -215,6 +215,11 @@ export function gGetTodayDateStr()
 export function gGetDateTimeStringFromTimeSec(timeSec)
 {
     const date = new Date(timeSec * 1000);
+    return gGetDateTimeStringFromDate(date);
+}
+
+export function gGetDateTimeStringFromDate(date)
+{
     const dayStr = date.toISOString().split('T')[0];
     const timeStr = date.toUTCString().split(' ')[4];
     return dayStr + ' ' + timeStr;

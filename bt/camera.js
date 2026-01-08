@@ -1,9 +1,9 @@
-import {getStorageProvider} from './gdrive_provider.js';
-import {db} from './db_factory.js';
-import {processEXIF, addEXIF} from './exif.js';
-import {setSkyPhotosState, selectPhotoByDocId} from './sky_photos.js';
-import {analyzeSkyFromImg} from './sky_analyzer.js'
-import {safeSetCapturedImageInLocalStorage} from './safe_localStorage.js';
+import { getStorageProvider } from './gdrive_provider.js';
+import { skyPhotosDB } from './sky_photos_db.js';
+import { processEXIF, addEXIF } from './exif.js';
+import {analyzeSkyFromImg } from './sky_analyzer.js'
+import {safeSetCapturedImageInLocalStorage } from './safe_localStorage.js';
+import { setSkyPhotosState } from './topUI.js'
 
 if (window.navigator.standalone && window.screen.height === window.innerHeight) {
   console.warn("Running in fullscreen mode — camera may be unstable");
@@ -76,14 +76,12 @@ function handleOrientation(e) {
   latestOrientation = { alpha: e.alpha, beta: e.beta, gamma: e.gamma };
 }
 
-console.log("Enabling device orientation");
 enableOrientation();
 
 const cameraButton = document.getElementById("cameraButton");
 const cameraInput = document.getElementById("cameraInput");
 cameraInput.style.display = "none";
 
-console.log("Add camera button click handler");
 // Capture photo and metadata
 cameraButton.addEventListener("click", async () => {
   sessionStorage.setItem("cameraPending", "1");
@@ -97,7 +95,6 @@ const addPhotoButton = document.getElementById("addPhotoButton");
 const addPhotoInput = document.getElementById("addPhotoInput");
 addPhotoInput.style.display = "none";
 
-console.log("Add Add-Photo button click handler");
 // Capture photo and metadata
 addPhotoButton.addEventListener("click", async () => {
   // Trigger camera
@@ -231,8 +228,6 @@ function openNewPhoto(imgURL, imgFile, fromCamera)
   }
   modalImage.src = imgURL;
 }
-
-console.log("Add camera input change handler");
 
 function cameraInputChange(event)
 {
@@ -385,7 +380,7 @@ async function saveImage(imgFile) {
       skyRatio: latestSkyRatio,
       profile: profile
     };
-    docId = await db.saveRecord(record);
+    docId = await skyPhotosDB.saveSkyPhoto(record);
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
     barEl.style.width = "100%";
@@ -401,7 +396,11 @@ async function saveImage(imgFile) {
 
   try {
     await setSkyPhotosState(true);
-    selectPhotoByDocId(docId);
+    const picItemIndex = skyPhotosDB.getEpicTimeIndexByDocId(docId);
+    if (picItemIndex != undefined)
+    {
+        jumpToPicEpicTimeByIndex(picItemIndex);
+    }
   } catch (e) {    
     console.error(e);
     //alert(e);
@@ -417,4 +416,3 @@ saveImageBtn.addEventListener("click", async (e) => {
 
   await saveImage(latestImageFile);
 });
-

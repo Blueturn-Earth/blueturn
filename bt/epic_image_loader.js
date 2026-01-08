@@ -35,7 +35,7 @@ export default class EpicImageLoader
             evictedEpicImageData.imageURL = null;
             evictedEpicImageData.texture = null;
             // Avoid log spam
-            console.warn("Evicted image data for date: " + evictedEpicImageData.date);
+            console.debug("Evicted image data for date: " + evictedEpicImageData.date);
         }
         else
         {
@@ -62,7 +62,7 @@ export default class EpicImageLoader
                     forceReload: false,
                     onSuccess: (url, tex) => {
                         epicImageData.texture = tex;
-                        console.log("Loaded image: " + epicImageData.image + ", for date " + epicImageData.date);
+                        console.debug("Loaded image: " + epicImageData.image + ", for date " + epicImageData.date);
                         resolve(tex);
                     },
                     onError: (url, err) => {
