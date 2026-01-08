@@ -2,6 +2,12 @@ import { db } from './db_factory.js';
 import { gEpicDB } from './app.js';
 import { gGetDateTimeStringFromTimeSec, gFindClosestIndexInSortedArray, gGetDateTimeStringFromDate } from './utils.js';
 import { mergeSegment, intersectSegment, negativeCoverage, getIndexOfValueInArray } from './utils_coverage.js'
+
+const DIRECTION = Object.freeze({
+    ASC: 'asc',
+    DESC: 'desc'
+});
+
 class SkyPhotosDB {
     #epicTimeSortedArray = [];
     #reachedMin = false;
@@ -98,6 +104,8 @@ class SkyPhotosDB {
     {
         if (this.#reachedMax && this.#reachedMin)
             return [];
+        // All covered
+        this.#dateCoverage = [null, null];
         const queryConstraints = [
             this.db.orderBy("takenTime", "desc")
         ];
@@ -112,20 +120,25 @@ class SkyPhotosDB {
         return records;
     }
 
-    async fetchAroundDate(date, radiusCount)
+    async fetchAfterDate(date, maxNumRecords)
     {
-
-        const recordsAfter = await this.fetchDateRange(date, null, radiusCount);
-        if (recordsAfter.length < radiusCount)
+        const records = await this.fetchDateRange(date, null, maxNumRecords, DIRECTION.ASC);
+        if (records.length < maxNumRecords)
             this._markLastReached();
-        const maxBoundDate = recordsAfter.length > 0 ? recordsAfter[recordsAfter.length - 1] : date;
-        const recordsBefore = await this.fetchDateRange(null, date, radiusCount);
-        if (recordsBefore.length < radiusCount)
+        const maxBoundDate = records.length > 0 ? records[records.length - 1] : date;
+
+        this.#dateCoverage = mergeSegment(this.#dateCoverage, date, maxBoundDate);
+
+        return records;
+    }
+
+    async fetchBeforeDate(date, maxNumRecords)
+    {
+        const records = await this.fetchDateRange(null, date, maxNumRecords, DIRECTION.DESC);
+        if (records.length < maxNumRecords)
             this._markFirstReached();
-        const minBoundDate = recordsBefore.length > 0 ? recordsBefore[recordsBefore.length] : date;
-        mergeSegment(this.#dateCoverage, minBoundDate, maxBoundDate);
-        const recordsAround = [...recordsBefore.toReversed(), ...recordsAfter];
-        return recordsAround;
+
+        return records;
     }
 
     _getCoverageString()
@@ -141,8 +154,11 @@ class SkyPhotosDB {
         return logLines;
     }
 
-    async fetchDateRange(rangeStartEpicTimeDate, rangeEndEpicTimeDate, maxNumRecords, noIntersect = false)
+    async fetchDateRange(rangeStartEpicTimeDate, rangeEndEpicTimeDate, maxNumRecords = -1, direction = DIRECTION.ASC, noIntersect = false)
     {
+        if (maxNumRecords == 0)
+            return [];
+
         if (rangeStartEpicTimeDate && rangeEndEpicTimeDate && rangeStartEpicTimeDate > rangeEndEpicTimeDate) {
             console.warn("rangeStartEpicTimeDate=" + rangeStartEpicTimeDate + " > rangeEndEpicTimeDate=" + rangeEndEpicTimeDate);
             return [];
@@ -156,14 +172,21 @@ class SkyPhotosDB {
                 (date1, date2) => (date1?.getTime() == date2?.getTime())
             );
 
-            this.#dateCoverage = mergeSegment(this.#dateCoverage, rangeStartEpicTimeDate, rangeEndEpicTimeDate);
+            if (maxNumRecords < 0)
+                this.#dateCoverage = mergeSegment(this.#dateCoverage, rangeStartEpicTimeDate, rangeEndEpicTimeDate);
 
             if (addedCoverage.length > 0)
                 console.log(this._getCoverageString());
 
             let records = [];
             for (let i = 0; i < addedCoverage.length; i += 2) {
-                const segmentRecords = await this.fetchDateRange(addedCoverage[i], addedCoverage[i+1], maxNumRecords, true);
+                const segmentRecords = await this.fetchDateRange(addedCoverage[i], addedCoverage[i+1], maxNumRecords, direction, true);
+                if (maxNumRecords > 0 && segmentRecords.length > 0) {
+                    if (direction == DIRECTION.ASC)
+                        this.#dateCoverage = mergeSegment(this.#dateCoverage, addedCoverage[i], segmentRecords[0].data().takenTime.toDate());
+                    else
+                        this.#dateCoverage = mergeSegment(this.#dateCoverage, segmentRecords[0].data().takenTime.toDate(), addedCoverage[i+1]);
+                }
                 maxNumRecords -= segmentRecords.length;
                 records = [...records, ...segmentRecords];
             }
@@ -177,12 +200,12 @@ class SkyPhotosDB {
 
         const queryConstraints = [];
         if (rangeStartEpicTimeDate)
-            queryConstraints.push(this.db.where("takenTime", ">", rangeStartEpicTimeDate));
+            queryConstraints.push(this.db.where("takenTime", ">=", rangeStartEpicTimeDate));
         if (rangeEndEpicTimeDate)
-            queryConstraints.push(this.db.where("takenTime", "<", rangeEndEpicTimeDate));
-        queryConstraints.push(this.db.orderBy("takenTime", rangeStartEpicTimeDate ? "asc" : "desc"));
+            queryConstraints.push(this.db.where("takenTime", "<=", rangeEndEpicTimeDate));
+        queryConstraints.push(this.db.orderBy("takenTime", direction)); // direction mapped to "asc"/"desc"
         if ((!rangeStartEpicTimeDate || !rangeEndEpicTimeDate) && maxNumRecords > 0) {
-            queryConstraints.push(this.db.limitToLast(maxNumRecords));
+            queryConstraints.push(this.db.limit(maxNumRecords));
         }
         const query = this.db.buildQuery(...queryConstraints);
         const records = await this.db.fetchRecords(query);
@@ -203,6 +226,18 @@ class SkyPhotosDB {
 
     async forEachLocal(cb) {
         return await this.db.forEachLocal(cb);
+    }
+
+    hasReachedMaxTime() {
+        return this.#reachedMax;
+    }
+    
+    hasReachedMinTime() {
+        return this.#reachedMin;
+    }
+    
+    getNumSkyPhotos() {
+        return this.#epicTimeSortedArray.length;
     }
 
     getSkyPhotoAtEpicTimeIndex(index)

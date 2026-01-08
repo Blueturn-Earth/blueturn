@@ -90,12 +90,30 @@ function setSkyPhotosScrollGalleryCallbacks()
     });
 
     skyPhotosScrollGallery.setSelectedItemClickCb((node, index) => {
-        let picImg = skyPhotosScrollGallery.getItemImg(node);
+        const picItem = skyPhotosDB.getSkyPhotoAtEpicTimeIndex(index);
+        const picImg = skyPhotosScrollGallery.getItemImg(node);
         openPopupFromThumbnail(picImg, picItem);
     });
 
     skyPhotosScrollGallery.setScrollAlphaCb((alpha) => {
         setEpicTimeByPicsAlpha(alpha);
+    });
+
+    skyPhotosScrollGallery.setOnRequestMoreLeftCb(async (numRecords) => {
+        const firstSkyPhoto = skyPhotosDB.getSkyPhotoAtEpicTimeIndex(0);
+        const firstEpicDate = new Date(firstSkyPhoto.epicTimeSec * 1000);
+        await skyPhotosDB.fetchBeforeDate(firstEpicDate, numRecords);
+        const fullyComplete = skyPhotosDB.hasReachedMinTime();
+        skyPhotosScrollGallery.notifyRequestMoreLeftComplete(fullyComplete);
+    });
+
+    skyPhotosScrollGallery.setOnRequestMoreRightCb(async (numRecords) => {
+        const numSkyPhotos = skyPhotosDB.getNumSkyPhotos();
+        const lastSkyPhoto = skyPhotosDB.getSkyPhotoAtEpicTimeIndex(numSkyPhotos - 1);
+        const lastEpicDate = new Date(lastSkyPhoto.epicTimeSec * 1000);
+        await skyPhotosDB.fetchAfterDate(lastEpicDate, numRecords);
+        const fullyComplete = skyPhotosDB.hasReachedMaxTime();
+        skyPhotosScrollGallery.notifyRequestMoreRightComplete(fullyComplete);
     });
 }
 

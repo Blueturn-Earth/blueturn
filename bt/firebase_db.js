@@ -19,7 +19,7 @@ import {
     where,
     orderBy,
     endBefore,
-    limitToLast
+    limit
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
 export default class FirebaseDB extends DB_Interface {
@@ -151,8 +151,8 @@ export default class FirebaseDB extends DB_Interface {
         return endBefore(fieldValue);
     }
 
-    limitToLast(...args) {
-        return limitToLast(...args);
+    limit(...args) {
+        return limit(...args);
     }
 
     buildQuery(...queryConstraints) {
