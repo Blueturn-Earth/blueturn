@@ -134,11 +134,8 @@ class GoogleDriveProvider extends StorageProvider {
 
   async loadImageFromField(img, imageField, highRes = false, sizeLimit = 2048) {
     const url = await this.fetchPersistentThumbnailUrl(imageField, highRes, sizeLimit);
-    img.onload = function() {
-        console.log("Loaded image id=" + img.id + ", class=" + img.className + ", src=" + img.src);
-    };
     img.addEventListener('error', function(event) {
-        const msg = "Failed to load image id=" + img.id + ", class=" + img.className + ", src=" + img.src + ", Error: " + event.error?.message;
+        const msg = "Failed to load image " + img.src + ", Error: " + event.error?.message;
         console.error(msg);
         if (this.imgErrorCount == 0)
             alert(msg);
