@@ -97,21 +97,10 @@ function setSkyPhotosScrollGalleryCallbacks()
     skyPhotosScrollGallery.setScrollAlphaCb((alpha) => {
         setEpicTimeByPicsAlpha(alpha);
     });
-
-}
-
-function fetchSkyPhotosAroundTimeSec(epicTimeSec)
-{
-    const RADIUS_COUNT = 3;
-    const epicDate = new Date(epicTimeSec * 1000);
-    skyPhotosDB.fetchAroundDate(epicDate, RADIUS_COUNT);
 }
 
 function updateScrollSkyPhotos(epicTimeSec)
 {
-    // Async fetch
-    fetchSkyPhotosAroundTimeSec(epicTimeSec);
-    
     const alpha = skyPhotosDB.getAlphaByEpicTimeSec(epicTimeSec);
     if (alpha < 0 || alpha > 1)
     {
