@@ -205,7 +205,9 @@ addSkyPhotosToggleCallback((isOn) => {
     }
     else {
         skyPhotosEarthGallery.style.display = 'none';
-        if (epicTimeChangeCallbackId !== undefined)
+        if (epicTimeChangeCallbackId !== undefined) {
             removeEpicTimeChangeCallback(epicTimeChangeCallbackId);
+            epicTimeChangeCallbackId = undefined;
+        }
     }
 });
