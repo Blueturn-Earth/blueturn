@@ -13,8 +13,10 @@ export function getIndexOfValueInArray(value, array, pred = (val) => val) {
     while (low < high) {
         var mid = low + high >>> 1;
         const midVal = pred(array[mid]);
-        if (pred(mid) < value) low = mid + 1;
-        else high = mid;
+        if (midVal < value) 
+            low = mid + 1;
+        else 
+            high = mid;
     }
     return low;
 }

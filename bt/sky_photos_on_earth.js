@@ -152,7 +152,7 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
     const timestampTimeSec = picItem.epicTimeSec;
     const timestampDate = new Date(timestampTimeSec * 1000);
 
-    console.debug("Placing new sky photo of time " + timestampDate + " at index " + index);
+    console.debug("Placing new sky photo of time " + timestampDate + " on Earth at index " + index);
     createPicElements(picItem);
 
     const earthPicDiv = picItem.earthPicDiv;
