@@ -19,7 +19,7 @@ import {
     where,
     orderBy,
     endBefore,
-    limitToLast
+    limit
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
 export default class FirebaseDB extends DB_Interface {
@@ -151,8 +151,8 @@ export default class FirebaseDB extends DB_Interface {
         return endBefore(fieldValue);
     }
 
-    limitToLast(...args) {
-        return limitToLast(...args);
+    limit(...args) {
+        return limit(...args);
     }
 
     buildQuery(...queryConstraints) {
@@ -185,15 +185,15 @@ export default class FirebaseDB extends DB_Interface {
     async _fetchDocs(query, fetchCount)
     {
         if (this.#fetchingPromise) {
-            console.log("Waiting on pending fetch before request #" + fetchCount + " ...");
+            console.debug("Waiting on pending fetch before request #" + fetchCount + " ...");
             await this.#fetchingPromise;
-            console.log("Pending fetch done");
+            console.debug("Pending fetch done");
         }
-        console.log("Fetch request #" + fetchCount + " with query ", query);
+        console.debug("Fetch request #" + fetchCount + " with query ", query);
         const fetchingPromise = getDocs(query);
         this.#fetchingPromise = fetchingPromise;
         const snap = await fetchingPromise;
-        console.log("Fetch request #" + fetchCount + " done with " + snap.docs.length + " records");
+        console.debug("Fetch request #" + fetchCount + " done with " + snap.docs.length + " records");
         this.#fetchingPromise = null;
         return fetchingPromise;
     }
@@ -222,7 +222,9 @@ export default class FirebaseDB extends DB_Interface {
                 };
             }
         }
-        console.log("Fetch request #" + fetchCount + " done with " + newRecordCount + " new records");
+
+        if (newRecordCount > 0)
+            console.log("Fetch request #" + fetchCount + " done with " + newRecordCount + " new records");
         return docs;
     }
 }

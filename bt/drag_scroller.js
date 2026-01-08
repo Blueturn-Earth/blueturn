@@ -171,7 +171,35 @@ export default class DragScroller
         ...(this.#isHorizontal ? { left: target } : { top: target }),
         behavior: 'auto'
       });
+
+      this._requestMoreIfNeeded(target);        
     }
+  }
+  
+  
+  _getStartSpacerNumItemsExposure(targetScroll)
+  {
+    const startSpacerSize = this.#isHorizontal ? this.#startSpacer.clientWidth : this.#startSpacer.clientHeight;
+    if (targetScroll - startSpacerSize < startSpacerSize) {
+      const firstItemSize = this._getItemSize(this.#itemsGroup.children[2]);
+      return Math.ceil((2 * startSpacerSize - startSpacerSize) / firstItemSize);
+    }
+    else
+      return 0;
+  }
+
+  _getEndSpacerNumItemsExposure(targetScroll)
+  {
+    const limits = this._getScrollLimits();
+    if (!limits) 
+      return false;
+    const endSpacerSize = this.#isHorizontal ? this.#endSpacer.clientWidth : this.#endSpacer.clientHeight;
+    if (targetScroll + endSpacerSize > limits.max) {
+      const lastItemSize = this._getItemSize(this.#itemsGroup.children[this.#itemsGroup.children.length - 2]);
+      return Math.ceil((2 * endSpacerSize - endSpacerSize) / lastItemSize);
+    }
+    else
+      return 0;
   }
   
   getScrolledAlpha() {
@@ -221,6 +249,7 @@ export default class DragScroller
       behavior: 'smooth'
     });
     this._setSelectedIndex(index);
+    this._requestMoreIfNeeded(target);        
   }
 
   getSelectedItemIndex() {
@@ -419,6 +448,11 @@ export default class DragScroller
     }
 }
 
+  _getItemSize(item) {
+    const rect = item.getBoundingClientRect();
+    return this.#isHorizontal ? rect.width : rect.height;
+}
+
   _getItemCenter(item) {
     const rect = item.getBoundingClientRect();
     const scrollerRect = this.#scroller.getBoundingClientRect();
@@ -481,4 +515,74 @@ export default class DragScroller
 
     this.scrollToIndex(index - 2); // skip start spacer+template
   };
+
+  // Pagination mechanism
+  #onRequestMoreLeftCb;
+  #onRequestMoreRightCb;
+  #requestLeftPromise;
+  #requestRightPromise;
+  #completedLeft = false;
+  #completedRight = false;
+
+  setOnRequestMoreLeftCb(cb) {
+    this.#onRequestMoreLeftCb = cb;
+  }
+  setOnRequestMoreRightCb(cb) {
+    this.#onRequestMoreRightCb = cb;
+  }
+  notifyRequestMoreLeftComplete(fullyComplete) {
+    this.#requestLeftPromise = null;
+    this.#completedLeft = fullyComplete;
+    if (this.#completedLeft)
+      console.log("No more items available to the left");
+  }
+  notifyRequestMoreRightComplete(fullyComplete) {
+    this.#requestRightPromise = null;
+    this.#completedRight = fullyComplete;
+    if (this.#completedRight)
+      console.log("No more items available to the right");
+  }
+  _requestMoreIfNeeded(targetScroll) {
+    this._requestMoreIfNeededLeft(targetScroll);
+    this._requestMoreIfNeededRight(targetScroll);    
+  }
+
+  _requestMoreIfNeededLeft(targetScroll) {
+    if (this.#requestLeftPromise || this.#completedLeft)
+      return;
+
+    const numItemsNeeded = this._getStartSpacerNumItemsExposure(targetScroll);
+    if (numItemsNeeded > 0)
+    {
+      console.log("Need " + numItemsNeeded + " more items to the left");
+      if (this.#onRequestMoreLeftCb)
+        this.#requestLeftPromise = this.#onRequestMoreLeftCb(numItemsNeeded);
+      else
+        this.#requestLeftPromise = new Promise(resolve => {
+            // by default, simulate a process that takes 1s
+            setTimeout(() => {
+                resolve(this.notifyRequestMoreLeftComplete());
+              }, 1000);
+          });
+    }
+  }
+
+  _requestMoreIfNeededRight(targetScroll) {
+    if (this.#requestRightPromise || this.#completedRight)
+      return;
+    const numItemsNeeded = this._getEndSpacerNumItemsExposure(targetScroll);
+    if (numItemsNeeded > 0)
+    {
+      console.log("Need " + numItemsNeeded + " more items to the right");
+      if (this.#onRequestMoreRightCb)
+        this.#requestRightPromise = this.#onRequestMoreRightCb(numItemsNeeded);
+      else
+        this.#requestRightPromise = new Promise(resolve => {
+            // by default, simulate a process that takes 1s
+            setTimeout(() => {
+                resolve(this.notifyRequestMoreRightComplete());
+              }, 1000);
+          });
+    }
+  }
 }

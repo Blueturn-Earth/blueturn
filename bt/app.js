@@ -304,7 +304,7 @@ let nextCbId = 0;
 export function addEpicTimeChangeCallback(cb)
 {
     epicTimeChangeCallbacks.set(nextCbId, cb);
-    cb(gSetEpicTimeSec);
+    cb(gEpicTimeSec);
     return nextCbId++;
 }
 

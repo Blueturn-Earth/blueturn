@@ -15,8 +15,8 @@ export default class DB_Interface {
         throw new Error("endBefore not implemented");
     }
 
-    limitToLast(...args) {
-        throw new Error("limitToLast not implemented");
+    limit(...args) {
+        throw new Error("limit not implemented");
     }
 
     buildQuery(...queryConstraints) {

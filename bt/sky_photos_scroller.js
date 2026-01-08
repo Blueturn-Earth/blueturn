@@ -1,5 +1,4 @@
 import { 
-    gEpicDB, 
     gSetPlayState, 
     gJumpToEpicTime, 
     addEpicTimeChangeCallback, 
@@ -10,8 +9,6 @@ import { gControlState } from './controlparams.js';
 import DragScroller from './drag_scroller.js'
 import { getStorageProvider } from './gdrive_provider.js';
 import { addSkyPhotosToggleCallback } from './topUI.js';
-
-const SECONDS_IN_DAY = 3600*24;
 
 const skyPhotosScrollGallery = new DragScroller('skyPhotosScrollGallery');
 skyPhotosScrollGallery.hide();
@@ -71,7 +68,7 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
     const timestampTimeSec = picItem.epicTimeSec;
     const timestampDate = new Date(timestampTimeSec * 1000);
 
-    console.debug("Placing new sky photo of time " + timestampDate + " at index " + index);
+    console.debug("Placing new sky photo of time " + timestampDate + " in Scroller at index " + index);
     createPicElements(picItem);
 
     const scrollPicDiv = picItem.scrollPicDiv;
@@ -93,7 +90,8 @@ function setSkyPhotosScrollGalleryCallbacks()
     });
 
     skyPhotosScrollGallery.setSelectedItemClickCb((node, index) => {
-        let picImg = skyPhotosScrollGallery.getItemImg(node);
+        const picItem = skyPhotosDB.getSkyPhotoAtEpicTimeIndex(index);
+        const picImg = skyPhotosScrollGallery.getItemImg(node);
         openPopupFromThumbnail(picImg, picItem);
     });
 
@@ -101,35 +99,22 @@ function setSkyPhotosScrollGalleryCallbacks()
         setEpicTimeByPicsAlpha(alpha);
     });
 
-}
+    skyPhotosScrollGallery.setOnRequestMoreLeftCb(async (numRecords) => {
+        const firstSkyPhoto = skyPhotosDB.getSkyPhotoAtEpicTimeIndex(0);
+        const firstEpicDate = new Date(firstSkyPhoto.epicTimeSec * 1000);
+        await skyPhotosDB.fetchBeforeDate(firstEpicDate, numRecords);
+        const fullyComplete = skyPhotosDB.hasReachedMinTime();
+        skyPhotosScrollGallery.notifyRequestMoreLeftComplete(fullyComplete);
+    });
 
-async function addSkyPhotos()
-{
-    console.log("Adding current sky photos to gallery");
-    await addCurrentSkyPhotos();
-    console.log("Adding sky photos before first one in gallery");
-    if (!addSkyPhotosBefore()) 
-    {
-        console.warn("Adding all sky photos to gallery");
-        addAllSkyPhotos();
-    }
-}
-
-async function addCurrentSkyPhotos()
-{
-    const dayBeforeLatestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec() - SECONDS_IN_DAY;
-    const dayBeforeLatestEpicDate = new Date(dayBeforeLatestEpicTimeSec * 1000);
-    await skyPhotosDB.fetchSkyPhotosAfterDate(dayBeforeLatestEpicDate);
-}
-
-async function addSkyPhotosBefore(nDocsBefore = 0)
-{
-    await skyPhotosDB.fetchMoreSkyPhotosBefore(nDocsBefore);
-}
-
-async function addAllSkyPhotos()
-{
-    await skyPhotosDB.fetchAllSkyPhotos();
+    skyPhotosScrollGallery.setOnRequestMoreRightCb(async (numRecords) => {
+        const numSkyPhotos = skyPhotosDB.getNumSkyPhotos();
+        const lastSkyPhoto = skyPhotosDB.getSkyPhotoAtEpicTimeIndex(numSkyPhotos - 1);
+        const lastEpicDate = new Date(lastSkyPhoto.epicTimeSec * 1000);
+        await skyPhotosDB.fetchAfterDate(lastEpicDate, numRecords);
+        const fullyComplete = skyPhotosDB.hasReachedMaxTime();
+        skyPhotosScrollGallery.notifyRequestMoreRightComplete(fullyComplete);
+    });
 }
 
 function updateScrollSkyPhotos(epicTimeSec)
@@ -151,7 +136,6 @@ addSkyPhotosToggleCallback((isOn) => {
         console.assert(epicTimeChangeCallbackId === undefined);
         if (epicTimeChangeCallbackId === undefined)
             epicTimeChangeCallbackId = addEpicTimeChangeCallback(updateScrollSkyPhotos);
-        addSkyPhotos();
     }
     else {
         skyPhotosScrollGallery.hide();
