@@ -9,9 +9,9 @@ export default class DragScroller
   #numItems = 0;
   #isDown = false;
   #startX;
-  #scrollLeft;
   #defaultDisplayMode;
   #isDragging = false;
+  #isSnapping = false;
   #DRAG_THRESHOLD = 5; // pixels
   #startClientX;
   #startClientY;
@@ -62,7 +62,8 @@ export default class DragScroller
       }
     });
 
-    this.#scroller.addEventListener('scroll',this._onScroll);
+    this.#scroller.addEventListener('scroll', this._onScroll);
+    this.#scroller.addEventListener('scrollend', this._onScrollEnd);
   }
 
   setSelectItemCb(cb) {
@@ -149,7 +150,7 @@ export default class DragScroller
   }
 
   scrollToAlpha(alpha) {
-    if (this.#isDown)
+    if (this.#isDown || this.#isSnapping)
       return;
 
     //console.log("alpha: ", alpha);
@@ -166,7 +167,6 @@ export default class DragScroller
         Math.abs(this.#scroller.scrollLeft - target) > 1 : 
         Math.abs(this.#scroller.scrollTop - target) > 1;
     if (needScroll) {
-      this._setSelectedIndex(undefined);
       this.#scroller.scrollTo({
         ...(this.#isHorizontal ? { left: target } : { top: target }),
         behavior: 'auto'
@@ -215,13 +215,6 @@ export default class DragScroller
     if (this.#isDown) 
       return;
 
-    if (index == this.#selectedItemIndex)
-    {
-      if (this.#onSelectedItemClickCb)
-        this.#onSelectedItemClickCb(this.#itemsGroup.children[index + 2], index); // skip start spacer+template
-      return;
-    }
-
     const children = this.#itemsGroup.children;
     if (!children.length) return;
 
@@ -243,6 +236,7 @@ export default class DragScroller
 
     const target = itemCenter - viewportSize / 2;
 
+    this.#isSnapping = true;
     this.#scroller.scrollTo({
       left: this.#isHorizontal ? target : this.#scroller.scrollLeft,
       top:  this.#isHorizontal ? this.#scroller.scrollTop  : target,
@@ -294,7 +288,9 @@ export default class DragScroller
       this.#scroller.releasePointerCapture(e.pointerId);
       // Prevent the upcoming click globally
       this._suppressNextClick();
-      this._onScrollEnd();
+
+      this.#isDragging = false;
+      this._snapToNearest();
     }
 
     this.#isDragging = false;
@@ -369,11 +365,15 @@ export default class DragScroller
 
   }
 
-  _onScrollEnd()
+  _onScrollEnd = () =>
   {
-    this.#isDragging = false;
-    this._snapToNearest();
-  }
+    if (this.#isSnapping && 
+        this.#onSelectItemCb && 
+        this.#selectedItemIndex !== undefined) {
+      this.#onSelectItemCb(this.#itemsGroup.children[this.#selectedItemIndex + 2], this.#selectedItemIndex); // skip start spacer+template
+    }
+    this.#isSnapping = false;
+  };
 
   _snapToNearest() {
     const children = this.#itemsGroup.children;
@@ -415,6 +415,7 @@ export default class DragScroller
       const target =
         this._getItemCenter(closest) - viewportSize / 2;
 
+      this.#isSnapping = true;
       this.#scroller.scrollTo({
         ...(this.#isHorizontal ? { left: target } : { top: target }),
         behavior: 'smooth'
@@ -442,9 +443,6 @@ export default class DragScroller
       }
 
       console.log("Selected item index: ", index);
-
-      if (this.#onSelectItemCb)
-        this.#onSelectItemCb(this.#itemsGroup.children[index + 2], index); // skip start spacer+template
     }
 }
 
@@ -508,12 +506,21 @@ export default class DragScroller
   _onItemClick = (node) => {
     if (this.#isDragging) return;
 
-    const index = Array.prototype.indexOf.call(
+    const childIndex = Array.prototype.indexOf.call(
       this.#itemsGroup.children,
       node
     );
 
-    this.scrollToIndex(index - 2); // skip start spacer+template
+    const itemIndex = childIndex - 2; // skip start spacer+template
+
+    if (itemIndex == this.#selectedItemIndex)
+    {
+      if (this.#onSelectedItemClickCb)
+        this.#onSelectedItemClickCb(this.#itemsGroup.children[childIndex], itemIndex);
+      return;
+    }
+
+    this.scrollToIndex(itemIndex); // skip start spacer+template
   };
 
   // Pagination mechanism
