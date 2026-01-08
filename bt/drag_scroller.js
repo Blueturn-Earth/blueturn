@@ -429,7 +429,7 @@ export default class DragScroller
     {
       if (this.#selectedItemIndex !== undefined)
       {
-        console.log("Unselected item index: ", this.#selectedItemIndex);
+        console.debug("Unselected item index: ", this.#selectedItemIndex);
         if (this.#onUnselectItemCb)
           this.#onUnselectItemCb(this.#itemsGroup.children[this.#selectedItemIndex + 2], this.#selectedItemIndex); // skip start spacer+template
       }
@@ -442,7 +442,7 @@ export default class DragScroller
         return;
       }
 
-      console.log("Selected item index: ", index);
+      console.debug("Selected item index: ", index);
     }
 }
 
@@ -561,7 +561,7 @@ export default class DragScroller
     const numItemsNeeded = this._getStartSpacerNumItemsExposure(targetScroll);
     if (numItemsNeeded > 0)
     {
-      console.log("Need " + numItemsNeeded + " more items to the left");
+      console.debug("Need " + numItemsNeeded + " more items to the left");
       if (this.#onRequestMoreLeftCb)
         this.#requestLeftPromise = this.#onRequestMoreLeftCb(numItemsNeeded);
       else
@@ -580,7 +580,7 @@ export default class DragScroller
     const numItemsNeeded = this._getEndSpacerNumItemsExposure(targetScroll);
     if (numItemsNeeded > 0)
     {
-      console.log("Need " + numItemsNeeded + " more items to the right");
+      console.debug("Need " + numItemsNeeded + " more items to the right");
       if (this.#onRequestMoreRightCb)
         this.#requestRightPromise = this.#onRequestMoreRightCb(numItemsNeeded);
       else
