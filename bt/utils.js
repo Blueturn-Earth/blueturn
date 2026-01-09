@@ -65,12 +65,41 @@ export function gCalcNormalFromScreenCoord(screenCoord, earthRadiusPx, screenWid
   return normal;
 }
 
-export function gCalcScreenCoordFromNormal(normal, earthRadiusPx, screenWidth, screenHeight) 
+const ZOOM_EPSILON = 0.01;
+
+export function gLerp(a, b, x)
+{
+  return a + (b - a) * x;
+}
+
+export function gCalcScreenCoordFromNormal(normal, earthRadiusPx, screenWidth, screenHeight, 
+  isZoomOn, zoomFactor, pivotCoordinates, centroidMatrix) 
 {
   const screenCoord = {
     x: normal[0] * earthRadiusPx + screenWidth / 2.0,
-    y: normal[1] * earthRadiusPx + screenHeight / 2.0
+    y: normal[1] * earthRadiusPx + screenHeight / 2.0,
+    z: normal[2]
   };
+  if ((isZoomOn || Math.abs(zoomFactor - 1.0) > ZOOM_EPSILON) && 
+      pivotCoordinates && 
+      centroidMatrix) 
+  {
+    // Adjust screen coordinates based on zoom
+    let zoomScreenCoords = {
+      x: pivotCoordinates.x,
+      y: pivotCoordinates.y
+    };
+    const pivotEpicScreenCoords = gCalculateScreenCoordFromLatLon(
+      pivotCoordinates.lat,
+      pivotCoordinates.lon,
+      centroidMatrix,
+      earthRadiusPx, screenWidth, screenHeight
+    );
+    zoomScreenCoords.x = gLerp(pivotEpicScreenCoords.x, zoomScreenCoords.x, zoomFactor - 1.0)
+    zoomScreenCoords.y = gLerp(pivotEpicScreenCoords.y, zoomScreenCoords.y, zoomFactor - 1.0)
+    screenCoord.x = (screenCoord.x - pivotEpicScreenCoords.x) * zoomFactor + zoomScreenCoords.x;
+    screenCoord.y = (screenCoord.y - pivotEpicScreenCoords.y) * zoomFactor + zoomScreenCoords.y;
+  }
   return screenCoord;
 }
 
@@ -110,7 +139,8 @@ export function gCalcLatLonFromScreenCoord(screenCoord, centroidMatrix, earthRad
   };
 }
 
-export function gCalculateScreenCoordFromLatLon(lat, lon, centroidMatrix, earthRadiusPx, screenWidth, screenHeight)
+export function gCalculateScreenCoordFromLatLon(lat, lon, centroidMatrix, earthRadiusPx, screenWidth, screenHeight, 
+  isZoomOn, zoomFactor, pivotCoordinates)
 {
   const globeLatLonMatrix = gCalcLatLonNorthRotationMatrix(lat, lon);
   // take Z axis of transpose
@@ -120,7 +150,8 @@ export function gCalculateScreenCoordFromLatLon(lat, lon, centroidMatrix, earthR
     globeLatLonMatrix[8]);
   let normal = vec3.create();
   vec3.transformMat3(normal, globeNormal, centroidMatrix);
-  return gCalcScreenCoordFromNormal(normal, earthRadiusPx, screenWidth, screenHeight);
+  return gCalcScreenCoordFromNormal(normal, earthRadiusPx, screenWidth, screenHeight, 
+    isZoomOn, zoomFactor, pivotCoordinates, centroidMatrix);
 }
 
 export function gArrayBoundIndices(array, key, strict) 
@@ -181,9 +212,14 @@ export function gGetTodayDateStr()
     return TodayDatesStr;
 }
 
-export function gGetDateFromTimeSec(timeSec)
+export function gGetDateTimeStringFromTimeSec(timeSec)
 {
     const date = new Date(timeSec * 1000);
+    return gGetDateTimeStringFromDate(date);
+}
+
+export function gGetDateTimeStringFromDate(date)
+{
     const dayStr = date.toISOString().split('T')[0];
     const timeStr = date.toUTCString().split(' ')[4];
     return dayStr + ' ' + timeStr;
@@ -195,3 +231,42 @@ export function gGetDayFromTimeSec(timeSec)
     return date.toISOString().slice(0, 10);
 }
 
+export function gFindClosestIndexInSortedArray(arr, target, getter) {
+    if (!getter)
+      getter = item => item;
+    const n = arr.length;
+
+    // Handle edge cases where target is outside the array range
+    if (target <= getter(arr[0])) return 0;
+    if (target >= getter(arr[n - 1])) return n - 1;
+
+    let left = 0;
+    let right = n - 1;
+    let mid;
+
+    // Binary search to find the index where target would be inserted
+    while (left <= right) {
+        mid = Math.floor((left + right) / 2);
+
+        if (getter(arr[mid]) === target) {
+            return mid; // Found exact match
+        } else if (getter(arr[mid]) < target) {
+            left = mid + 1;
+        } else {
+            right = mid - 1;
+        }
+    }
+
+    // At the end of the loop, 'left' and 'right' pointers bracket the target
+    // arr[right] is the largest element <= target
+    // arr[left] is the smallest element >= target
+    const closestLeft = getter(arr[right]);
+    const closestRight = getter(arr[left]);
+
+    // Compare which of the two adjacent elements is closer to the target
+    if (Math.abs(target - closestLeft) <= Math.abs(target - closestRight)) {
+        return right;
+    } else {
+        return left;
+    }
+}

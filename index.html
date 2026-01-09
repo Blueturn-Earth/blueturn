@@ -25,23 +25,25 @@
   </script>
 </head>
 <body>
-  <canvas id="glcanvas"></canvas>
+  <div id="epicEarth">
+    <canvas id="glcanvas"></canvas>
+  </div>
   <div id="current-time-text"></div>
   <div id="loading-text"></div>
-  <div id="ui">
-    <a href="https://blueturn.earth" target="_blank">
-      <img src="./bt/images/logos/LogoBTV1024BT.png" id="btLogo" alt="Blueturn Logo" />
-    </a>
-    <button onclick="share()" class="share-button">
-      <img src="bt/images/icons/share.png" alt="Share"/>
-    </button>
-    <input type="date" id="date-picker" onclick="this.showPicker && this.showPicker()">
+  <div id="topUI">
+    <div id="topButtons">
+      <img src="./bt/images/logos/NASA_logo.png" id="btLogo" alt="NASA Logo" role="link" onclick="gotoNASALink(this)"/>
+      <img src="bt/images/icons/share.svg" alt="Share" id="shareButton" onclick="share()"/>
+      <img src="./bt/images/logos/LogoBTV1024BT.png" id="btLogo" alt="Blueturn Logo" role="link" onclick = "gotoBTLink(this)"/>
+    </div>
   </div>
+
+  <input type="date" id="date-picker" onclick="this.showDatePicker && this.showDatePicker()">
   <script type="module">
     import * as glMatrix from "https://esm.sh/gl-matrix";
     window.glMatrix = glMatrix;
   </script>
-  <script type="module" src="./bt/ui.js"></script>
+  <script type="module" src="./bt/topUI.js"></script>
   <script type="module" src="./bt/controlparams.js"></script>
   <script type="module" src="./bt/epic_db.js"></script>
   <script type="module" src="./bt/app.js"></script>
