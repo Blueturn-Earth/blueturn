@@ -1,4 +1,4 @@
-import { getStorageProvider, MB_USER_ID, BT_USER_ID } from './gdrive_provider.js';
+import { getStorageProvider, MB_USER_ID, BT_USER_ID, MBOQ_USER_ID } from './gdrive_provider.js';
 import { skyPhotosDB } from './sky_photos_db.js';
 import { processEXIF, addEXIF } from './exif.js';
 import { analyzeSkyFromImg } from './sky_analyzer.js'
@@ -282,6 +282,8 @@ modal.addEventListener("click", () => {
 const progressEl = document.getElementById("uploadProgress");
 const barEl = progressEl.querySelector(".bar");
 const labelEl = progressEl.querySelector(".label");
+generateDBBtn = document.getElementById("generateDBBtn");
+generateDBBtn.onclick = () => generateDB;
 
 document.getElementById("profileBtn").onclick = async () => {
   const forceNewLogin = true;
@@ -289,11 +291,15 @@ document.getElementById("profileBtn").onclick = async () => {
   const profile = getStorageProvider().getProfile();
   if (profile?.sub == MB_USER_ID)
   {
-    document.getElementById("showDbBtn").style.display = 'block';
+    document.getElementById("showDbBtn").style.display = 'inline-block';
   }
   if (profile?.sub == BT_USER_ID)
   {
-    loadPicsFromBTContent();
+    generateDBBtn.style.display = 'inline-block';
+  }
+  if (profile?.sub == MBOQ_USER_ID)
+  {
+    generateDBBtn.style.display = 'inline-block';
   }
 };
 
@@ -426,6 +432,19 @@ saveImageBtn.addEventListener("click", async (e) => {
   await saveImageByFile(latestImageFile);
 });
 
+function generateDB()
+{
+  const profile = getStorageProvider().getProfile();
+  if (profile?.sub == BT_USER_ID)
+  {
+    loadPicsFromBTContent();
+  }
+  else if (profile?.sub == MBOQ_USER_ID)
+  {
+    uploadPicsFromPicsum();
+  }
+}
+
 async function loadPicsFromBTContent()
 {
     try {
@@ -469,4 +488,9 @@ async function loadPicsFromBTContent()
     {
         console.log(e);
     }
+}
+
+async function uploadPicsFromPicsum()
+{
+  console.log("TODO: Creating picsum db");
 }
