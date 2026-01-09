@@ -282,8 +282,6 @@ modal.addEventListener("click", () => {
 const progressEl = document.getElementById("uploadProgress");
 const barEl = progressEl.querySelector(".bar");
 const labelEl = progressEl.querySelector(".label");
-const bootstrapDBBtn = document.getElementById("bootstrapDBBtn");
-bootstrapDBBtn.addEventListener("click", bootstrapDB);
 
 document.getElementById("profileBtn").onclick = async () => {
   const forceNewLogin = true;
@@ -293,13 +291,17 @@ document.getElementById("profileBtn").onclick = async () => {
   {
     document.getElementById("showDbBtn").style.display = 'inline-block';
   }
-  if (profile?.sub == BT_USER_ID)
-  {
-    bootstrapDBBtn.style.display = 'inline-block';
-  }
   if (profile?.sub == MBOQ_USER_ID)
   {
-    bootstrapDBBtn.style.display = 'inline-block';
+    skyPhotosDB.virtualize();
+  }
+  else 
+  {
+    skyPhotosDB.unvirtualize();
+  }
+  if (profile?.sub == BT_USER_ID)
+  {
+    bootstrapBTContentDB();
   }
 };
 
@@ -431,23 +433,6 @@ saveImageBtn.addEventListener("click", async (e) => {
 
   await saveImageByFile(latestImageFile);
 });
-
-function bootstrapDB()
-{
-  const profile = getStorageProvider().getProfile();
-  if (profile?.sub == MBOQ_USER_ID)
-  {
-    skyPhotosDB.virtualize();
-  }
-  else 
-  {
-    skyPhotosDB.unvirtualize();
-  }
-  if (profile?.sub == BT_USER_ID)
-  {
-    bootstrapBTContentDB();
-  }
-}
 
 async function bootstrapBTContentDB()
 {

@@ -132,11 +132,9 @@ export default class VirtualizedDB extends DB_Interface {
         );
 
         const realQuery = this.#db.buildQuery(...realConstraints);
-        const docs = await this.#db.fetchRecords(realQuery, serialCb);
+        const baseDocs = await this.#db.fetchRecords(realQuery, serialCb);
 
-        if (!docs.length) return [];
-
-        const baseDocs = docs.map(d => d.data());
+        if (!baseDocs.length) return [];
 
         // Virtual expansion
         const results = [];

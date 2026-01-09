@@ -209,7 +209,7 @@ class SkyPhotosDB {
             for (let i = 0; i < addedCoverage.length; i += 2) {
                 const segmentRecords = await this.fetchDateRange(addedCoverage[i], addedCoverage[i+1], maxNumRecords, direction, true);
                 if (maxNumRecords > 0 && segmentRecords.length > 0) {
-                    const firstSegmentTimestamp = segmentRecords[0].data().takenTime || segmentRecords[0].data().createdAt;
+                    const firstSegmentTimestamp = segmentRecords[0].takenTime || segmentRecords[0].createdAt;
                     if (direction == DIRECTION.ASC)
                         this.#dateCoverage = mergeSegment(this.#dateCoverage, addedCoverage[i], firstSegmentTimestamp.toDate());
                     else
