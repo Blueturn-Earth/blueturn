@@ -6,13 +6,15 @@ const { mat3 } = window.glMatrix;
 import { gControlState } from './controlparams.js';
 
 import EpicDB from './epic_db.js';
-import { gScreen} from './screen.js';
+import {gScreen} from './screen.js';
 import { 
     gCalcLatLonNorthRotationMatrix, 
     gCalcNormalFromScreenCoord, 
     gCalcLatLonFromScreenCoord, 
     gGetDayFromTimeSec, 
-    gCalculateScreenCoordFromLatLon} 
+    gCalculateScreenCoordFromLatLon,
+    gLerp,
+    gGetDateTimeStringFromTimeSec} 
     from './utils.js';
 
 export let gEpicTimeSec = undefined;
@@ -37,62 +39,88 @@ let currentTimeSpeed = 0.0;
 let pivotStartPos = undefined;
 
 
+const loadingTextElement = document.getElementById("loading-text");
+
+export function gUpdateLoadingText(loadingText)
+{
+    if (!gControlState || !gControlState.showText)
+        loadingText = "";
+    loadingTextElement.textContent = loadingText;
+}   
+
 export const gEpicDB = new EpicDB();
 
 export async function gInitEpicTime()
 {
     // set first time
     gEpicDB.init()
-    .then(gJumpToEpicTime)            
+    .then(async () => {
+        const date_time = initStartTime();
+        console.log("Initializing to EPIC time: " + date_time);
+        let startTimeSec = EpicDB.getTimeSecFromDateTimeString(date_time);
+        gJumpToEpicTime(startTimeSec);
+    })            
     .catch((error) => {
-        console.error("Failed to init EpicDB: " + error);
+        console.error("Failed to init Epic Time: " + error);
     });
 }
 
-export async function gJumpToEpicTime()
+function initStartTime()
 {
-    if (gControlState.jumping)
+    // Now that we know the limit, set start time
+    if (!gControlState.day)
     {
-        console.warn("Already jumping to new date, ignoring request");
+        gControlState.day = gEpicDB.getLastDay();
+    }
+
+    let datePicker = document.getElementById("date-picker");
+    datePicker.max = gEpicDB.getLastDay();
+    datePicker.min = gEpicDB.getFirstDay();
+    datePicker.value = gControlState.day;
+    datePicker.addEventListener('change', function (e) {
+        console.log("Date changed to: " + this.value);
+        gControlState.day = this.value;
+        gControlState.play = false;
+        //gControlState.blockSnapping = false;
+        gControlState.jump = true;
+    });
+
+    if (!gControlState.time)
+    {
+        // set the current hour within the current day
+        const now = new Date();
+        gControlState.time = now.toUTCString().split(' ')[4].replace(/\.\d+Z$/, '');
+    }
+
+    const date_time = gControlState.day + " " + gControlState.time.replace(/\.\d+Z$/, '');
+    return date_time;
+}
+
+let gJumpingTimeSec;
+
+export async function gJumpToEpicTime(startTimeSec)
+{
+    if (!gEpicDB.isReady())
+    {
+        console.error("EpicDB is not ready");
         return;
     }
+
+    if (gControlState.jumping) {
+        console.debug("Already jumping to time " + gJumpingTimeSec + ", will now jump to " + startTimeSec + "s instead");
+    }
+    gJumpingTimeSec = startTimeSec;
+    let jumpingTimeSec = gJumpingTimeSec;
+    gControlState.jumping = true;
+
+    let date_time = gGetDateTimeStringFromTimeSec(startTimeSec);
+
     return new Promise((resolve, reject) => {
-        if (!gEpicDB.isReady())
-        {
-            reject("EpicDB is not ready");
+        if (gControlState.jumping && jumpingTimeSec != gJumpingTimeSec) {
+            console.debug("Cancel jumping to time " + jumpingTimeSec);
+            resolve(null);
             return;
         }
-
-        gControlState.jumping = true;
-
-        // Now that we know the limit, set start time
-        if (!gControlState.day)
-        {
-            gControlState.day = gEpicDB.getLastDay();
-        }
-
-        let datePicker = document.getElementById("date-picker");
-        datePicker.max = gEpicDB.getLastDay();
-        datePicker.min = gEpicDB.getFirstDay();
-        datePicker.value = gControlState.day;
-        datePicker.addEventListener('change', function (e) {
-            console.log("Date changed to: " + this.value);
-            gControlState.day = this.value;
-            gControlState.play = false;
-            gControlState.blockSnapping = false;
-            gControlState.jump = true;
-        });
-
-        if (!gControlState.time)
-        {
-            // set the current hour within the current day
-            const now = new Date();
-            gControlState.time = now.toUTCString().split(' ')[4].replace(/\.\d+Z$/, '');
-        }
-
-        let date_time = gControlState.day + " " + gControlState.time.replace(/\.\d+Z$/, '');
-        console.log("Jumping to EPIC time: " + date_time);
-        let startTimeSec = EpicDB.getTimeSecFromDateTimeString(date_time);
 
         if (startTimeSec < gEpicDB.getOldestEpicImageTimeSec())
         {
@@ -102,7 +130,7 @@ export async function gJumpToEpicTime()
             gControlState.day = oldestDate.toISOString().split('T')[0];
             gControlState.time = oldestDate.toUTCString().split(' ')[4].replace(/\.\d+Z$/, '');
             date_time = gControlState.day + " " + gControlState.time;
-            console.warn("Start time " + bad_date_time + " is older than oldest available EPIC image - adjust to oldest time " + date_time);
+        console.warn("Time " + bad_date_time + " is older than oldest available EPIC image - adjust to oldest time " + date_time);
         }
         while (startTimeSec > gEpicDB.getLatestEpicImageTimeSec() || !gEpicDB.isDayAvailable(gControlState.day))
         {
@@ -112,12 +140,12 @@ export async function gJumpToEpicTime()
             gControlState.day = adjustedDate.toISOString().split('T')[0];
             gControlState.time = adjustedDate.toUTCString().split(' ')[4].replace(/\.\d+Z$/, '');
             date_time = gControlState.day + " " + gControlState.time;
-            console.warn("Start time " + bad_date_time + " is not in available EPIC range - adjust to 24 hours backwards: " + date_time);
+            console.warn("Time " + bad_date_time + " is not in available EPIC range - adjust to 24 hours backwards: " + date_time);
         }
         // align to exact time of closest EPIC image
         if (gEpicDB.hasEpicDataForTimeSec(startTimeSec))
         {
-            console.log("Start time: " + date_time);
+            console.log("Time: " + date_time);
             gSetInitialEpicTimeSec(startTimeSec);
             gControlState.jumping = false;
             gControlState.jump = false;
@@ -125,8 +153,14 @@ export async function gJumpToEpicTime()
             return;
         }
 
+        gUpdateLoadingText("Loading...");
         gEpicDB.fetchBoundKeyFrames(startTimeSec)
         .then((boundPair) => {
+            if (gControlState.jumping && jumpingTimeSec != gJumpingTimeSec) {
+                console.debug("Cancel jumping to time " + jumpingTimeSec);
+                resolve(null);
+                return;
+            }
             if (!boundPair) // likely aborted
             {
                 gControlState.jumping = false;
@@ -139,51 +173,56 @@ export async function gJumpToEpicTime()
             if (!epicImageData0 && !epicImageData1)
             {
                 // Should really not happen
-                console.error("Failed to fetch bound key EPIC frames - returned null")
-                console.log("Start time: " + date_time);
+                console.error("Failed to fetch bound key EPIC frames at time " + date_time + " - returned null")
+                gUpdateLoadingText("No data for " + date_time);
                 gSetInitialEpicTimeSec(startTimeSec);
                 gControlState.jumping = false;
                 gControlState.jump = false;
                 resolve(startTimeSec);
                 return;
             }
-            console.log("Adjusting start time " + date_time + " to closest available EPIC image");
-            if (epicImageData0 === epicImageData1) {
-                console.assert(epicImageData0.date == date_time);
-                console.assert(epicImageData1.date == date_time);
-            }
-            else if (!epicImageData1) {
-                startTimeSec = epicImageData0.timeSec;
-                date_time = epicImageData0.date;
-                gControlState.day = date_time.split(' ')[0];
-                gControlState.time = date_time.split(' ')[1];
-            }
-            else if (!epicImageData0) {
-                startTimeSec = epicImageData1.timeSec;
-                date_time = epicImageData1.date;
-                gControlState.day = date_time.split(' ')[0];
-                gControlState.time = date_time.split(' ')[1];
-            }
-            else {
-                const keyTimeSec0 = epicImageData0 ? epicImageData0.timeSec : undefined;
-                const keyTimeSec1 = epicImageData1 ? epicImageData1.timeSec : undefined;
-                if (Math.abs(keyTimeSec0 - startTimeSec) > Math.abs(keyTimeSec1 - startTimeSec))
-                    date_time = epicImageData1.date;
-                else
+
+            if(!gControlState.blockSnapping)
+            {
+                console.debug("Adjusting time " + date_time + " to closest available EPIC image");
+                if (epicImageData0 === epicImageData1) {
+                    console.assert(epicImageData0.date == date_time);
+                    console.assert(epicImageData1.date == date_time);
+                }
+                else if (!epicImageData1) {
+                    startTimeSec = epicImageData0.timeSec;
                     date_time = epicImageData0.date;
-                gControlState.day = date_time.split(' ')[0];
-                gControlState.time = date_time.split(' ')[1];
+                    gControlState.day = date_time.split(' ')[0];
+                    gControlState.time = date_time.split(' ')[1];
+                }
+                else if (!epicImageData0) {
+                    startTimeSec = epicImageData1.timeSec;
+                    date_time = epicImageData1.date;
+                    gControlState.day = date_time.split(' ')[0];
+                    gControlState.time = date_time.split(' ')[1];
+                }
+                else {
+                    const keyTimeSec0 = epicImageData0 ? epicImageData0.timeSec : undefined;
+                    const keyTimeSec1 = epicImageData1 ? epicImageData1.timeSec : undefined;
+                    if (Math.abs(keyTimeSec0 - startTimeSec) > Math.abs(keyTimeSec1 - startTimeSec))
+                        date_time = epicImageData1.date;
+                    else
+                        date_time = epicImageData0.date;
+                    gControlState.day = date_time.split(' ')[0];
+                    gControlState.time = date_time.split(' ')[1];
+                }
             }
-            console.log("Start time: " + date_time);
+
             gSetInitialEpicTimeSec(startTimeSec);
             gControlState.jumping = false;
             gControlState.jump = false;
+            gUpdateLoadingText("");
             resolve(startTimeSec);
             return;
         })
         .catch((error) => {
-            console.error("Failed to fetch bound key frames around start time: " + error);
-            console.log("Start time: " + date_time);
+            console.error("Failed to fetch bound key frames around time: " + error);
+            console.log("Time: " + date_time);
             gSetInitialEpicTimeSec(startTimeSec);
             gControlState.jumping = false;
             gControlState.jump = false;
@@ -197,7 +236,7 @@ gScreen.addEventListener("down", (e) => {
     if (gEpicTimeSec)
     {
         epicPressTime = gEpicTimeSec;
-        gControlState.blockSnapping = false;
+        //gControlState.blockSnapping = false;
         gControlState.holding = true;
     }
 });
@@ -241,10 +280,10 @@ export function gSetInitialEpicTimeSec(startTimeSec)
     gEpicDB.setTimeRange(startTimeSec, gControlState.range);
     const timeSuccess = gSetEpicTimeSec(startTimeSec);
 
-    if (timeSuccess && gControlState.zoom && gEpicImageData)
+    if (timeSuccess && gControlState.zoom && gControlState.zoom.str && gEpicImageData)
     {
         gControlState.play = false;
-        const [latStr, lonStr] = gControlState.zoom.split(',');
+        const [latStr, lonStr] = gControlState.zoom.str.split(',');
         const lat = parseFloat(latStr);
         const lon = parseFloat(lonStr);
         const zoomPivotPos = gCalculateScreenCoordFromLatLon(lat, lon, 
@@ -259,8 +298,29 @@ export function gSetInitialEpicTimeSec(startTimeSec)
     }
 }
 
-export function gSetEpicTimeSec(timeSec)
+const epicTimeChangeCallbacks = new Map();
+
+let nextCbId = 0;
+export function addEpicTimeChangeCallback(cb)
 {
+    epicTimeChangeCallbacks.set(nextCbId, cb);
+    cb(gEpicTimeSec);
+    return nextCbId++;
+}
+
+export function removeEpicTimeChangeCallback(cbId)
+{
+    if (!epicTimeChangeCallbacks.has(cbId))
+    {
+        console.error("No id " + cbId + " in epicTimeChangeCallbacks ");
+        return;
+    }
+    epicTimeChangeCallbacks.delete(cbId);
+}
+
+export function gSetEpicTimeSec(timeSec, noloop = false)
+{
+    const argTimeSec = timeSec;
     //console.log("gEpicTimeSec: " + timeSec);
     let prevEpicTimeSec = gEpicTimeSec;
 
@@ -272,26 +332,48 @@ export function gSetEpicTimeSec(timeSec)
         // Looping around default loop time range
         prevEpicTimeSec = latestEpicTimeSec;
         const loopBackRangeSec = gControlState.range ? gControlState.range : 3600 * 24; // default to 24 hours
-        timeSec = latestEpicTimeSec - loopBackRangeSec;
+        timeSec = noloop ? prevEpicTimeSec : latestEpicTimeSec - loopBackRangeSec;
+        if (noloop)
+            gUpdateLoadingText("Last image available");
+        else
+            gUpdateLoadingText("");
+
         //console.log("Past latest available EPIC image time, jumping back to loop period of " + loopBackRangeSec + "s");
     }
-    if (timeSec > gEpicDB.getEndTime())
+    else if (timeSec > gEpicDB.getEndTime())
     {
         // Looping around default loop time range
         prevEpicTimeSec = gEpicDB.getEndTime();
         timeSec = gEpicDB.getStartTime();
+        gUpdateLoadingText("");
         //console.log("Past end of time range, jumping back to start time " + gEpicDB.getStartTime());
     }
-    if (timeSec < oldestEpicTimeSec)
+    else if (timeSec < oldestEpicTimeSec)
+    {
         // Block at oldest time
         timeSec = oldestEpicTimeSec;
+        gUpdateLoadingText("First image available by NASA");
+    }
+    else if (!gControlState.jumping) {
+        gUpdateLoadingText("");
+    }
+    else
+    {
+        //Jumping... keep loading msg unchanged
+    }
+
+    if (!timeSec) {
+        console.error("Failed to adjust time from ", argTimeSec);
+        gUpdateLoadingText("Error");
+        return false;
+    }
 
     gEpicTimeSec = timeSec;
 
     let interpolationSuccess;
     if (prevEpicTimeSec)
     {
-        if(gEpicDB.isTimeSecFirstOfDay(timeSec) && timeSec != oldestEpicTimeSec)
+        if(gEpicDB.isTimeSecBeforeFirstOfDay(timeSec) && timeSec != oldestEpicTimeSec)
         {
             let prevDayTimeSec = timeSec - 3600 * 24;
             // get day from timeSec
@@ -301,14 +383,14 @@ export function gSetEpicTimeSec(timeSec)
                 timeSec = prevDayTimeSec; // go back one day
             }
         }
-        if(gEpicDB.isTimeSecLastOfDay(timeSec) && timeSec != latestEpicTimeSec)
+        if(gEpicDB.isTimeSecAfterLastOfDay(timeSec) && timeSec != latestEpicTimeSec)
         {
             let nextDayTimeSec = timeSec + 3600 * 24;
             // get day from timeSec
             while (!gEpicDB.isDayAvailable(gGetDayFromTimeSec(nextDayTimeSec)))
             {
                 nextDayTimeSec += 3600 * 24;
-                timeSec = nextDayTimeSec; // go back one day
+                timeSec = nextDayTimeSec; // go to next day
             }
         }
 
@@ -338,6 +420,11 @@ export function gSetEpicTimeSec(timeSec)
     }
 
     updateDateText(gEpicTimeSec);
+
+    for(const [cbId, cb] of epicTimeChangeCallbacks)
+    {
+        cb(gEpicTimeSec);
+    }
 
     return interpolationSuccess;
 }
@@ -369,7 +456,7 @@ gScreen.addEventListener("double-click", (e) => {
         clearTimeout(gControlState.playTimeout);
         gControlState.playTimeout = undefined;
     }
-    setControlStatePlay(false);
+    gSetPlayState(false);
 
     if (!gControlState.play)
         setZoom(!gZoom, e.clickPos);
@@ -379,7 +466,7 @@ gScreen.addEventListener("double-click", (e) => {
     gTagZoomEvent("double-click");
 });
 
-function setControlStatePlay(play)
+export function gSetPlayState(play)
 {
     gControlState.play = play;
     gtag('event', 'play', {
@@ -392,7 +479,7 @@ function setControlStatePlay(play)
 const PLAY_TIMEOUT_MS = 250;
 
 gScreen.addEventListener("click", (e) => {
-    gControlState.blockSnapping = false;
+    //gControlState.blockSnapping = false;
     gControlState.holding = false;
     // pause immediately, play with delay
     if (gControlState.play || gControlState.playTimeout) {
@@ -401,7 +488,7 @@ gScreen.addEventListener("click", (e) => {
             clearTimeout(gControlState.playTimeout);
             gControlState.playTimeout = undefined;
         }
-        setControlStatePlay(false);
+        gSetPlayState(false);
     }
     else {
         if (gControlState.playTimeout)
@@ -413,7 +500,7 @@ gScreen.addEventListener("click", (e) => {
                 gControlState.playTimeout = undefined;
                 if (!gControlState.play)
                 {
-                    setControlStatePlay(true);
+                    gSetPlayState(true);
                 }
             },
             PLAY_TIMEOUT_MS
@@ -423,6 +510,10 @@ gScreen.addEventListener("click", (e) => {
 
 function jumpDays(numDays)
 {
+    if (!gEpicTimeSec) {
+        console.warn("Epic time not set");
+        return;
+    }
     const newEpicTimeSec = gEpicTimeSec + numDays * 24 * 3600;
     // Get ISO string and remove the time zone suffix (.000Z)
     const isoString = new Date(newEpicTimeSec * 1000).toISOString();
@@ -465,7 +556,7 @@ gScreen.addEventListener("drag-x", (e) => {
     if (epicPressTime && gEpicTimeSec)
     {
         const dragDeltaTime = (e.deltaPos.x) / canvas.width * 3600 * 24;
-        gSetEpicTimeSec(gEpicTimeSec + dragDeltaTime, e.startPos);
+        gSetEpicTimeSec(gEpicTimeSec + dragDeltaTime, true);
 
         currentTimeSpeed = dragDeltaTime / e.deltaTime;
         dragging = true;
@@ -542,7 +633,8 @@ function createPivotEpicImageData(epicImageData, pivotPos, alsoGetTimezone = tru
 
     if (gEpicTimeSec)
     {
-        const {lat, lon} = pivotEpicImageData.pivot_coordinates;
+        const lat = pivotEpicImageData.pivot_coordinates.lat;
+        const lon = pivotEpicImageData.pivot_coordinates.lon;
         const timestamp = Math.floor(Date.now() / 1000);
         const apiKey = "AIzaSyA5G5wpnUkc_3cKFUVGfJVjtCATeTCEFF8";
         console.log("Fetching timezone for lat:", lat, "lon:", lon);
@@ -584,9 +676,12 @@ function setZoom(on, pivotPos)
             }
             pivotStartPos = pivotPos;
             gZoom = true;
-            gControlState.zoom = 
-                gPivotEpicImageData.pivot_coordinates.lat.toString() + ","+
-                gPivotEpicImageData.pivot_coordinates.lon;
+            gControlState.zoom = {
+                lat: gPivotEpicImageData.pivot_coordinates.lat,
+                lon: gPivotEpicImageData.pivot_coordinates.lon,
+                str: 
+                    gPivotEpicImageData.pivot_coordinates.lat.toString() + ","+
+                    gPivotEpicImageData.pivot_coordinates.lon};
             //console.log('pivotStartPos: ' + JSON.stringify(pivotStartPos));
         }
     }
@@ -600,10 +695,6 @@ function mix(x, y, a) {
 }
 
 let lastUpdateTime = undefined;
-
-function lerp( a, b, alpha ) {
-    return a + alpha * ( b - a );
-}
 
 export function gUpdateEpicTime(time)
 {
@@ -619,8 +710,10 @@ export function gUpdateEpicTime(time)
 
     if (gControlState.jump)
     {
-        console.log("Requested jumping to new date");
-        gJumpToEpicTime();
+        const date_time = gControlState.day + " " + gControlState.time.replace(/\.\d+Z$/, '');
+        console.log("Jumping to EPIC time: " + date_time);
+        let jumpTimeSec = EpicDB.getTimeSecFromDateTimeString(date_time);
+        gJumpToEpicTime(jumpTimeSec);
         return;
     }
 
@@ -631,7 +724,7 @@ export function gUpdateEpicTime(time)
         {
             const DECCELERATION_FACTOR = 0.1; // Adjust this value to control the deceleration speed
             const systemDeltaTime = (time - lastUpdateTime) / 1000.0;
-            currentTimeSpeed = lerp(currentTimeSpeed, targetSpeed, DECCELERATION_FACTOR);
+            currentTimeSpeed = gLerp(currentTimeSpeed, targetSpeed, DECCELERATION_FACTOR);
             let timeSec = gEpicTimeSec + systemDeltaTime * currentTimeSpeed;
             let snapping = false;
             if (!gControlState.play && !gControlState.blockSnapping)
@@ -648,17 +741,18 @@ export function gUpdateEpicTime(time)
                         const TIME_DIFF_EPSILON = 1;
                         snapping = Math.abs(timeSec - closestEpicImageData.timeSec) > TIME_DIFF_EPSILON;
                         if (gControlState.snapping && !snapping) {
-                            console.log("Snapped to closest EPIC image: " + closestEpicImageData.date);
+                            console.debug("Snapped to closest EPIC image: " + closestEpicImageData.date);
                         }
                         if(snapping)
-                            timeSec = lerp(timeSec, closestEpicImageData.timeSec, SNAP_FACTOR);
+                            timeSec = gLerp(timeSec, closestEpicImageData.timeSec, SNAP_FACTOR);
                         else
                             timeSec = closestEpicImageData.timeSec;
                     }
                 }
             }
             gControlState.snapping = snapping;
-            gSetEpicTimeSec(timeSec);
+            const noloop = !gControlState.play;
+            gSetEpicTimeSec(timeSec, noloop);
         }
     }
 

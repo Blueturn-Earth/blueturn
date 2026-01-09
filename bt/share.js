@@ -1,6 +1,6 @@
 import { gControlState, gControlMap } from './controlparams.js';
 import { gEpicTimeSec, gDateText } from './app.js';
-import { gGetDateFromTimeSec } from './utils.js';
+import { gGetDateTimeStringFromTimeSec } from './utils.js';
 
 function toSimpleString(value) {
   if (typeof value === 'string') {
@@ -33,7 +33,7 @@ function shareURL(url) {
     let shareText = "I am sharing the Whole Earth with you...\n";
     shareText += "Time info: " + gDateText + "\n";
     if(gControlState.zoom)
-      shareText += "GPS Info: " + gControlState.zoom + "\n";
+      shareText += "GPS Info: " + gControlState.zoom.str + "\n";
     const shareTextWithURL = shareText + url;
     console.log("Sharing this:\n" + shareTextWithURL);
     navigator.share({
@@ -50,7 +50,7 @@ function shareURL(url) {
 const USE_TINY_URL = true; // Set to true to use TinyURL for shorter links
 
 export function share() {
-    const day_time = gGetDateFromTimeSec(gEpicTimeSec);
+    const day_time = gGetDateTimeStringFromTimeSec(gEpicTimeSec);
     const day_time_split = day_time.split(' ');
     gControlState.day = day_time_split[0];
     gControlState.time = day_time_split[1];
@@ -70,4 +70,16 @@ export function share() {
     }
 }
 
+export function gotoNASALink(node)
+{
+  window.location.href = "http://epic.gsfc.nasa.gov/";
+}
+
+export function gotoBTLink(node)
+{
+  window.location.href = "https://blueturn.earth";
+}
+
 window.share = share;
+window.gotoNASALink = gotoNASALink;
+window.gotoBTLink = gotoBTLink;

@@ -85,7 +85,7 @@ vec3 Render(in vec2 fragCoord)
     vec2 uv = fragCoordToUV(fragCoord);
 
     // Common ground rotation from lat, lon
-    mat3 GroundMatrix = curr_epicImage.centroid_matrix;
+    mat3 CentroidMatrix = curr_epicImage.centroid_matrix;
 
     vec4 pivot_circle_color = vec4(0.0, 0.0, 0.0, 0.0);
     float pivot_circle_radius = zoomCircleRadius;
@@ -102,9 +102,9 @@ vec3 Render(in vec2 fragCoord)
 
         pivot_uv /= pivot_epicImage.earth_radius;
         vec3 pivot_Normal     = vec3(pivot_uv, sqrt(1.0 - dot(pivot_uv, pivot_uv)));
-        mat3 pivot_GroundMatrix = pivot_epicImage.centroid_matrix;
-        pivot_Normal *= pivot_GroundMatrix;
-        pivot_Normal *= transpose(GroundMatrix);
+        mat3 pivot_CentroidMatrix = pivot_epicImage.centroid_matrix;
+        pivot_Normal *= pivot_CentroidMatrix;
+        pivot_Normal *= transpose(CentroidMatrix);
         //if (pivot_Normal.z >= 0.0)
         {
             // overwrite pivot_uv with the rotated pivot_Normal
@@ -135,7 +135,7 @@ vec3 Render(in vec2 fragCoord)
     vec2 pixel_uv = uv / earth_radius;
     vec3 Normal = vec3(pixel_uv, signedSqrt(1.0 - dot(pixel_uv, pixel_uv)));
 
-    vec3 GroundNormal = Normal * GroundMatrix;
+    vec3 GroundNormal = Normal * CentroidMatrix;
 
     vec3 GroundBlueMarble = RenderBlueMarble(GroundNormal);
     vec3 GroundEpic0 = RenderEpicImage(GroundNormal, epicImage[0]);

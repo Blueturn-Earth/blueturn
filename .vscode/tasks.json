@@ -1,0 +1,34 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Live Server",
+      "type": "shell",
+      "command": "npx live-server",
+      "isBackground": true,
+      "problemMatcher": [
+        {
+          "pattern": [
+            {
+              "regexp": ".",
+              "file": 1,
+              "location": 2,
+              "message": 3
+            }
+          ],
+          "background": {
+            "activeOnStart": true,
+            "beginsPattern": "Starting up .*",
+            "endsPattern": "Serving.*"
+          }
+        }
+      ]
+    },
+    {
+      "label": "Stop Live Server",
+      "type": "shell",
+      "command": "pkill -f live-server || echo 'No server running'",
+      "problemMatcher": []
+    }
+  ]
+}

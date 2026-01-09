@@ -14,7 +14,7 @@ export default class EpicDataLoader
     async _loadJsonCallURL(call, nocache = false)
     {
         return new Promise((resolve, reject) => {
-            if (gEpicAPI.isUsingCache() && !nocache) {
+            if (gEpicAPI.isUsingCache() && !nocache && !gEpicAPI._NO_CACHE) {
                 const cacheDate = localStorage.getItem(this.#CACHE_DATE);
                 const cachedData = localStorage.getItem(call);
                 if (cacheDate === gGetTodayDateStr() && cachedData) {
@@ -37,7 +37,7 @@ export default class EpicDataLoader
             const controller = new AbortController();
             const signal = controller.signal;            
             this._pendingLoads.set(call, controller);
-            console.log("Loading Epic Data URL: " + url);
+            console.debug("Loading Epic Data URL: " + url);
             url += "?" + gEpicAPI.getEpicCallURLSecretQuery(nocache)
             fetch(url, { mode: 'cors', cache: 'force-cache', signal })
             .then(response => {
@@ -47,7 +47,7 @@ export default class EpicDataLoader
                 return response.text();
             })
             .then(text => {
-                if (gEpicAPI.isUsingCache() && !nocache) {
+                if (gEpicAPI.isUsingCache() && !nocache && !gEpicAPI._NO_CACHE) {
                     localStorage.setItem(this.#CACHE_DATE, gGetTodayDateStr());
                     localStorage.setItem(call, text);
                 }
@@ -55,7 +55,10 @@ export default class EpicDataLoader
                 resolve(JSON.parse(text));
             })
             .catch(error => {
-                if (error.startsWith('Abort')) {
+                if (error && 
+                    (((typeof error === 'string' || error instanceof String) && error.startsWith('Abort')) ||
+                     (error.name && error.name.startsWith('Abort')) || 
+                     (error.message && error.message.startsWith('Abort')))) {
                     console.warn(error);
                     resolve(null); // Resolve with null if the request was aborted
                 }
@@ -82,6 +85,8 @@ export default class EpicDataLoader
         this._pendingLoads.forEach((controller, call) => {
             let doAbort = true;
             days.forEach((date) => {
+                if (!date)
+                    return;
                 const excludedCall = gEpicAPI.getEpicDayCall(date);
                 if (call === excludedCall) {
                     doAbort = false; // Do not abort the call for the excluded date

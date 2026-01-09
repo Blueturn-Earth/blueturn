@@ -128,7 +128,7 @@ class Screen
     #MIN_DRAG_DISTANCE = 50;
     #MIN_DOUBLE_CLICK_DISTANCE = 80;
     #CLICK_TIMEOUT_MS = 200;
-    #LONG_PRESS_TIME_MS = 500;
+    #LONG_PRESS_TIME_MS = 1000;
     #DOUBLE_CLICK_MAX_TIME_MS = 200;
     #MOVE_2_CROSS_THRESHOLD = 0.1;
     #PINCH_STEP = canvas.width / 50;
@@ -320,7 +320,7 @@ class Screen
             x: this.#lastMovePos.x - this.#startPos.x,
             y: this.#lastMovePos.y - this.#startPos.y
         };
-        console.log("try swype delta: x=" + dragDelta.x + ", y=" + dragDelta.y + ", time=" + dragDuration);
+        console.debug("try swype delta: x=" + dragDelta.x + ", y=" + dragDelta.y + ", time=" + dragDuration);
 
         if (dragDuration < this.#SWYPE_TIMEOUT_MS &&
             (Math.abs(dragDelta.x) > this.#MIN_SWYPE_DISTANCE ||
@@ -387,6 +387,8 @@ class Screen
             return;
 
         if (!this.clickCancelled &&
+            this.#lastMovePos &&
+            this.#startPos &&
             Math.abs(this.#lastMovePos.x - this.#startPos.x) < this.#MIN_DOUBLE_CLICK_DISTANCE &&
             Math.abs(this.#lastMovePos.y - this.#startPos.y) < this.#MIN_DOUBLE_CLICK_DISTANCE)
         {
@@ -449,7 +451,7 @@ export let gScreen = new Screen();
 // Test
 function logEvent(e)
 {
-    console.log(e.eventStr + ": " + JSON.stringify(e));
+    console.debug(e.eventStr + ": " + JSON.stringify(e));
 }
 
 // gScreen.addEventListener("down", logEvent);
@@ -489,13 +491,4 @@ function resize()
 resize();
 
 window.addEventListener('resize', resize);
-
-const loadingTextElement = document.getElementById("loading-text");
-
-export function gUpdateLoadingText(loadingText)
-{
-    if (!gControlState || !gControlState.showText)
-        loadingText = "";
-    loadingTextElement.textContent = loadingText;
-}   
 

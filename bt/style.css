@@ -25,11 +25,12 @@ html, body, canvas {
 #current-time-text {
     position: absolute;
     bottom: 20px;
-    right: 20px;
+      left: 20px;
     color: lightgray;
     font-size: 20px;
     font-family: 'Courier New', monospace;
     z-index: 10;  /* Ensure text stays on top */
+    pointer-events: auto;
 }
 
 #date-picker {
@@ -41,83 +42,100 @@ html, body, canvas {
     opacity: 0; 
     z-index: 20; 
     cursor: pointer;
+    pointer-events: auto;
 }
 
 #loading-text {
     position: absolute;
-    top: 20px;
+    bottom: 120px;
     left: 20px;
-    color: darkorange;
+    color: darkgoldenrod;
     font-size: 20px;
     font-family: 'Courier New', monospace;
     text-align: left;
     z-index: 10;  /* Ensure text stays on top */
 }
 
-#btLogo {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    width: 10vmin;
-    height: auto;
-    z-index: 10;
-    opacity: 0.3;
-    transition: opacity 0.2s;
-}
-
-#btLogo:hover {
-    opacity: 1;
-}
-
-#nasaLogo {
-    position: fixed;
-    bottom: 10px;
-    left: 10px;
-    width: 10vmin;
-    height: auto;
-    z-index: 10;
-    opacity: 0.3;
-    transition: opacity 0.2s;
-}
-
-#nasaLogo:hover {
-    opacity: 1;
-}
-
-.share-button {
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    width: 5vmin;
-    height: auto;
-    background: none;
-    border: none;
-    cursor: pointer;
-    z-index: 10;
-    opacity: 0.3;
-    transition: opacity 0.2s ease;
-}
-
-.share-button:hover {
-  opacity: 1;
-}
-
-.share-button img {
-    width: 32px;
-    height: 32px;
-}
-
-#ui {
+#topUI {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
-    height: 10vmin;
-    opacity: 1;
-    transition: opacity 0.5s ease-in-out;
-    z-index: 9999; /* Ensure it’s on top */
+    height: 20vmin;
+    opacity: 0.3;
+    transition: opacity 0.2s ease;
+    z-index: 10; /* Ensure it’s on top */
 }
 
-#ui.hidden {
-    opacity: 0;
+#topUI.is-active {
+    opacity: 1;
 }
+
+#topButtons {
+    position: fixed;
+    display: flex;
+    padding: 5px;
+}
+
+#topButtons > * {
+  all: unset;
+  display: flex !important;
+
+  /* THIS IS CRITICAL */
+  justify-self: stretch;
+
+  align-items: center;
+  justify-content: center;
+}
+
+/* First visible child → left */
+#topButtons > *:first-child {
+  justify-content: flex-start;
+}
+
+/* Last visible child → right */
+#topButtons > *:last-child {
+  justify-content: flex-end;
+}
+
+#topButtons img {
+    /* Force all SVG images to be exactly 50px by 50px */
+    width: 30px;
+    height: 30px;
+    /* Optional: Ensures the SVG scales correctly within the assigned dimensions */
+    display: block; 
+  max-width: 100%;
+  max-height: 100%;
+}
+
+@media (min-aspect-ratio: 1/1) or (orientation: landscape) {
+  #topButtons {
+      flex-direction: column;
+      height: 100%;
+      width: 40px;
+      top: 0;
+      bottom: 0;
+      right: 0;
+      left: auto;
+      justify-content: space-evenly; /* or space-between */
+      align-items: center;
+  }
+}
+
+@media (max-aspect-ratio: 1/1) or (orientation: portrait) {
+  #topButtons {
+      flex-direction: row;
+      height: 40px;
+      width: 100%;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: auto;
+      /* Aligns items in the center of the toolbar */
+      align-items: center; 
+      /* Distributes space evenly between or around buttons (optional, adjust as needed) */
+      justify-content: space-around; 
+  }
+}
+
+
