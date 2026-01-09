@@ -2,6 +2,8 @@ import { db } from './db_factory.js';
 import { gEpicDB } from './app.js';
 import { gGetDateTimeStringFromTimeSec, gFindClosestIndexInSortedArray, gGetDateTimeStringFromDate } from './utils.js';
 import { mergeSegment, intersectSegment, negativeCoverage, getIndexOfValueInArray } from './utils_coverage.js'
+import VirtualizedDB from './virtualized_db.js';
+import { virtualizeSkyPhoto } from './sky_photos_db_virtualizer.js'
 
 const DIRECTION = Object.freeze({
     ASC: 'asc',
@@ -17,6 +19,25 @@ class SkyPhotosDB {
     constructor() {
         this.db = db;
         this.db.addNewRecordCallback(async (record) => {await this._newSkyPhotoCallback(record);});
+        //this.virtualize();
+    }
+
+    virtualize()
+    {
+        console.warn("Virtualizing Sky Photos DB");
+        this.db = new VirtualizedDB(db,
+            {
+                virtualSize: 1000,
+                fetchMultiplier: 10,
+                virtualizer: virtualizeSkyPhoto
+            }
+        );
+    }
+
+    unvirtualize()
+    {
+        console.log("Unvirtualizing Sky Photos DB");
+        this.db = db;
     }
 
     async saveSkyPhoto(record) {

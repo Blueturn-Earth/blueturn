@@ -282,7 +282,7 @@ modal.addEventListener("click", () => {
 const progressEl = document.getElementById("uploadProgress");
 const barEl = progressEl.querySelector(".bar");
 const labelEl = progressEl.querySelector(".label");
-bootstrapDBBtn = document.getElementById("bootstrapDBBtn");
+const bootstrapDBBtn = document.getElementById("bootstrapDBBtn");
 bootstrapDBBtn.onclick = () => bootstrapDB;
 
 document.getElementById("profileBtn").onclick = async () => {
@@ -435,6 +435,14 @@ saveImageBtn.addEventListener("click", async (e) => {
 function bootstrapDB()
 {
   const profile = getStorageProvider().getProfile();
+  if (profile?.sub == MBOQ_USER_ID)
+  {
+    skyPhotosDB.virtualize();
+  }
+  else 
+  {
+    skyPhotosDB.unvirtualize();
+  }
   if (profile?.sub == BT_USER_ID)
   {
     bootstrapBTContentDB();
