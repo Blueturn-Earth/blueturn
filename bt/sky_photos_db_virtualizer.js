@@ -50,7 +50,7 @@ function pickClusterIndex(virtualId) {
   return -1; // random global point
 }
 
-function generateRandomGPS(virtualId) {
+function generateRandomGPS(gps, virtualId) {
   const clusterIndex = pickClusterIndex(virtualId);
 
   // Local jitter in degrees
