@@ -58,15 +58,23 @@ export default class VirtualizedDB extends DB_Interface {
         return this.#db.buildQuery(...constraints);
     }
 
+    #nextCbId = 0;
+    #newRecordCallbacks = new Map();
+
     addNewRecordCallback(cb)
     {
-        return this.#db.addNewRecordCallback(cb);
+        const cbId = this.#nextCbId;
+        this.#newRecordCallbacks.set(this.#nextCbId++, cb);
+        return cbId;
     }
 
     removeNewRecordCallback(cbId)
     {
-        return this.#db.removeNewRecordCallback(cbId);
+        if (!this.#newRecordCallbacks.has(cbId))
+            throw new Error("cb id " + cbId + " not in callbacks");
+        this.#newRecordCallbacks.delete(cbId);
     }
+
 
     async forEachLocal(cb) {
         return await this.#db.forEachLocal(cb);
@@ -156,6 +164,15 @@ export default class VirtualizedDB extends DB_Interface {
                     ? a[field] - b[field]
                     : b[field] - a[field]
             );
+        }
+
+        for (const docData of results) {
+            for (const [cbId, cb] of this.#newRecordCallbacks) {
+                if (serialCb)
+                    await cb(docData);
+                else
+                    cb(docData);
+            };
         }
 
         return results;
