@@ -1,4 +1,4 @@
-import { getStorageProvider, MB_USER_ID, BT_USER_ID } from './gdrive_provider.js';
+import { getStorageProvider, MB_USER_ID, BT_USER_ID, MBOQ_USER_ID } from './gdrive_provider.js';
 import { skyPhotosDB } from './sky_photos_db.js';
 import { processEXIF, addEXIF } from './exif.js';
 import { analyzeSkyFromImg } from './sky_analyzer.js'
@@ -289,11 +289,19 @@ document.getElementById("profileBtn").onclick = async () => {
   const profile = getStorageProvider().getProfile();
   if (profile?.sub == MB_USER_ID)
   {
-    document.getElementById("showDbBtn").style.display = 'block';
+    document.getElementById("showDbBtn").style.display = 'inline-block';
+  }
+  if (profile?.sub == MBOQ_USER_ID)
+  {
+    skyPhotosDB.virtualize();
+  }
+  else 
+  {
+    skyPhotosDB.unvirtualize();
   }
   if (profile?.sub == BT_USER_ID)
   {
-    loadPicsFromBTContent();
+    bootstrapBTContentDB();
   }
 };
 
@@ -426,7 +434,7 @@ saveImageBtn.addEventListener("click", async (e) => {
   await saveImageByFile(latestImageFile);
 });
 
-async function loadPicsFromBTContent()
+async function bootstrapBTContentDB()
 {
     try {
         const resp = await fetch('https://content.blueturn.earth/Pictures.txt');
@@ -457,7 +465,7 @@ async function loadPicsFromBTContent()
                 console.log("Calculated sky ratio: " + latestSkyRatio);
                 // 2. save to GDrive + FB
                 console.log("Saving blob for ", url);
-                await saveImageByBlob(blob);
+                await saveImageByBlob(blob, url);
                 console.log("Done with ", url);
             }            
             catch(e) {

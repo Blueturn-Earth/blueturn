@@ -192,7 +192,7 @@ html, body, canvas {
   display: none;
 }
 
-.show-db-btn {
+.debug-btn {
   position: absolute;
   top: 80px;
   right: 15px;
@@ -209,11 +209,11 @@ html, body, canvas {
   transition: background-color 0.3s; /* Smooth transition for color change */
 }
 
-.show-db-btn:hover {
+.debug-btn:hover {
   background-color: #0056b3; /* Darker blue on hover */
 }
 
-.show-db-btn:active {
+.debug-btn:active {
   box-shadow: inset 2px 2px 3px rgba(0, 0, 0, 0.6); /* Inset shadow when clicked */
 }
 
