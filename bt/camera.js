@@ -350,7 +350,7 @@ async function heicToJpeg(imgFile) {
   });
 }
 
-async function saveImage(imgFile) {
+async function saveImageByFile(imgFile) {
   console.log("Saving image file: ", imgFile);
 
   if (needsConversion(imgFile)) {
@@ -361,10 +361,10 @@ async function saveImage(imgFile) {
   const dataURL = URL.createObjectURL(imgFile);
 
   const blob = await (await fetch(dataURL)).blob();
-  return await saveBlob(blob, dataURL)
+  return await saveImageByBlob(blob, dataURL)
 }
 
-async function saveBlob(blob, url)
+async function saveImageByBlob(blob, url)
 {
   progressEl.classList.remove("hidden");
   barEl.style.width = "0%";
@@ -377,6 +377,7 @@ async function saveBlob(blob, url)
     const uploadResult = await getStorageProvider().upload(blob, (p) => {
       barEl.style.width = `${Math.round(p * 100)}%`;
     });
+    barEl.style.width = "100%";
 
     labelEl.textContent = "Finalizing…";
 
@@ -392,7 +393,6 @@ async function saveBlob(blob, url)
     docId = await skyPhotosDB.saveSkyPhoto(record);
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
-    barEl.style.width = "100%";
     saveImageBtn.disabled = true;
     latestImageUploaded = true;
   } catch (e) {    
@@ -423,7 +423,7 @@ saveImageBtn.addEventListener("click", async (e) => {
   if (!latestImageFile) 
     return;
 
-  await saveImage(latestImageFile);
+  await saveImageByFile(latestImageFile);
 });
 
 async function loadPicsFromBTContent()
@@ -457,7 +457,7 @@ async function loadPicsFromBTContent()
                 console.log("Calculated sky ratio: " + latestSkyRatio);
                 // 2. save to GDrive + FB
                 console.log("Saving blob for ", url);
-                await saveBlob(blob);
+                await saveImageByBlob(blob);
                 console.log("Done with ", url);
             }            
             catch(e) {
