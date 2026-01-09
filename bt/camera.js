@@ -283,7 +283,7 @@ const progressEl = document.getElementById("uploadProgress");
 const barEl = progressEl.querySelector(".bar");
 const labelEl = progressEl.querySelector(".label");
 const bootstrapDBBtn = document.getElementById("bootstrapDBBtn");
-bootstrapDBBtn.onclick = () => bootstrapDB;
+bootstrapDBBtn.addEventListener("click", bootstrapDB);
 
 document.getElementById("profileBtn").onclick = async () => {
   const forceNewLogin = true;

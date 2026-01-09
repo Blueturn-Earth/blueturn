@@ -192,19 +192,10 @@ html, body, canvas {
   display: none;
 }
 
-#showDbBtn {
+.debug-btn {
   position: absolute;
   top: 80px;
   right: 15px;
-}
-
-#bootstrapDBBtn {
-  position: absolute;
-  top: 120px;
-  right: 15px;
-}
-
-.debug-btn {
   background-color: #007bff; /* Blue background */
   border: none;
   color: white; /* White text */
