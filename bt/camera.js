@@ -282,8 +282,8 @@ modal.addEventListener("click", () => {
 const progressEl = document.getElementById("uploadProgress");
 const barEl = progressEl.querySelector(".bar");
 const labelEl = progressEl.querySelector(".label");
-generateDBBtn = document.getElementById("generateDBBtn");
-generateDBBtn.onclick = () => generateDB;
+bootstrapDBBtn = document.getElementById("bootstrapDBBtn");
+bootstrapDBBtn.onclick = () => bootstrapDB;
 
 document.getElementById("profileBtn").onclick = async () => {
   const forceNewLogin = true;
@@ -295,11 +295,11 @@ document.getElementById("profileBtn").onclick = async () => {
   }
   if (profile?.sub == BT_USER_ID)
   {
-    generateDBBtn.style.display = 'inline-block';
+    bootstrapDBBtn.style.display = 'inline-block';
   }
   if (profile?.sub == MBOQ_USER_ID)
   {
-    generateDBBtn.style.display = 'inline-block';
+    bootstrapDBBtn.style.display = 'inline-block';
   }
 };
 
@@ -432,20 +432,16 @@ saveImageBtn.addEventListener("click", async (e) => {
   await saveImageByFile(latestImageFile);
 });
 
-function generateDB()
+function bootstrapDB()
 {
   const profile = getStorageProvider().getProfile();
   if (profile?.sub == BT_USER_ID)
   {
-    loadPicsFromBTContent();
-  }
-  else if (profile?.sub == MBOQ_USER_ID)
-  {
-    uploadPicsFromPicsum();
+    bootstrapBTContentDB();
   }
 }
 
-async function loadPicsFromBTContent()
+async function bootstrapBTContentDB()
 {
     try {
         const resp = await fetch('https://content.blueturn.earth/Pictures.txt');
@@ -476,7 +472,7 @@ async function loadPicsFromBTContent()
                 console.log("Calculated sky ratio: " + latestSkyRatio);
                 // 2. save to GDrive + FB
                 console.log("Saving blob for ", url);
-                await saveImageByBlob(blob);
+                await saveImageByBlob(blob, url);
                 console.log("Done with ", url);
             }            
             catch(e) {
@@ -488,9 +484,4 @@ async function loadPicsFromBTContent()
     {
         console.log(e);
     }
-}
-
-async function uploadPicsFromPicsum()
-{
-  console.log("TODO: Creating picsum db");
 }
