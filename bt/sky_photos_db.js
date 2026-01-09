@@ -77,9 +77,12 @@ class SkyPhotosDB {
         if (this.#epicTimeSortedArray.length == 0)
             return;
         const itemWithMinimalTakenTime = this.#epicTimeSortedArray.reduce((minItem, currentItem) => {
-            return (currentItem.takenTime.toDate() < minItem.takenTime.toDate()) ? currentItem : minItem;
+            const currentTimestamp = currentItem.takenTime || currentItem.createdAt;
+            const minTimestamp = minItem.takenTime || minItem.createdAt;
+            return (currentTimestamp.toDate() < minTimestamp.toDate()) ? currentItem : minItem;
         });
-        return itemWithMinimalTakenTime.takenTime.toDate();
+        const minTimestamp = itemWithMinimalTakenTime.takenTime || itemWithMinimalTakenTime.createdAt;
+        return minTimestamp.toDate();
     }
 
     _getMaxDate()
@@ -87,9 +90,12 @@ class SkyPhotosDB {
         if (this.#epicTimeSortedArray.length == 0)
             return;
         const itemWithMaximalTakenTime = this.#epicTimeSortedArray.reduce((maxItem, currentItem) => {
-            return (currentItem.takenTime.toDate() > maxItem.takenTime.toDate()) ? currentItem : maxItem;
+            const currentTimestamp = currentItem.takenTime || currentItem.createdAt;
+            const maxTimestamp = maxItem.takenTime || minItem.createdAt;
+            return (currentTimestamp.toDate() > maxTimestamp.toDate()) ? currentItem : maxItem;
         });
-        return itemWithMaximalTakenTime.takenTime.toDate();
+        const maxTimestamp = itemWithMaximalTakenTime.takenTime || itemWithMaximalTakenTime.createdAt;
+        return maxTimestamp.toDate();
     }
 
     _isBeyondMaxDate(date, inDB = true)
@@ -203,10 +209,11 @@ class SkyPhotosDB {
             for (let i = 0; i < addedCoverage.length; i += 2) {
                 const segmentRecords = await this.fetchDateRange(addedCoverage[i], addedCoverage[i+1], maxNumRecords, direction, true);
                 if (maxNumRecords > 0 && segmentRecords.length > 0) {
+                    const firstSegmentTimestamp = segmentRecords[0].data().takenTime || segmentRecords[0].data().createdAt;
                     if (direction == DIRECTION.ASC)
-                        this.#dateCoverage = mergeSegment(this.#dateCoverage, addedCoverage[i], segmentRecords[0].data().takenTime.toDate());
+                        this.#dateCoverage = mergeSegment(this.#dateCoverage, addedCoverage[i], firstSegmentTimestamp.toDate());
                     else
-                        this.#dateCoverage = mergeSegment(this.#dateCoverage, segmentRecords[0].data().takenTime.toDate(), addedCoverage[i+1]);
+                        this.#dateCoverage = mergeSegment(this.#dateCoverage, firstSegmentTimestamp.toDate(), addedCoverage[i+1]);
                 }
                 maxNumRecords -= segmentRecords.length;
                 records = [...records, ...segmentRecords];

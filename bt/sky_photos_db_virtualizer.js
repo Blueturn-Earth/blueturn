@@ -163,7 +163,7 @@ export function virtualizeSkyPhoto(picItem, virtualId) {
     ...picItem,
     virtualId,
     gps,
-    takenTime: generateRandomTimestamp(picItem.takenTime, virtualId, gps),
+    takenTime: generateRandomTimestamp(picItem.takenTime || picItem.createdAt, virtualId, gps),
     image: {
       ...picItem.image,
       imageUrl: `${picItem.image.imageUrl}&v=${virtualId}`,
