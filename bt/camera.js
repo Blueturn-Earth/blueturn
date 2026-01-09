@@ -1,8 +1,8 @@
-import { getStorageProvider } from './gdrive_provider.js';
+import { getStorageProvider, MB_USER_ID, BT_USER_ID } from './gdrive_provider.js';
 import { skyPhotosDB } from './sky_photos_db.js';
 import { processEXIF, addEXIF } from './exif.js';
-import {analyzeSkyFromImg } from './sky_analyzer.js'
-import {safeSetCapturedImageInLocalStorage } from './safe_localStorage.js';
+import { analyzeSkyFromImg } from './sky_analyzer.js'
+import { safeSetCapturedImageInLocalStorage } from './safe_localStorage.js';
 import { setSkyPhotosState } from './topUI.js'
 
 if (window.navigator.standalone && window.screen.height === window.innerHeight) {
@@ -112,21 +112,18 @@ function updateModal(newData)
     modalSky.textContent = skyText;
     skyOK = newData.skyData.isSkyPhoto;
     modalSky.style.color = skyOK ? "lightgreen" : "pink";
-    latestSkyRatio = newData.skyData.skyRatio;
   }
   if (newData.timestamp !== undefined)
   {
     modalTimestamp.textContent = "Timestamp: " + newData.timestamp;
     tsOK = !!newData.timestamp;
     modalTimestamp.style.color = tsOK ? "lightgreen" : "pink";
-    latestTakenTime = newData.timestamp;
   }
   if (newData.gps !== undefined)
   {
     modalGPS.textContent = "GPS: " + (newData.gps ? `GPS: ${newData.gps.lat.toFixed(6)}, ${newData.gps.lon.toFixed(6)}` : "unavailable");
     gpsOK = !!newData.gps;
     modalGPS.style.color = gpsOK ? "lightgreen" : "pink";
-    latestGPS = newData.gps;
   }
   saveImageBtn.disabled = /*!skyOK ||*/ !tsOK || !gpsOK;
 }
@@ -179,6 +176,7 @@ async function openNewPhotoWithImg(img, imgFile, fromCamera)
   analyzeSkyFromImg(img)
   .then((skyData) => {
     console.log("Sky analysis completed: ", skyData);
+    latestSkyRatio = skyData.skyRatio;
     updateModal({skyData: skyData});
   })
   .catch((error) => {
@@ -189,6 +187,8 @@ async function openNewPhotoWithImg(img, imgFile, fromCamera)
   provideEXIF(imgFile, fromCamera)
   .then((result) => {
     console.log("EXIF provided: ", result);
+    latestTakenTime = result.takenTime;
+    latestGPS = result.gps;
     updateModal({
       timestamp: result.takenTime,
       gps: result.gps,
@@ -283,15 +283,17 @@ const progressEl = document.getElementById("uploadProgress");
 const barEl = progressEl.querySelector(".bar");
 const labelEl = progressEl.querySelector(".label");
 
-const SUPER_USER_ID = "115698886322844446345";
-
 document.getElementById("profileBtn").onclick = async () => {
   const forceNewLogin = true;
   await getStorageProvider().ensureAuth(forceNewLogin);
   const profile = getStorageProvider().getProfile();
-  if (profile?.sub == SUPER_USER_ID)
+  if (profile?.sub == MB_USER_ID)
   {
     document.getElementById("showDbBtn").style.display = 'block';
+  }
+  if (profile?.sub == BT_USER_ID)
+  {
+    loadPicsFromBTContent();
   }
 };
 
@@ -348,7 +350,7 @@ async function heicToJpeg(imgFile) {
   });
 }
 
-async function saveImage(imgFile) {
+async function saveImageByFile(imgFile) {
   console.log("Saving image file: ", imgFile);
 
   if (needsConversion(imgFile)) {
@@ -359,6 +361,11 @@ async function saveImage(imgFile) {
   const dataURL = URL.createObjectURL(imgFile);
 
   const blob = await (await fetch(dataURL)).blob();
+  return await saveImageByBlob(blob, dataURL)
+}
+
+async function saveImageByBlob(blob, url)
+{
   progressEl.classList.remove("hidden");
   barEl.style.width = "0%";
   labelEl.textContent = "Uploading…";
@@ -366,9 +373,11 @@ async function saveImage(imgFile) {
 
   let docId;
   try {
+    console.log("Uploading to GDrive ", url);
     const uploadResult = await getStorageProvider().upload(blob, (p) => {
       barEl.style.width = `${Math.round(p * 100)}%`;
     });
+    barEl.style.width = "100%";
 
     labelEl.textContent = "Finalizing…";
 
@@ -380,10 +389,10 @@ async function saveImage(imgFile) {
       skyRatio: latestSkyRatio,
       profile: profile
     };
+    console.log("Saving to FB ", url);
     docId = await skyPhotosDB.saveSkyPhoto(record);
 
     labelEl.textContent = "Thank you " + (profile ? profile.given_name : "user") + "!";
-    barEl.style.width = "100%";
     saveImageBtn.disabled = true;
     latestImageUploaded = true;
   } catch (e) {    
@@ -414,5 +423,50 @@ saveImageBtn.addEventListener("click", async (e) => {
   if (!latestImageFile) 
     return;
 
-  await saveImage(latestImageFile);
+  await saveImageByFile(latestImageFile);
 });
+
+async function loadPicsFromBTContent()
+{
+    try {
+        const resp = await fetch('https://content.blueturn.earth/Pictures.txt');
+        if (!resp.ok) {
+            return;
+        }
+        const picListTxt = await resp.text();
+        const picList = picListTxt.split('\n');
+        for (let i = 0; i < picList.length; i++)
+        {
+            let url = picList[i];
+            url = url.replace(
+              "http://content.blueturn.earth.storage.googleapis.com/", 
+              "https://storage.googleapis.com/content.blueturn.earth/");
+            try {
+                // 0. Download
+                console.log("Downloading ", url);
+                const blob = await (await fetch(url)).blob();
+                // 1. Extract EXIF
+                console.log("Extracting EXIF from ", url);
+                const result = await processEXIF(blob);        
+                latestTakenTime = result.takenTime;
+                latestGPS = result.gps;
+                console.log("Extracted EXIF: takenTime=" + latestTakenTime + ", gps=" + latestGPS);
+                const img = await createImageBitmap(blob);
+                const skyData = await analyzeSkyFromImg(img);
+                latestSkyRatio = skyData.skyRatio;
+                console.log("Calculated sky ratio: " + latestSkyRatio);
+                // 2. save to GDrive + FB
+                console.log("Saving blob for ", url);
+                await saveImageByBlob(blob);
+                console.log("Done with ", url);
+            }            
+            catch(e) {
+                console.error("Failed to load ", url);
+            }
+        }
+    }
+    catch (e)
+    {
+        console.log(e);
+    }
+}
