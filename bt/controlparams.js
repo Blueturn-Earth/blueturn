@@ -41,7 +41,7 @@ gControlMap.forEach((cb, param) => {
     cb(paramValue);
 });
 
-console.log("Listening to messages...");
+console.debug("Listening to iframe messages...");
 
 window.addEventListener("message", (event) => {
     //if (event.origin !== "https://app.blueturn.earth") return; // security check
