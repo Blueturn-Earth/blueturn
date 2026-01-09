@@ -5,6 +5,7 @@ export default class VirtualizedDB extends DB_Interface {
     #virtualSize;
     #fetchMultiplier;
     #virtualizer;
+    #local = new Map();
 
     constructor(db, {
         virtualSize = 1_000_000,
@@ -54,8 +55,45 @@ export default class VirtualizedDB extends DB_Interface {
         return c;
     }
 
-    buildQuery(...constraints) {
-        return this.#db.buildQuery(...constraints);
+    buildQuery(...queryConstraints) {
+        // Delegate real query construction
+        const q = this.#db.buildQuery(...queryConstraints);
+
+        // 🔑 Explicitly attach constraints for virtualization
+        // Do NOT assume the backend does this
+        q._queryConstraints = queryConstraints;
+
+        return q;
+    }
+
+    applyVirtualFilters(docs, virtualWhere, virtualOrderBy) {
+        let out = docs;
+
+        for (const w of virtualWhere) {
+            out = out.filter(d =>
+                this.compare(d[w.field], w.op, w.value)
+            );
+        }
+
+        if (virtualOrderBy) {
+            out = [...out].sort((a, b) =>
+            virtualOrderBy.direction === "asc"
+                ? a[virtualOrderBy.field] - b[virtualOrderBy.field]
+                : b[virtualOrderBy.field] - a[virtualOrderBy.field]
+            );
+        }
+
+        return out;
+    }
+
+    compare(a, op, b) {
+        switch (op) {
+            case "==": return a === b;
+            case "<":  return a < b;
+            case "<=": return a <= b;
+            case ">":  return a > b;
+            case ">=": return a >= b;
+        }
     }
 
     #nextCbId = 0;
@@ -77,7 +115,7 @@ export default class VirtualizedDB extends DB_Interface {
 
 
     async forEachLocal(cb) {
-        return await this.#db.forEachLocal(cb);
+        return await this.#local.forEach(cb);
     }
 
     /* ---------------- virtualization ---------------- */
@@ -147,10 +185,8 @@ export default class VirtualizedDB extends DB_Interface {
             const base = baseDocs[i % baseDocs.length];
             const vdoc = this.#virtualizer(base, i);
 
-            if (this.#passesVirtualWhere(vdoc, virtual.where)) {
-                vdoc.virtualId = i;
+            if (this.#passesVirtualWhere(vdoc, virtual.where))
                 results.push(vdoc);
-            }
 
             i++;
         }
@@ -164,21 +200,29 @@ export default class VirtualizedDB extends DB_Interface {
             );
         }
 
+        let newRecordCount = 0;
         for (const docData of results) {
-            for (const [cbId, cb] of this.#newRecordCallbacks) {
-                if (serialCb)
-                    await cb(docData);
-                else
-                    cb(docData);
-            };
+            if (!this.#local.has(docData.docId))
+            {
+                newRecordCount++;
+                this.#local.set(docData.docId, docData);
+                for (const [cbId, cb] of this.#newRecordCallbacks) {
+                    if (serialCb)
+                        await cb(docData);
+                    else
+                        cb(docData);
+                };
+            }
         }
+        if (newRecordCount > 0)
+            console.debug("Fetch request done with " + newRecordCount + " new *virtual* records");
 
         return results;
     }
 
     #passesVirtualWhere(doc, wheres) {
         for (const w of wheres) {
-            if (!compare(doc[w.field], w.op, w.value))
+            if (!this.compare(doc[w.field], w.op, w.value))
                 return false;
         }
         return true;

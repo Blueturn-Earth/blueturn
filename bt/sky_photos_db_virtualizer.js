@@ -70,13 +70,14 @@ function generateRandomGPS(gps, virtualId) {
     const dy = Math.sin(angle) * distanceKm;
 
     return {
-      lat: center.lat + dy * metersToDegrees * 1000,
-      lon:
-        center.lon +
-        dx *
-          metersToDegrees *
-          1000 /
-          Math.cos((center.lat * Math.PI) / 180)
+        ...gps,
+        lat: center.lat + dy * metersToDegrees * 1000,
+        lon:
+            center.lon +
+                dx *
+                metersToDegrees *
+                1000 /
+                Math.cos((center.lat * Math.PI) / 180)
     };
   }
 
@@ -158,16 +159,12 @@ function generateRandomTimestamp(timestamp, virtualId, gps)
 
 export function virtualizeSkyPhoto(picItem, virtualId) {
   const gps = generateRandomGPS(picItem.gps, virtualId);
+  const takenTime = generateRandomTimestamp(picItem.takenTime || picItem.createdAt, virtualId, gps);
 
   return {
     ...picItem,
     virtualId,
     gps,
-    takenTime: generateRandomTimestamp(picItem.takenTime || picItem.createdAt, virtualId, gps),
-    image: {
-      ...picItem.image,
-      imageUrl: `${picItem.image.imageUrl}&v=${virtualId}`,
-      thumbnailUrl: `${picItem.image.thumbnailUrl}&v=${virtualId}`
-    }
+    takenTime
   };
 }
