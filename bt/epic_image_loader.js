@@ -26,6 +26,11 @@ export default class EpicImageLoader
         });
     }
 
+    clearTextures()
+    {
+        this.#textureLoader.clearCache();
+    }
+
     _evictEpicImageTexture(evictedUrl) {
         const evictedEpicImageData = this.#url2EpicImageDataMap.get(evictedUrl);
         if (evictedEpicImageData)

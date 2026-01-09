@@ -48,6 +48,11 @@ export default class EpicDB {
         });
     }
 
+    clearTextures()
+    {
+        this.#epicImageLoader.clearTextures();
+    }
+
     async loadLatest() {
         return new Promise((resolve, reject) => {
             this.#epicDataLoader.loadEpicAvailableDays()

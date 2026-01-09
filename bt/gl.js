@@ -25,6 +25,7 @@ canvas.addEventListener("webglcontextlost", async (e) => {
     console.warn("WebGL context lost");
     abortGL = true;
     await glPromise;
+    glEpicDB.clearTextures();
 });
 
 canvas.addEventListener("webglcontextrestored", () => {
