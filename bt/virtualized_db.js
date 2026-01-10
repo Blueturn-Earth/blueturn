@@ -5,7 +5,6 @@ export default class VirtualizedDB extends DB_Interface {
     #virtualSize;
     #fetchMultiplier;
     #virtualizer;
-    #local = new Map();
 
     constructor(db, {
         virtualSize = 1_000_000,
@@ -96,26 +95,18 @@ export default class VirtualizedDB extends DB_Interface {
         }
     }
 
-    #nextCbId = 0;
-    #newRecordCallbacks = new Map();
-
     addNewRecordCallback(cb)
     {
-        const cbId = this.#nextCbId;
-        this.#newRecordCallbacks.set(this.#nextCbId++, cb);
-        return cbId;
+        return this.#db.addNewRecordCallback(cb);
     }
 
     removeNewRecordCallback(cbId)
     {
-        if (!this.#newRecordCallbacks.has(cbId))
-            throw new Error("cb id " + cbId + " not in callbacks");
-        this.#newRecordCallbacks.delete(cbId);
+        return this.#db.removeNewRecordCallback(cbId);
     }
 
-
     async forEachLocal(cb) {
-        return await this.#local.forEach(cb);
+        return await this.#db.forEachLocal(cb);
     }
 
     /* ---------------- virtualization ---------------- */
@@ -202,17 +193,8 @@ export default class VirtualizedDB extends DB_Interface {
 
         let newRecordCount = 0;
         for (const docData of results) {
-            if (!this.#local.has(docData.docId))
-            {
+            if (this.cacheRecord(docData.docId, docData))
                 newRecordCount++;
-                this.#local.set(docData.docId, docData);
-                for (const [cbId, cb] of this.#newRecordCallbacks) {
-                    if (serialCb)
-                        await cb(docData);
-                    else
-                        cb(docData);
-                };
-            }
         }
         if (newRecordCount > 0)
             console.debug("Fetch request done with " + newRecordCount + " new *virtual* records");
