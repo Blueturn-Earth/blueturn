@@ -17,7 +17,7 @@ setSkyPhotosScrollGalleryCallbacks();
 
 function createScrollPicDiv(data)
 {
-    const node = skyPhotosScrollGallery.createItem();//.replace(/=s\d+/, `=s${size}`);
+    const node = skyPhotosScrollGallery.createItem();
     const img = skyPhotosScrollGallery.getItemImg(node);
     getStorageProvider().loadImageFromField(img, data.image);
     return node;

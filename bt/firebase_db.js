@@ -1,4 +1,4 @@
-import DB_Interface from "./db_interface.js";
+import CachedDB from "./cached_db.js";
 
 import {
   getAuth,
@@ -22,13 +22,11 @@ import {
     limit
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-export default class FirebaseDB extends DB_Interface {
+export default class FirebaseDB extends CachedDB {
     #auth;
     #app;
     #db;
     #collection;
-    #local = new Map();
-    #newRecordCallbacks = new Map();
     #authPromise;
     #fetchingPromise;
 
@@ -161,27 +159,6 @@ export default class FirebaseDB extends DB_Interface {
             ...queryConstraints);
     }
 
-    #nextCbId = 0;
-
-    addNewRecordCallback(cb)
-    {
-        const cbId = this.#nextCbId;
-        this.#newRecordCallbacks.set(this.#nextCbId++, cb);
-        return cbId;
-    }
-
-    removeNewRecordCallback(cbId)
-    {
-        if (!this.#newRecordCallbacks.has(cbId))
-            throw new Error("cb id " + cbId + " not in callbacks");
-        this.#newRecordCallbacks.delete(cbId);
-    }
-
-    async forEachLocal(cb)
-    {
-        return await this.#local.forEach(cb);
-    }
-
     async _fetchDocs(query, fetchCount)
     {
         if (this.#fetchingPromise) {
@@ -208,19 +185,8 @@ export default class FirebaseDB extends DB_Interface {
         let newRecordCount = 0;
         const docs = snap.docs;
         for (const doc of docs) {
-            if (!this.#local.has(doc.id))
-            {
+            if (this.cacheRecord(doc.id, doc.data()))
                 newRecordCount++;
-                const docData = doc.data();
-                docData.docId = doc.id;
-                this.#local.set(docData.docId, docData);
-                for (const [cbId, cb] of this.#newRecordCallbacks) {
-                    if (serialCb)
-                        await cb(docData);
-                    else
-                        cb(docData);
-                };
-            }
         }
 
         if (newRecordCount > 0)
