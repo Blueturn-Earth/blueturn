@@ -406,12 +406,12 @@ export default class EpicDB {
                 try {
                     const [epicImageData0, epicImageData1] = await this.fetchBoundKeyFrames(nextTime);
                     if (timeSec != this.#predictimeTimeSec) return; // abort point
-                    if (!epicImageData0.texture && !epicImageData0.textureLoading) {
+                    if (epicImageData0 && !epicImageData0.texture && !epicImageData0.textureLoading) {
                         await this._loadImage(epicImageData0);
                         if (timeSec != this.#predictimeTimeSec) return; // abort point
                         numLoadedForward++;
                     }
-                    if (!epicImageData1.texture && !epicImageData1.textureLoading) {
+                    if (epicImageData1 && !epicImageData1.texture && !epicImageData1.textureLoading) {
                         await this._loadImage(epicImageData1);
                         if (timeSec != this.#predictimeTimeSec) return; // abort point
                         numLoadedForward++;
@@ -438,31 +438,31 @@ export default class EpicDB {
             for (let i = 1; i <= SCROLL_PREDICT_NUM_FRAMES; i++) {
                 if (epicImageData1 && numLoadedForward < SCROLL_PREDICT_NUM_FRAMES)
                 {
-                    const timeSec = epicImageData1.timeSec;
-                    epicImageData1 = this._getNextEpicImage(timeSec, true);
+                    const timeSec1 = epicImageData1.timeSec;
+                    epicImageData1 = this._getNextEpicImage(timeSec1, true);
                     if (!epicImageData1) {
-                        await this.fetchBoundKeyFrames(timeSec);
-                        if (timeSec != this.#predictimeTimeSec) return; // abort point
+                        await this.fetchBoundKeyFrames(timeSec1);
+                        if (timeSec1 != this.#predictimeTimeSec) return; // abort point
                     }
-                    epicImageData1 = this._getNextEpicImage(timeSec, true);
+                    epicImageData1 = this._getNextEpicImage(timeSec1, true);
                     if (epicImageData1 && !epicImageData1.texture && !epicImageData1.textureLoading) {
                         await this._loadImage(epicImageData1);
-                        if (timeSec != this.#predictimeTimeSec) return; // abort point
+                        if (timeSec1 != this.#predictimeTimeSec) return; // abort point
                         numLoadedForward++;
                     }
                 }
                 if (epicImageData0)
                 {
-                    const timeSec = epicImageData0.timeSec;
-                    epicImageData0 = this._getPrevEpicImage(timeSec, true);
+                    const timeSec0 = epicImageData0.timeSec;
+                    epicImageData0 = this._getPrevEpicImage(timeSec0, true);
                     if (!epicImageData0) {
-                        await this.fetchBoundKeyFrames(timeSec);
-                        if (timeSec != this.#predictimeTimeSec) return; // abort point
+                        await this.fetchBoundKeyFrames(timeSec0);
+                        if (timeSec0 != this.#predictimeTimeSec) return; // abort point
                     }
-                    epicImageData0 = this._getPrevEpicImage(timeSec, true);
+                    epicImageData0 = this._getPrevEpicImage(timeSec0, true);
                     if (epicImageData0 && !epicImageData0.texture && !epicImageData0.textureLoading) {
                         await this._loadImage(epicImageData0);
-                        if (timeSec != this.#predictimeTimeSec) return; // abort point
+                        if (timeSec0 != this.#predictimeTimeSec) return; // abort point
                         numLoadedBackward++;
                     }
                 }
@@ -530,10 +530,8 @@ export default class EpicDB {
 
             const boundPair = this.getBoundKeyFrames(timeSec, sameDay);
             const [epicImageDataKey0, epicImageDataKey1] = boundPair ? boundPair : [null, null];
-            if (epicImageDataKey0 && epicImageDataKey1)
-                return [epicImageDataKey0, epicImageDataKey1];
-
-            throw new Error("Could not find bound key frames around " + date);
+            
+            return [epicImageDataKey0, epicImageDataKey1];
         }
         catch(e) {
             throw new Error("Error fetching bound key frames around " + date + ", " + e);
@@ -575,7 +573,7 @@ export default class EpicDB {
         if (!epicImageDataKey0 || !epicImageDataKey1) {
             this.fetchBoundKeyFrames(timeSec)
             .then((boundPair) => {
-                if (!boundPair || boundPair.length !== 2) {
+                if (!boundPair || boundPair.length !== 2 || !boundPair[0] || boundPair[1]) {
                     return null; // likely aborted
                 }
                 const [epicImageData0, epicImageData1] = boundPair;
