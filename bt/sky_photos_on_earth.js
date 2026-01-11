@@ -2,8 +2,6 @@ import { gCalculateScreenCoordFromLatLon } from './utils.js';
 import { 
     gEpicImageData, 
     gEpicDB, 
-    gSetPlayState, 
-    gJumpToEpicTime, 
     addEpicTimeChangeCallback, 
     removeEpicTimeChangeCallback } from '././app.js';
 import { skyPhotosDB } from "./sky_photos_db.js";

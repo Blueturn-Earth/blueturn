@@ -58,7 +58,7 @@ export async function gInitEpicTime()
         const date_time = initStartTime();
         console.log("Initializing to EPIC time: " + date_time);
         let startTimeSec = EpicDB.getTimeSecFromDateTimeString(date_time);
-        gJumpToEpicTime(startTimeSec);
+        gJumpToEpicTime(startTimeSec, true);
     })            
     .catch((error) => {
         console.error("Failed to init Epic Time: " + error);
@@ -98,7 +98,7 @@ function initStartTime()
 
 let gJumpingTimeSec;
 
-export async function gJumpToEpicTime(startTimeSec)
+export async function gJumpToEpicTime(startTimeSec, snapToClosest)
 {
     if (!gEpicDB.isReady())
     {
@@ -130,7 +130,7 @@ export async function gJumpToEpicTime(startTimeSec)
             gControlState.day = oldestDate.toISOString().split('T')[0];
             gControlState.time = oldestDate.toUTCString().split(' ')[4].replace(/\.\d+Z$/, '');
             date_time = gControlState.day + " " + gControlState.time;
-        console.warn("Time " + bad_date_time + " is older than oldest available EPIC image - adjust to oldest time " + date_time);
+            console.warn("Time " + bad_date_time + " is older than oldest available EPIC image - adjust to oldest time " + date_time);
         }
         while (startTimeSec > gEpicDB.getLatestEpicImageTimeSec() || !gEpicDB.isDayAvailable(gControlState.day))
         {
@@ -161,8 +161,9 @@ export async function gJumpToEpicTime(startTimeSec)
                 resolve(null);
                 return;
             }
-            if (!boundPair) // likely aborted
+            if (!boundPair)
             {
+                gUpdateLoadingText("No data for " + gGetDayFromTimeSec(startTimeSec));
                 gControlState.jumping = false;
                 gControlState.jump = false;
                 resolve(null);
@@ -182,7 +183,7 @@ export async function gJumpToEpicTime(startTimeSec)
                 return;
             }
 
-            if(!gControlState.blockSnapping)
+            if(!gControlState.blockSnapping || snapToClosest)
             {
                 console.debug("Adjusting time " + date_time + " to closest available EPIC image");
                 if (epicImageData0 === epicImageData1) {
@@ -335,7 +336,7 @@ export function gSetEpicTimeSec(timeSec)
     else if (timeSec == oldestEpicTimeSec)
         gUpdateLoadingText("Oldest image from NASA");
     else if (!interpolationSuccess) {
-        gUpdateLoadingText("Loading...");
+        //gUpdateLoadingText("Loading...");
         return;
     }
     else
@@ -652,7 +653,7 @@ export function gUpdateEpicTime(time)
         const date_time = gControlState.day + " " + gControlState.time.replace(/\.\d+Z$/, '');
         console.log("Jumping to EPIC time: " + date_time);
         let jumpTimeSec = EpicDB.getTimeSecFromDateTimeString(date_time);
-        gJumpToEpicTime(jumpTimeSec);
+        gJumpToEpicTime(jumpTimeSec, true);
         return;
     }
 
