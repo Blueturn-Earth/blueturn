@@ -11,6 +11,7 @@ export default class DragScroller
   #startX;
   #defaultDisplayMode;
   #isDragging = false;
+  #isDecelerating = false;
   #isSnapping = false;
   #DRAG_THRESHOLD = 5; // pixels
   #startClientX;
@@ -150,7 +151,7 @@ export default class DragScroller
   }
 
   scrollToAlpha(alpha) {
-    if (this.#isDown || this.#isSnapping)
+    if (this.#isDown || this.#isSnapping || this.#isDragging || this.#isDecelerating)
       return;
 
     //console.log("alpha: ", alpha);
@@ -288,12 +289,10 @@ export default class DragScroller
       this.#scroller.releasePointerCapture(e.pointerId);
       // Prevent the upcoming click globally
       this._suppressNextClick();
-
-      this.#isDragging = false;
-      this._snapToNearest();
     }
 
     this.#isDragging = false;
+    this.#isDecelerating = true;
   }
 
   _suppressNextClick() {
@@ -367,12 +366,23 @@ export default class DragScroller
 
   _onScrollEnd = () =>
   {
-    if (this.#isSnapping && 
-        this.#onSelectItemCb && 
-        this.#selectedItemIndex !== undefined) {
-      this.#onSelectItemCb(this.#itemsGroup.children[this.#selectedItemIndex + 2], this.#selectedItemIndex); // skip start spacer+template
+    if (this.#isSnapping) {
+      console.log("End of snapping");
+      if(this.#onSelectItemCb && this.#selectedItemIndex !== undefined) {
+        this.#onSelectItemCb(this.#itemsGroup.children[this.#selectedItemIndex + 2], this.#selectedItemIndex); // skip start spacer+template
+      }
+      this.#isSnapping = false;
     }
-    this.#isSnapping = false;
+    else if (this.#isDecelerating) {      
+      console.log("End of decelerating");
+      this.#isDecelerating = false;
+      this._snapToNearest();
+    }
+    else if (!this.#isDown) {      
+      console.log("End of dragging");
+      this.#isDragging = false;
+      this._snapToNearest();
+    }
   };
 
   _snapToNearest() {
@@ -504,7 +514,7 @@ export default class DragScroller
   }
 
   _onItemClick = (node) => {
-    if (this.#isDragging) return;
+    if (this.#isDragging || this.#isSnapping) return;
 
     const childIndex = Array.prototype.indexOf.call(
       this.#itemsGroup.children,
