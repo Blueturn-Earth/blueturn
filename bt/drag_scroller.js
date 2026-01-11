@@ -367,19 +367,19 @@ export default class DragScroller
   _onScrollEnd = () =>
   {
     if (this.#isSnapping) {
-      console.log("End of snapping");
+      console.debug("End of snapping");
       if(this.#onSelectItemCb && this.#selectedItemIndex !== undefined) {
         this.#onSelectItemCb(this.#itemsGroup.children[this.#selectedItemIndex + 2], this.#selectedItemIndex); // skip start spacer+template
       }
       this.#isSnapping = false;
     }
     else if (this.#isDecelerating) {      
-      console.log("End of decelerating");
+      console.debug("End of decelerating");
       this.#isDecelerating = false;
       this._snapToNearest();
     }
     else if (!this.#isDown) {      
-      console.log("End of dragging");
+      console.debug("End of dragging");
       this.#isDragging = false;
       this._snapToNearest();
     }
