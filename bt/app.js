@@ -161,8 +161,9 @@ export async function gJumpToEpicTime(startTimeSec, snapToClosest)
                 resolve(null);
                 return;
             }
-            if (!boundPair) // likely aborted
+            if (!boundPair)
             {
+                gUpdateLoadingText("No data for " + gGetDayFromTimeSec(startTimeSec));
                 gControlState.jumping = false;
                 gControlState.jump = false;
                 resolve(null);
@@ -335,7 +336,7 @@ export function gSetEpicTimeSec(timeSec)
     else if (timeSec == oldestEpicTimeSec)
         gUpdateLoadingText("Oldest image from NASA");
     else if (!interpolationSuccess) {
-        gUpdateLoadingText("Loading...");
+        //gUpdateLoadingText("Loading...");
         return;
     }
     else

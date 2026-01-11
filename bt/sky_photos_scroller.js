@@ -46,7 +46,7 @@ async function jumpToPicEpicTimeByIndex(index)
     const timeSec = picItem.epicTimeSec;
     gSetPlayState(false);
     gControlState.blockSnapping = true;
-    await gJumpToEpicTime(timeSec);
+    await gJumpToEpicTime(timeSec, true);
 }
 
 function setEpicTimeByPicsAlpha(alpha)
@@ -58,7 +58,7 @@ function setEpicTimeByPicsAlpha(alpha)
     }
     gSetPlayState(false);
     gControlState.blockSnapping = true;
-    gJumpToEpicTime(timeSec);
+    gJumpToEpicTime(timeSec, false);
 }
 
 skyPhotosDB.addNewSkyPhotoCallback(async (record) => {    
