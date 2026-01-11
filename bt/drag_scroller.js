@@ -13,9 +13,14 @@ export default class DragScroller
   #isDragging = false;
   #isDecelerating = false;
   #isSnapping = false;
+  #isProgrammaticScroll = false;
   #DRAG_THRESHOLD = 5; // pixels
+  #lastMoveDelta = 0;
+  #MOVE_THRESHOLD = 3; // pixels
   #startClientX;
   #startClientY;
+  #lastClientX;
+  #lastClientY;
   #isHorizontal;
   #selectedItemIndex;
   #onSelectItemCb;
@@ -46,17 +51,25 @@ export default class DragScroller
 
     this.#scroller.addEventListener('pointerdown', this._onPointerDown);
     this.#scroller.addEventListener('pointermove', this._onPointerMove);
-    this.#scroller.addEventListener('pointerup', this._endPointerInteraction);
+    this.#scroller.addEventListener('pointerup', (e) => {
+      this._endPointerInteraction(e);
+    });
     this.#scroller.addEventListener('mousedown', this._onPointerDown);
     this.#scroller.addEventListener('mousemove', this._onPointerMove);
-    this.#scroller.addEventListener('mouseup', this._endPointerInteraction);
+    this.#scroller.addEventListener('mouseup', (e) => {
+      this._endPointerInteraction(e);
+    });
     this.#scroller.addEventListener('touchstart', this._onPointerDown);
     this.#scroller.addEventListener('touchmove', this._onPointerMove);
-    this.#scroller.addEventListener('touchend', this._endPointerInteraction);
+    this.#scroller.addEventListener('touchend', (e) => {
+      this._endPointerInteraction(e);
+    });
     //this.#scroller.addEventListener('pointercancel', this._endPointerInteraction);
     //this.#scroller.addEventListener('lostpointercapture', this._endPointerInteraction);
     // Window-level safety net
-    window.addEventListener('blur', this._endPointerInteraction);
+    window.addEventListener('blur', (e) => {
+      this._endPointerInteraction(e);
+    });
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         this._endPointerInteraction();
@@ -64,7 +77,9 @@ export default class DragScroller
     });
 
     this.#scroller.addEventListener('scroll', this._onScroll);
-    this.#scroller.addEventListener('scrollend', async () => {await this._onScrollEnd;});
+    this.#scroller.addEventListener('scrollend', async (e) => {
+      await this._onScrollEnd(e);
+    });
   }
 
   setSelectItemCb(cb) {
@@ -126,7 +141,7 @@ export default class DragScroller
     }
 
     node.onclick = (e) => {
-      //console.log(e.type);
+      //console.debug(e.type);
       this._onItemClick(node);
     };
 
@@ -154,7 +169,6 @@ export default class DragScroller
     if (this.#isDown || this.#isSnapping || this.#isDragging || this.#isDecelerating)
       return;
 
-    //console.log("alpha: ", alpha);
     const limits = this._getScrollLimits();
     if (!limits) return;
 
@@ -168,9 +182,11 @@ export default class DragScroller
         Math.abs(this.#scroller.scrollLeft - target) > 1 : 
         Math.abs(this.#scroller.scrollTop - target) > 1;
     if (needScroll) {
+      console.debug("Scroll to alpha: ", alpha);
+      this.#isProgrammaticScroll = true;
       this.#scroller.scrollTo({
         ...(this.#isHorizontal ? { left: target } : { top: target }),
-        behavior: 'auto'
+        behavior: 'instant'
       });
 
       this._requestMoreIfNeeded(target);        
@@ -262,14 +278,14 @@ export default class DragScroller
 
   _onPointerDown = (e) =>
   {
-    //console.log(e.type);
+    //console.debug(e.type);
     this.#isDown = true;
     this.#scroller.style.cursor = 'grabbing';
     this.#isDragging = false;
     if (e.clientX != undefined)
-      this.#startClientX = e.clientX;
+      this.#startClientX = this.#lastClientX = e.clientX;
     if (e.clientY != undefined)
-      this.#startClientY = e.clientY;
+      this.#startClientY = this.#lastClientY = e.clientY;
     if (e.pageX != undefined && e.pageY != undefined)
       this.#startX = this.#isHorizontal
         ? e.pageX - this.#scroller.offsetLeft
@@ -281,7 +297,7 @@ export default class DragScroller
 
   _endPointerInteraction = (e) =>
   {
-    //console.log(e.type);
+    console.debug("End of pointer interaction: " + e?.type);
     this.#isDown = false;
     this.#scroller.style.cursor = 'grab';
 
@@ -289,10 +305,13 @@ export default class DragScroller
       this.#scroller.releasePointerCapture(e.pointerId);
       // Prevent the upcoming click globally
       this._suppressNextClick();
+      this.#isDragging = false;
+      if (this.#lastMoveDelta < this.#MOVE_THRESHOLD)
+        this._snapToNearest();
+      else
+        this.#isDecelerating = true;
     }
-
-    this.#isDragging = false;
-    this.#isDecelerating = true;
+    this.#lastMoveDelta = 0;
   }
 
   _suppressNextClick() {
@@ -308,14 +327,20 @@ export default class DragScroller
 
   _onPointerMove = (e) =>
   {
-    //console.log(e.type);
+    //console.debug(e.type);
     if (!this.#isDown) return;
 
-    const dx = Math.abs(e.clientX - this.#startClientX);
-    const dy = Math.abs(e.clientY - this.#startClientY);
+    const dx = Math.abs(e.clientX - this.#lastClientX);
+    const dy = Math.abs(e.clientY - this.#lastClientY);
+    this.#lastMoveDelta = this.#isHorizontal ? dx : dy;
+    this.#lastClientX = e.clientX;
+    this.#lastClientY = e.clientY;
 
-    const moveDelta = this.#isHorizontal ? dx : dy;
-    if (moveDelta > this.#DRAG_THRESHOLD) {
+    const dsx = Math.abs(e.clientX - this.#startClientX);
+    const dsy = Math.abs(e.clientY - this.#startClientY);
+
+    const moveFromStart = this.#isHorizontal ? dsx : dsy;
+    if (moveFromStart > this.#DRAG_THRESHOLD) {
       this.#isDragging = true;
     }
     else {
@@ -351,37 +376,39 @@ export default class DragScroller
         );
       }
     }
-
+/*
     if(this.#onScrollAlphaCb) {
       const alpha = this.getScrolledAlpha();
       this.#onScrollAlphaCb(alpha);
     }
+*/
   }
 
   _onScroll = (e) =>
   {
-    //console.log(e.type);
+    //console.debug(e.type);
 
   }
 
-  _onScrollEnd = async () =>
+  _onScrollEnd = async (e) =>
   {
-    if (this.#isSnapping) {
+    console.debug("Scroll end: " + e?.type);
+    if (this.#isDown || this.#isProgrammaticScroll) {
+      this.#isProgrammaticScroll = false;
+      return;
+    }
+
+    if (this.#isDecelerating) {      
+      console.debug("End of decelerating");
+      this.#isDecelerating = false;
+      this._snapToNearest();
+    }
+    else if (this.#isSnapping) {
       console.debug("End of snapping");
       if(this.#onSelectItemCb && this.#selectedItemIndex !== undefined) {
         await this.#onSelectItemCb(this.#itemsGroup.children[this.#selectedItemIndex + 2], this.#selectedItemIndex); // skip start spacer+template
       }
       this.#isSnapping = false;
-    }
-    else if (this.#isDecelerating) {      
-      console.debug("End of decelerating");
-      this.#isDecelerating = false;
-      this._snapToNearest();
-    }
-    else if (!this.#isDown) {      
-      console.debug("End of dragging");
-      this.#isDragging = false;
-      this._snapToNearest();
     }
   };
 
