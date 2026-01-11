@@ -65,6 +65,11 @@ export default class VirtualizedDB extends DB_Interface {
         return q;
     }
 
+    getRecordTimestampDate(record)
+    {
+        return this.#db.getRecordTimestampDate(record);
+    }
+
     applyVirtualFilters(docs, virtualWhere, virtualOrderBy) {
         let out = docs;
 
@@ -193,7 +198,7 @@ export default class VirtualizedDB extends DB_Interface {
 
         let newRecordCount = 0;
         for (const docData of results) {
-            if (this.cacheRecord(docData.docId, docData))
+            if (await this.#db.cacheRecord(docData.docId, docData, serialCb))
                 newRecordCount++;
         }
         if (newRecordCount > 0)

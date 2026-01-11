@@ -19,7 +19,8 @@ import {
     where,
     orderBy,
     endBefore,
-    limit
+    limit,
+    Timestamp
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
 export default class FirebaseDB extends CachedDB {
@@ -159,6 +160,18 @@ export default class FirebaseDB extends CachedDB {
             ...queryConstraints);
     }
 
+    getRecordTimestampDate(record)
+    {
+        const timestamp = record.takenTime || record.createdAt;
+        if (!timestamp)
+            return null;
+        if (timestamp instanceof Timestamp)
+            return timestamp.toDate();
+        if (timestamp instanceof Date)
+            return timestamp;
+        return null;
+    }
+
     async _fetchDocs(query, fetchCount)
     {
         if (this.#fetchingPromise) {
@@ -185,7 +198,7 @@ export default class FirebaseDB extends CachedDB {
         let newRecordCount = 0;
         const docs = snap.docs;
         for (const doc of docs) {
-            if (this.cacheRecord(doc.id, doc.data()))
+            if (await this.cacheRecord(doc.id, doc.data(), serialCb))
                 newRecordCount++;
         }
 
