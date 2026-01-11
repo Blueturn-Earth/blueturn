@@ -64,7 +64,7 @@ export default class DragScroller
     });
 
     this.#scroller.addEventListener('scroll', this._onScroll);
-    this.#scroller.addEventListener('scrollend', this._onScrollEnd);
+    this.#scroller.addEventListener('scrollend', async () => {await this._onScrollEnd;});
   }
 
   setSelectItemCb(cb) {
@@ -364,12 +364,12 @@ export default class DragScroller
 
   }
 
-  _onScrollEnd = () =>
+  _onScrollEnd = async () =>
   {
     if (this.#isSnapping) {
       console.debug("End of snapping");
       if(this.#onSelectItemCb && this.#selectedItemIndex !== undefined) {
-        this.#onSelectItemCb(this.#itemsGroup.children[this.#selectedItemIndex + 2], this.#selectedItemIndex); // skip start spacer+template
+        await this.#onSelectItemCb(this.#itemsGroup.children[this.#selectedItemIndex + 2], this.#selectedItemIndex); // skip start spacer+template
       }
       this.#isSnapping = false;
     }

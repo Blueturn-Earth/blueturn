@@ -33,7 +33,7 @@ function createPicElements(skyPhotoRecord)
     skyPhotoRecord.scrollPicDiv = createScrollPicDiv(skyPhotoRecord);
 }
 
-function jumpToPicEpicTimeByIndex(index)
+async function jumpToPicEpicTimeByIndex(index)
 {
     if (index == undefined)
         return;
@@ -46,7 +46,7 @@ function jumpToPicEpicTimeByIndex(index)
     const timeSec = picItem.epicTimeSec;
     gSetPlayState(false);
     gControlState.blockSnapping = true;
-    gJumpToEpicTime(timeSec);
+    await gJumpToEpicTime(timeSec);
 }
 
 function setEpicTimeByPicsAlpha(alpha)
@@ -78,10 +78,10 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
 
 function setSkyPhotosScrollGalleryCallbacks()
 {
-    skyPhotosScrollGallery.setSelectItemCb((node, index) => {
+    skyPhotosScrollGallery.setSelectItemCb(async (node, index) => {
         const scrollDivImg = skyPhotosScrollGallery.getItemImg(node);
         scrollDivImg.style.border = `4px solid rgba(255, 255, 255, 1)`;
-        jumpToPicEpicTimeByIndex(index);
+        await jumpToPicEpicTimeByIndex(index);
     });
 
     skyPhotosScrollGallery.setUnselectItemCb((node, index) => {
