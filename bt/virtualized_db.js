@@ -3,18 +3,15 @@ import DB_Interface from "./db_interface.js";
 export default class VirtualizedDB extends DB_Interface {
     #db;
     #virtualSize;
-    #fetchMultiplier;
     #virtualizer;
 
     constructor(db, {
         virtualSize = 1_000_000,
-        fetchMultiplier = 10,
         virtualizer
     } = {}) {
         super();
         this.#db = db;
         this.#virtualSize = virtualSize;
-        this.#fetchMultiplier = fetchMultiplier;
         this.#virtualizer = virtualizer;
     }
 
@@ -30,15 +27,15 @@ export default class VirtualizedDB extends DB_Interface {
 
     /* ---------------- constraint wrappers ---------------- */
 
-    where(field, op, value, scope = "virtual") {
+    where(field, op, value) {
         const c = this.#db.where(field, op, value);
-        c.__virtual = { type: "where", field, op, value, scope };
+        c.__virtual = { type: "where", field, op, value };
         return c;
     }
 
-    orderBy(field, direction = "asc", scope = "virtual") {
+    orderBy(field, direction = "asc") {
         const c = this.#db.orderBy(field, direction);
-        c.__virtual = { type: "orderBy", field, direction, scope };
+        c.__virtual = { type: "orderBy", field, direction };
         return c;
     }
 
@@ -54,6 +51,10 @@ export default class VirtualizedDB extends DB_Interface {
         return c;
     }
 
+    timestampToDate(val) {
+        return this.#db.timestampToDate(val);
+    }
+
     buildQuery(...queryConstraints) {
         // Delegate real query construction
         const q = this.#db.buildQuery(...queryConstraints);
@@ -63,11 +64,6 @@ export default class VirtualizedDB extends DB_Interface {
         q._queryConstraints = queryConstraints;
 
         return q;
-    }
-
-    getRecordTimestampDate(record)
-    {
-        return this.#db.getRecordTimestampDate(record);
     }
 
     applyVirtualFilters(docs, virtualWhere, virtualOrderBy) {
@@ -122,15 +118,12 @@ export default class VirtualizedDB extends DB_Interface {
         const virtual = {
             where: [],
             orderBy: null,
-            limit: 20,
+            limit: null,
             cursor: 0
         };
 
-        const realConstraints = [];
-
         for (const c of constraints) {
             if (!c.__virtual) {
-                realConstraints.push(c);
                 continue;
             }
 
@@ -138,16 +131,11 @@ export default class VirtualizedDB extends DB_Interface {
 
             switch (v.type) {
                 case "where":
-                    (v.scope === "real"
-                        ? realConstraints
-                        : virtual.where
-                    ).push(v);
+                    virtual.where.push(v);
                     break;
 
                 case "orderBy":
-                    v.scope === "real"
-                        ? realConstraints.push(c)
-                        : (virtual.orderBy = v);
+                    virtual.orderBy = v;
                     break;
 
                 case "limit":
@@ -160,13 +148,7 @@ export default class VirtualizedDB extends DB_Interface {
             }
         }
 
-        // Inflate real fetch
-        realConstraints.push(
-            this.#db.limit(virtual.limit * this.#fetchMultiplier)
-        );
-
-        const realQuery = this.#db.buildQuery(...realConstraints);
-        const baseDocs = await this.#db.fetchRecords(realQuery, serialCb);
+        const baseDocs = await this.#db.fetchRecords(query, serialCb);
 
         if (!baseDocs.length) return [];
 
@@ -175,13 +157,13 @@ export default class VirtualizedDB extends DB_Interface {
         let i = virtual.cursor;
 
         while (
-            results.length < virtual.limit &&
+            (virtual.limit === null || results.length < virtual.limit) &&
             i < this.#virtualSize
         ) {
             const base = baseDocs[i % baseDocs.length];
             const vdoc = this.#virtualizer(base, i);
 
-            if (this.#passesVirtualWhere(vdoc, virtual.where))
+            if (this._passesVirtualWhere(vdoc, virtual.where))
                 results.push(vdoc);
 
             i++;
@@ -207,7 +189,7 @@ export default class VirtualizedDB extends DB_Interface {
         return results;
     }
 
-    #passesVirtualWhere(doc, wheres) {
+    _passesVirtualWhere(doc, wheres) {
         for (const w of wheres) {
             if (!this.compare(doc[w.field], w.op, w.value))
                 return false;

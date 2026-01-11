@@ -89,17 +89,11 @@ function generateRandomGPS(gps, virtualId) {
 }
 
 const DEC_2025_START = Date.UTC(2025, 11, 1, 0, 0, 0);
-const DEC_2025_END   = Date.UTC(2026, 0, 1, 0, 0, 0);
-const DEC_2025_SPAN  = DEC_2025_END - DEC_2025_START;
+const NOW   = Date.now();
+const DEC_2025_SPAN  = NOW - DEC_2025_START;
 
-function pickDecemberDay(virtualId) {
+function pickDaySinceDecember(virtualId) {
   let t = pseudoRandom(virtualId * 13);
-
-  // Strong Christmas bias (Dec 24–26)
-  const christmasPeak =
-    Math.exp(-Math.pow(t - 0.80, 2) / 0.002);
-
-  t = Math.min(1, t + christmasPeak * 0.35);
 
   const millis =
     DEC_2025_START + t * DEC_2025_SPAN;
@@ -145,7 +139,7 @@ function localToUTC(date, lat, lon, localHour, virtualId) {
 
 function generateRandomTimestamp(virtualId, gps)
 {
-  const baseDay = pickDecemberDay(virtualId);
+  const baseDay = pickDaySinceDecember(virtualId);
   const localHour = pickLocalHour(virtualId);
 
   return localToUTC(
