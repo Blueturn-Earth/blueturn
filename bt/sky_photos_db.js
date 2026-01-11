@@ -379,7 +379,7 @@ class SkyPhotosDB {
     }
 
 
-    async _adjustEpicTimeSec(record)
+    async _adjustEpicTimeSec(record, adjustTimeForMissingEpicData = false)
     {
         const timestampDate = this.db.getRecordTimestampDate(record);
         console.debug("Adding new sky photo for time ", timestampDate);
@@ -401,7 +401,7 @@ class SkyPhotosDB {
             console.log("Adjusted pic from " + timestampDate + " to ", adjusted_timestampDate + " to fit in EPIC range");
         }
 
-        //if (adjustTimeForMissingEpicData)
+        if (adjustTimeForMissingEpicData)
         {
             let boundPair;
             try {
