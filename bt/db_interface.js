@@ -23,6 +23,10 @@ export default class DB_Interface {
         throw new Error("buildQuery not implemented");
     }
 
+    getRecordTimestampDate(record) {
+        throw new Error("getRecordTimestampDate not implemented");
+    }
+
     async fetchRecords(query) {
         throw new Error("fetchRecords not implemented");
     }

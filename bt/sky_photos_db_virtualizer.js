@@ -143,7 +143,7 @@ function localToUTC(date, lat, lon, localHour, virtualId) {
   return d;
 }
 
-function generateRandomTimestamp(timestamp, virtualId, gps)
+function generateRandomTimestamp(virtualId, gps)
 {
   const baseDay = pickDecemberDay(virtualId);
   const localHour = pickLocalHour(virtualId);
@@ -159,7 +159,7 @@ function generateRandomTimestamp(timestamp, virtualId, gps)
 
 export function virtualizeSkyPhoto(picItem, virtualId) {
   const gps = generateRandomGPS(picItem.gps, virtualId);
-  const takenTime = generateRandomTimestamp(picItem.takenTime || picItem.createdAt, virtualId, gps);
+  const takenTime = generateRandomTimestamp(virtualId, gps);
 
   return {
     ...picItem,
