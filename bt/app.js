@@ -318,108 +318,28 @@ export function removeEpicTimeChangeCallback(cbId)
     epicTimeChangeCallbacks.delete(cbId);
 }
 
-export function gSetEpicTimeSec(timeSec, noloop = false)
+export function gSetEpicTimeSec(timeSec)
 {
-    const argTimeSec = timeSec;
-    //console.log("gEpicTimeSec: " + timeSec);
-    let prevEpicTimeSec = gEpicTimeSec;
-
-    // Check if the time is within the range of available EPIC images
-    const latestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec();
-    const oldestEpicTimeSec = gEpicDB.getOldestEpicImageTimeSec();
-    if (timeSec > latestEpicTimeSec)
-    {
-        // Looping around default loop time range
-        prevEpicTimeSec = latestEpicTimeSec;
-        const loopBackRangeSec = gControlState.range ? gControlState.range : 3600 * 24; // default to 24 hours
-        timeSec = noloop ? prevEpicTimeSec : latestEpicTimeSec - loopBackRangeSec;
-        if (noloop)
-            gUpdateLoadingText("Last image available");
-        else
-            gUpdateLoadingText("");
-
-        //console.log("Past latest available EPIC image time, jumping back to loop period of " + loopBackRangeSec + "s");
-    }
-    else if (timeSec > gEpicDB.getEndTime())
-    {
-        // Looping around default loop time range
-        prevEpicTimeSec = gEpicDB.getEndTime();
-        timeSec = gEpicDB.getStartTime();
-        gUpdateLoadingText("");
-        //console.log("Past end of time range, jumping back to start time " + gEpicDB.getStartTime());
-    }
-    else if (timeSec < oldestEpicTimeSec)
-    {
-        // Block at oldest time
-        timeSec = oldestEpicTimeSec;
-        gUpdateLoadingText("First image available by NASA");
-    }
-    else if (!gControlState.jumping) {
-        gUpdateLoadingText("");
-    }
-    else
-    {
-        //Jumping... keep loading msg unchanged
-    }
-
-    if (!timeSec) {
-        console.error("Failed to adjust time from ", argTimeSec);
-        gUpdateLoadingText("Error");
-        return false;
-    }
+    if (timeSec == gEpicTimeSec)
+        return;
 
     gEpicTimeSec = timeSec;
-
-    let interpolationSuccess;
-    if (prevEpicTimeSec)
-    {
-        if(gEpicDB.isTimeSecBeforeFirstOfDay(timeSec) && timeSec != oldestEpicTimeSec)
-        {
-            let prevDayTimeSec = timeSec - 3600 * 24;
-            // get day from timeSec
-            while (!gEpicDB.isDayAvailable(gGetDayFromTimeSec(prevDayTimeSec)))
-            {
-                prevDayTimeSec -= 3600 * 24;
-                timeSec = prevDayTimeSec; // go back one day
-            }
-        }
-        if(gEpicDB.isTimeSecAfterLastOfDay(timeSec) && timeSec != latestEpicTimeSec)
-        {
-            let nextDayTimeSec = timeSec + 3600 * 24;
-            // get day from timeSec
-            while (!gEpicDB.isDayAvailable(gGetDayFromTimeSec(nextDayTimeSec)))
-            {
-                nextDayTimeSec += 3600 * 24;
-                timeSec = nextDayTimeSec; // go to next day
-            }
-        }
-
-        interpolationSuccess = gUpdateEpicInterpolation();
-
-        if (!interpolationSuccess)
-        {
-            // block the time change if we cannot interpolate EPIC images
-            timeSec = prevEpicTimeSec;
-        }
-        else if(gZoom)
-        {
-            // block the time change if we are zoomed in and the pivot is not facing the current image
-            // Check that pivot's lat lon is facing the 
-            const pivotNormal = getPivotNormal(pivotStartPos, gPivotEpicImageData, gEpicImageData);
-            //console.log("pivotStartPos: " + JSON.stringify(pivotStartPos) + ", pivotNormal: " + JSON.stringify(pivotNormal));
-            if (pivotNormal[2] < 0.0)
-                timeSec = prevEpicTimeSec;
-        }
-    }
-
-    if (!interpolationSuccess || timeSec != gEpicTimeSec || !prevEpicTimeSec)
-    {
-        gEpicTimeSec = timeSec;
-        // Try to interpolate on fixed time
-        interpolationSuccess = gUpdateEpicInterpolation();
-    }
+    // Try to interpolate on fixed time
+    const interpolationSuccess = gUpdateEpicInterpolation();
 
     updateDateText(gEpicTimeSec);
+    const latestEpicTimeSec = gEpicDB.getLatestEpicImageTimeSec();
+    const oldestEpicTimeSec = gEpicDB.getOldestEpicImageTimeSec();
+    if (timeSec == latestEpicTimeSec)
+        gUpdateLoadingText("Last image from NASA");
+    else if (timeSec == oldestEpicTimeSec)
+        gUpdateLoadingText("Oldest image from NASA");
+    else if (!interpolationSuccess) {
+        gUpdateLoadingText("Loading...");
+        return;
+    }
+    else
+        gUpdateLoadingText("");
 
     for(const [cbId, cb] of epicTimeChangeCallbacks)
     {
@@ -556,7 +476,9 @@ gScreen.addEventListener("drag-x", (e) => {
     if (epicPressTime && gEpicTimeSec)
     {
         const dragDeltaTime = (e.deltaPos.x) / canvas.width * 3600 * 24;
-        gSetEpicTimeSec(gEpicTimeSec + dragDeltaTime, true);
+        const timeSec = addEpicTimeSec(dragDeltaTime, false);
+
+        gSetEpicTimeSec(timeSec, true);
 
         currentTimeSpeed = dragDeltaTime / e.deltaTime;
         dragging = true;
@@ -567,6 +489,23 @@ gScreen.addEventListener("drag-x", (e) => {
         dragTimeout = setTimeout(() => {if (dragging) currentTimeSpeed = 0.0;}, 100);
     }
 });
+
+function addEpicTimeSec(deltaTime, stopAtBoundary = false)
+{
+    const VERBOSE = true;
+    let timeSec = gEpicDB.addEpicTimeSec(gEpicTimeSec, deltaTime, stopAtBoundary, VERBOSE);
+    if(gZoom)
+    {
+        stopAtBoundary = true;
+        // block the time change if we are zoomed in and the pivot is not facing the current image
+        // Check that pivot's lat lon is facing the 
+        const pivotNormal = getPivotNormal(pivotStartPos, gPivotEpicImageData, gEpicImageData);
+        //console.log("pivotStartPos: " + JSON.stringify(pivotStartPos) + ", pivotNormal: " + JSON.stringify(pivotNormal));
+        if (pivotNormal[2] < 0.0)
+            timeSec = gEpicTimeSec;
+    }
+    return timeSec;
+}
 
 gScreen.addEventListener("mousewheel", (e) => {
     const wasZoom = gZoom;
@@ -725,7 +664,9 @@ export function gUpdateEpicTime(time)
             const DECCELERATION_FACTOR = 0.1; // Adjust this value to control the deceleration speed
             const systemDeltaTime = (time - lastUpdateTime) / 1000.0;
             currentTimeSpeed = gLerp(currentTimeSpeed, targetSpeed, DECCELERATION_FACTOR);
-            let timeSec = gEpicTimeSec + systemDeltaTime * currentTimeSpeed;
+            const deltaTime = systemDeltaTime * currentTimeSpeed;
+            const stopAtBoundary = !gControlState.play;
+            let timeSec = addEpicTimeSec(deltaTime, stopAtBoundary);
             let snapping = false;
             if (!gControlState.play && !gControlState.blockSnapping)
             {
@@ -751,8 +692,7 @@ export function gUpdateEpicTime(time)
                 }
             }
             gControlState.snapping = snapping;
-            const noloop = !gControlState.play;
-            gSetEpicTimeSec(timeSec, noloop);
+            gSetEpicTimeSec(timeSec);
         }
     }
 
