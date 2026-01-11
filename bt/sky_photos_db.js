@@ -19,7 +19,7 @@ class SkyPhotosDB {
     constructor() {
         this.db = db;
         this.db.addNewRecordCallback(async (record) => {await this._newSkyPhotoCallback(record);});
-        this.virtualize();
+        //this.virtualize();
     }
 
     virtualize()
