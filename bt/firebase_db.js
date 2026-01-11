@@ -154,22 +154,17 @@ export default class FirebaseDB extends CachedDB {
         return limit(...args);
     }
 
+    timestampToDate(val) {
+        if (val instanceof Date)
+            return val;
+        if (val instanceof Timestamp)
+            return val.toDate();
+    }
+
     buildQuery(...queryConstraints) {
         return query(
             collection(this.#db, this.#collection),
             ...queryConstraints);
-    }
-
-    getRecordTimestampDate(record)
-    {
-        const timestamp = record.takenTime || record.createdAt;
-        if (!timestamp)
-            return null;
-        if (timestamp instanceof Timestamp)
-            return timestamp.toDate();
-        if (timestamp instanceof Date)
-            return timestamp;
-        return null;
     }
 
     async _fetchDocs(query, fetchCount)

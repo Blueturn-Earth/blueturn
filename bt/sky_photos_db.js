@@ -72,16 +72,24 @@ class SkyPhotosDB {
         console.log("Fetched most recent record");
     }
 
+    _getRecordTimestampDate(record)
+    {
+        const timestamp = record.takenTime || record.createdAt;
+        if (!timestamp)
+            return null;
+        return this.db.timestampToDate(timestamp);
+    }
+
     _getMinDate()
     {
         if (this.#epicTimeSortedArray.length == 0)
             return;
         const itemWithMinimalTakenTime = this.#epicTimeSortedArray.reduce((minItem, currentItem) => {
-            const currentTimestamp = this.db.getRecordTimestampDate(currentItem);
-            const minTimestamp = this.db.getRecordTimestampDate(minItem);
+            const currentTimestamp = this._getRecordTimestampDate(currentItem);
+            const minTimestamp = this._getRecordTimestampDate(minItem);
             return (currentTimestamp < minTimestamp) ? currentItem : minItem;
         });
-        const minTimestamp = this.db.getRecordTimestampDate(itemWithMinimalTakenTime);
+        const minTimestamp = this._getRecordTimestampDate(itemWithMinimalTakenTime);
         return minTimestamp;
     }
 
@@ -90,11 +98,11 @@ class SkyPhotosDB {
         if (this.#epicTimeSortedArray.length == 0)
             return;
         const itemWithMaximalTakenTime = this.#epicTimeSortedArray.reduce((maxItem, currentItem) => {
-            const currentTimestamp = this.db.getRecordTimestampDate(currentItem);
-            const maxTimestamp = this.db.getRecordTimestampDate(maxItem);
+            const currentTimestamp = this._getRecordTimestampDate(currentItem);
+            const maxTimestamp = this._getRecordTimestampDate(maxItem);
             return (currentTimestamp > maxTimestamp) ? currentItem : maxItem;
         });
-        const maxTimestamp = this.db.getRecordTimestampDate(itemWithMaximalTakenTime);
+        const maxTimestamp = this._getRecordTimestampDate(itemWithMaximalTakenTime);
         return maxTimestamp;
     }
 
@@ -214,7 +222,7 @@ class SkyPhotosDB {
             for (let i = 0; i < addedCoverage.length; i += 2) {
                 const segmentRecords = await this.fetchDateRange(addedCoverage[i], addedCoverage[i+1], maxNumRecords, direction, true);
                 if (maxNumRecords > 0 && segmentRecords.length > 0) {
-                    const firstSegmentTimestamp = this.db.getRecordTimestampDate(segmentRecords[0]);
+                    const firstSegmentTimestamp = this._getRecordTimestampDate(segmentRecords[0]);
                     if (direction == DIRECTION.ASC)
                         this.#dateCoverage = this._mergeSegment(addedCoverage[i], firstSegmentTimestamp);
                     else
@@ -349,6 +357,7 @@ class SkyPhotosDB {
 
     async _newSkyPhotoCallback(record)
     {
+        record.takenTime = this._getRecordTimestampDate(record);
         await this._adjustEpicTimeSec(record);
 
         const index = this._addSkyPhotoToEpicSortedArray(record);
@@ -381,7 +390,7 @@ class SkyPhotosDB {
 
     async _adjustEpicTimeSec(record, adjustTimeForMissingEpicData = false)
     {
-        const timestampDate = this.db.getRecordTimestampDate(record);
+        const timestampDate = this._getRecordTimestampDate(record);
         console.debug("Adding new sky photo for time ", timestampDate);
         let timeSec = timestampDate.getTime() / 1000;
 
