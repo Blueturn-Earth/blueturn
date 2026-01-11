@@ -19,7 +19,8 @@ import {
     where,
     orderBy,
     endBefore,
-    limit
+    limit,
+    Timestamp
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
 export default class FirebaseDB extends DB_Interface {
@@ -161,6 +162,18 @@ export default class FirebaseDB extends DB_Interface {
             ...queryConstraints);
     }
 
+    getRecordTimestampDate(record)
+    {
+        const timestamp = record.takenTime || record.createdAt;
+        if (!timestamp)
+            return null;
+        if (timestamp instanceof Timestamp)
+            return timestamp.toDate();
+        if (timestamp instanceof Date)
+            return timestamp;
+        return null;
+    }
+    
     #nextCbId = 0;
 
     addNewRecordCallback(cb)

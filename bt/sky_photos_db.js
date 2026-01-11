@@ -56,9 +56,9 @@ class SkyPhotosDB {
         if (this.#epicTimeSortedArray.length == 0)
             return;
         const itemWithMinimalTakenTime = this.#epicTimeSortedArray.reduce((minItem, currentItem) => {
-            return (currentItem.takenTime.toDate() < minItem.takenTime.toDate()) ? currentItem : minItem;
+            return (this.db.getRecordTimestampDate(currentItem) < this.db.getRecordTimestampDate(minItem)) ? currentItem : minItem;
         });
-        return itemWithMinimalTakenTime.takenTime.toDate();
+        return this.db.getRecordTimestampDate(itemWithMinimalTakenTime);
     }
 
     _getMaxDate()
@@ -66,9 +66,9 @@ class SkyPhotosDB {
         if (this.#epicTimeSortedArray.length == 0)
             return;
         const itemWithMaximalTakenTime = this.#epicTimeSortedArray.reduce((maxItem, currentItem) => {
-            return (currentItem.takenTime.toDate() > maxItem.takenTime.toDate()) ? currentItem : maxItem;
+            return (this.db.getRecordTimestampDate(currentItem) > this.db.getRecordTimestampDate(maxItem)) ? currentItem : maxItem;
         });
-        return itemWithMaximalTakenTime.takenTime.toDate();
+        return this.db.getRecordTimestampDate(itemWithMaximalTakenTime);
     }
 
     _isBeyondMaxDate(date, inDB = true)
@@ -120,14 +120,19 @@ class SkyPhotosDB {
         return records;
     }
 
+    _mergeSegment(date0, date1) {
+        if (date0 && !(date0 instanceof Date))
+            return this.#dateCoverage;
+        if (date1 && !(date1 instanceof Date))
+            return this.#dateCoverage;
+        return mergeSegment(this.#dateCoverage, date0, date1);
+    }
+
     async fetchAfterDate(date, maxNumRecords)
     {
         const records = await this.fetchDateRange(date, null, maxNumRecords, DIRECTION.ASC);
         if (records.length < maxNumRecords)
             this._markLastReached();
-        const maxBoundDate = records.length > 0 ? records[records.length - 1] : date;
-
-        this.#dateCoverage = mergeSegment(this.#dateCoverage, date, maxBoundDate);
 
         return records;
     }
@@ -173,7 +178,7 @@ class SkyPhotosDB {
             );
 
             if (maxNumRecords < 0)
-                this.#dateCoverage = mergeSegment(this.#dateCoverage, rangeStartEpicTimeDate, rangeEndEpicTimeDate);
+                this.#dateCoverage = this._mergeSegment(rangeStartEpicTimeDate, rangeEndEpicTimeDate);
 
             if (addedCoverage.length > 0)
                 console.debug(this._getCoverageString());
@@ -183,9 +188,9 @@ class SkyPhotosDB {
                 const segmentRecords = await this.fetchDateRange(addedCoverage[i], addedCoverage[i+1], maxNumRecords, direction, true);
                 if (maxNumRecords > 0 && segmentRecords.length > 0) {
                     if (direction == DIRECTION.ASC)
-                        this.#dateCoverage = mergeSegment(this.#dateCoverage, addedCoverage[i], segmentRecords[0].data().takenTime.toDate());
+                        this.#dateCoverage = this._mergeSegment(addedCoverage[i], this.db.getRecordTimestampDate(segmentRecords[0]));
                     else
-                        this.#dateCoverage = mergeSegment(this.#dateCoverage, segmentRecords[0].data().takenTime.toDate(), addedCoverage[i+1]);
+                        this.#dateCoverage = this._mergeSegment(this.db.getRecordTimestampDate(segmentRecords[0]), addedCoverage[i+1]);
                 }
                 maxNumRecords -= segmentRecords.length;
                 records = [...records, ...segmentRecords];
@@ -316,7 +321,7 @@ class SkyPhotosDB {
 
     async _newSkyPhotoCallback(record)
     {
-        await SkyPhotosDB._adjustEpicTimeSec(record);
+        await this._adjustEpicTimeSec(record);
 
         const index = this._addSkyPhotoToEpicSortedArray(record);
         record.epicTimeIndex = index;
@@ -346,10 +351,9 @@ class SkyPhotosDB {
     }
 
 
-    static async _adjustEpicTimeSec(record)
+    async _adjustEpicTimeSec(record)
     {
-        const timestamp = record.takenTime || record.createdAt;
-        const timestampDate = timestamp.toDate();
+        const timestampDate = this.db.getRecordTimestampDate(record);
         console.debug("Adding new sky photo for time ", timestampDate);
         let timeSec = timestampDate.getTime() / 1000;
 
@@ -390,19 +394,19 @@ class SkyPhotosDB {
             else if (!epicImageData0 && !epicImageData1) {
                 console.warn("Could not fetch bound EPIC images at picture time ", timestampDate);
             }
-            else if (!epicImageData1 || !epicImageData0 || epicImageData1.epicTimeSec - epicImageData0.epicTimeSec > 12 * 3600)
+            else if (!epicImageData1 || !epicImageData0 || epicImageData1.timeSec - epicImageData0.timeSec > 12 * 3600)
             {
                 console.warn("EPIC data not available at picture time ", timestampDate);
-                if (!epicImageData1 || (epicImageData0 && (timeSec - epicImageData0.epicTimeSec < epicImageData1.epicTimeSec - timeSec)))
+                if (!epicImageData1 || (epicImageData0 && (timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)))
                 {
                     console.log("Closest EPIC data before picture time is previous at ", epicImageData0.date);
-                    while (timeSec > epicImageData0.epicTimeSec)
+                    while (timeSec > epicImageData0.timeSec)
                         timeSec -= SECONDS_IN_DAY;
                 }
-                else if (!epicImageData0 || (epicImageData1 && (timeSec - epicImageData0.epicTimeSec > epicImageData1.epicTimeSec - timeSec)))
+                else if (!epicImageData0 || (epicImageData1 && (timeSec - epicImageData0.timeSec > epicImageData1.timeSec - timeSec)))
                 {
                     console.log("Closest EPIC data after picture time is next at ", epicImageData1.date);
-                    while (timeSec < epicImageData1.epicTimeSec)
+                    while (timeSec < epicImageData1.timeSec)
                         timeSec += SECONDS_IN_DAY;
                 }
                 const adjusted_timestampDate = new Date(timeSec * 1000);
@@ -411,15 +415,12 @@ class SkyPhotosDB {
         }
 
         record.epicTimeSec = timeSec;
-        const realDate = gGetDateTimeStringFromTimeSec(timestamp.toDate().getTime() / 1000);
+        const realDate = gGetDateTimeStringFromTimeSec(timestampDate.getTime() / 1000);
         const fakeDate = gGetDateTimeStringFromTimeSec(record.epicTimeSec);
         if (realDate != fakeDate)
             console.debug(`Pic docId=${record.docId}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
         else
             console.debug(`Pic docId=${record.docId}: date: \"${realDate}\"`);
-
-
-
     }    
 }
 
