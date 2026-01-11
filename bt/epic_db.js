@@ -9,6 +9,7 @@ import {
     gArrayBoundIndices, 
     gGetPrevDateStr, 
     gGetNextDateStr,
+    gGetDayFromTimeSec, 
     gGetDateTimeStringFromTimeSec} from './utils.js';
 import { gControlState } from "./controlparams.js";
 
@@ -139,33 +140,49 @@ export default class EpicDB {
         return !!this.getEpicDataForTimeSec(timeSec);
     }
 
-    isTimeSecBeforeFirstOfDay(timeSec) {
-        // Check if the given timeSec is the first epic image of the day
+    getFirstEpicTimeSecOfDay(timeSec) {
         const dayStr = EpicDB.getDayStrFromTimeSec(timeSec);
         if (!this._epicDays.has(dayStr)) {
-            return false; // No data for this day
+            return null; // No data for this day
         }
         const epicDayData = this._epicDays.get(dayStr);
         if (!epicDayData || epicDayData.loading || !epicDayData.length) {
-            return false; // No data for this day
+            return null; // No data for this day
         }
         // Check if the first epic image of the day matches the given timeSec
-        return epicDayData[0] && !epicDayData[0].loading && timeSec < epicDayData[0].timeSec;
+        for (let i = 0; i < epicDayData.length; i++) {
+            if (epicDayData[i] && !epicDayData[i].loading)
+                return epicDayData[i].timeSec;
+        }
+        return null;
+    }
+
+    isTimeSecBeforeFirstOfDay(timeSec) {
+        // Check if the given timeSec is the first epic image of the day
+        const firstTimeSec = this.getFirstEpicTimeSecOfDay(timeSec);
+        return firstTimeSec && timeSec < firstTimeSec;
     }
     
-    isTimeSecAfterLastOfDay(timeSec) {
-        // Check if the given timeSec is the last epic image of the day
+    getLastEpicTimeSecOfDay(timeSec) {
         const dayStr = EpicDB.getDayStrFromTimeSec(timeSec);
         if (!this._epicDays.has(dayStr)) {
-            return false; // No data for this day
+            return null; // No data for this day
         }
         const epicDayData = this._epicDays.get(dayStr);
         if (!epicDayData || epicDayData.loading || !epicDayData.length) {
-            return false; // No data for this day
+            return null; // No data for this day
         }
-        // Check if the last epic image of the day matches the given timeSec
-        const lastEpicImageData = epicDayData[epicDayData.length - 1];
-        return lastEpicImageData && !lastEpicImageData.loading && timeSec > lastEpicImageData.timeSec;
+        // Check if the first epic image of the day matches the given timeSec
+        for (let i = epicDayData.length - 1; i >= 0 ; i--) {
+            if (epicDayData[i] && !epicDayData[i].loading)
+                return epicDayData[i].timeSec;
+        }
+        return null;
+    }
+
+    isTimeSecAfterLastOfDay(timeSec) {
+        const lastTimeSec = this.getLastEpicTimeSecOfDay(timeSec);
+        return lastTimeSec && timeSec > lastTimeSec;
     }
     
     _getPrevAvailableDay(dayStr, strict = true)
@@ -382,6 +399,99 @@ export default class EpicDB {
         return epicImageData.textureLoading;
     }
 
+    addEpicTimeSec(origTimeSec, deltaTime, stopAtBoundary, verbose)
+    {
+        let timeSec = origTimeSec + deltaTime;
+        const latestEpicTimeSec = this.getLatestEpicImageTimeSec();
+        const oldestEpicTimeSec = this.getOldestEpicImageTimeSec();
+
+        if (timeSec > latestEpicTimeSec)
+        {
+            // Looping around default loop time range
+            const loopBackRangeSec = gControlState.range ? gControlState.range : 3600 * 24; // default to 24 hours
+            const newTimeSec = stopAtBoundary ? latestEpicTimeSec : latestEpicTimeSec - loopBackRangeSec;
+            deltaTime = newTimeSec - origTimeSec;
+            timeSec = newTimeSec;
+
+            //console.log("Past latest available EPIC image time, jumping back to loop period of " + loopBackRangeSec + "s");
+        }
+        else if (timeSec > this.getEndTime())
+        {
+            // Looping around default loop time range
+            const newTimeSec = stopAtBoundary ? this.getEndTime() : this.getStartTime();
+            deltaTime = newTimeSec - origTimeSec;
+            timeSec = newTimeSec;
+            //console.log("Past end of time range, jumping back to start time " + this.getStartTime());
+        }
+        else if (timeSec < oldestEpicTimeSec)
+        {
+            // Block at oldest time
+            timeSec = oldestEpicTimeSec;
+        }
+        if(deltaTime < 0) {
+            if(this.isTimeSecBeforeFirstOfDay(timeSec) || 
+               !this.isDayAvailable(gGetDayFromTimeSec(timeSec)))
+            {
+                if (!this.isDayAvailable(gGetDayFromTimeSec(timeSec)) || 
+                    !this.isDayAvailable(gGetDayFromTimeSec(timeSec - 3600*24))) {
+                    let jumpedDay = false;
+                    for (let k = 0; k < 2; k++) // do it twice to get a full day
+                    do {
+                        if (stopAtBoundary)
+                        {
+                            timeSec = this.getFirstEpicTimeSecOfDay(timeSec) || origTimeSec;
+                            break;
+                        }
+                        timeSec -= 3600 * 24;
+                        jumpedDay = true;
+                        if (timeSec <= oldestEpicTimeSec) {
+                            timeSec = oldestEpicTimeSec;
+                            break;
+                        }
+                    }
+                    while (!this.isDayAvailable(gGetDayFromTimeSec(timeSec)));
+                    if (jumpedDay) {
+                        timeSec = this.getLastEpicTimeSecOfDay(timeSec) || timeSec;
+                        if (verbose)
+                            console.debug("Skipped to prev EPIC time available: " + gGetDateTimeStringFromTimeSec(timeSec) + ", instead of " + gGetDateTimeStringFromTimeSec(origTimeSec + deltaTime));
+                    }
+                }
+            }
+        }
+        if(deltaTime > 0) { 
+            if(this.isTimeSecAfterLastOfDay(timeSec) || 
+               !this.isDayAvailable(gGetDayFromTimeSec(timeSec)))
+            {
+                if (!this.isDayAvailable(gGetDayFromTimeSec(timeSec)) || 
+                    !this.isDayAvailable(gGetDayFromTimeSec(timeSec + 3600*24))) {
+                    let jumpedDay = false;
+                    do
+                    {
+                        if (stopAtBoundary)
+                        {
+                            timeSec = this.getLastEpicTimeSecOfDay(timeSec) || origTimeSec;
+                            break;
+                        }
+                        timeSec += 3600 * 24;
+                        jumpedDay = true;
+                        if (timeSec >= latestEpicTimeSec) {
+                            timeSec = latestEpicTimeSec;
+                            break;
+                        }
+                    }
+                    while (!this.isDayAvailable(gGetDayFromTimeSec(timeSec)));
+                    if (jumpedDay) {
+                        timeSec = this.getFirstEpicTimeSecOfDay(timeSec) || timeSec;
+                        if (verbose)
+                            console.debug("Skipped to next EPIC time available: " + gGetDateTimeStringFromTimeSec(timeSec) + ", instead of " + gGetDateTimeStringFromTimeSec(origTimeSec + deltaTime));
+                    }
+                }
+            }
+        }
+
+        return timeSec;
+    }
+
     #predictimeTimeSec;
     async _predictAndPreloadImages(timeSec) {
         // Predict and load frames based on the given timeSec and timeSpeed
@@ -393,16 +503,7 @@ export default class EpicDB {
             const TIME_PREDICT_SEC = 10;
             let nextTime = timeSec
             for (let i = 1; i <= TIME_PREDICT_SEC; i++) {
-                nextTime += i * gControlState.speed;
-                if (nextTime > this._epicLatestTimeSec) {
-                    const loopBackRangeSec = gControlState.range ? gControlState.range : 3600 * 24; // default to 24 hours
-                    nextTime = this._epicLatestTimeSec - loopBackRangeSec;
-                    break;
-                }
-                if (nextTime > this.#endTimeSec) {
-                    nextTime = this.#startTimeSec;
-                    break;
-                }
+                nextTime = this.addEpicTimeSec(nextTime, i * gControlState.speed);
                 try {
                     const [epicImageData0, epicImageData1] = await this.fetchBoundKeyFrames(nextTime);
                     if (timeSec != this.#predictimeTimeSec) return; // abort point
