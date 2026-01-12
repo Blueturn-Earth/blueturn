@@ -382,12 +382,11 @@ export default class DragScroller
         );
       }
     }
-/*
+
     if(this.#onScrollAlphaCb) {
       const alpha = this.getScrolledAlpha();
       this.#onScrollAlphaCb(alpha);
     }
-*/
   }
 
   _onScroll = (e) =>
@@ -568,7 +567,7 @@ export default class DragScroller
       return;
     }
 
-    this.scrollToIndex(itemIndex); // skip start spacer+template
+    this.scrollToIndex(itemIndex);
   };
 
   // Pagination mechanism
