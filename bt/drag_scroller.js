@@ -139,7 +139,7 @@ export default class DragScroller
     
     if(this.#selectedItemIndex !== undefined &&
       this.#selectedItemIndex >= index) {
-        this._setSelectedIndex(this.#selectedItemIndex + 1);
+        this.scrollToIndex(this.#selectedItemIndex + 1, false);
     }
 
     node.onclick = (e) => {
@@ -196,10 +196,10 @@ export default class DragScroller
   }
   
   
-  _getStartSpacerNumItemsExposure(targetScroll)
+  _getStartSpacerNumItemsExposure(scrollPos)
   {
     const startSpacerSize = this.#isHorizontal ? this.#startSpacer.clientWidth : this.#startSpacer.clientHeight;
-    if (targetScroll - startSpacerSize < startSpacerSize) {
+    if (scrollPos - startSpacerSize < startSpacerSize) {
       const firstItemSize = this._getItemSize(this.#itemsGroup.children[2]);
       return Math.ceil((2 * startSpacerSize - startSpacerSize) / firstItemSize);
     }
@@ -207,13 +207,13 @@ export default class DragScroller
       return 0;
   }
 
-  _getEndSpacerNumItemsExposure(targetScroll)
+  _getEndSpacerNumItemsExposure(scrollPos)
   {
     const limits = this._getScrollLimits();
     if (!limits) 
       return false;
     const endSpacerSize = this.#isHorizontal ? this.#endSpacer.clientWidth : this.#endSpacer.clientHeight;
-    if (targetScroll + endSpacerSize > limits.max) {
+    if (scrollPos + endSpacerSize > limits.max) {
       const lastItemSize = this._getItemSize(this.#itemsGroup.children[this.#itemsGroup.children.length - 2]);
       return Math.ceil((2 * endSpacerSize - endSpacerSize) / lastItemSize);
     }
@@ -259,10 +259,11 @@ export default class DragScroller
     this.#scroller.scrollTo({
       left: this.#isHorizontal ? target : this.#scroller.scrollLeft,
       top:  this.#isHorizontal ? this.#scroller.scrollTop  : target,
-      behavior: 'smooth'
+      behavior: smooth ? 'smooth' : 'instant'
     });
     this._setSelectedIndex(index);
-    this._requestMoreIfNeeded(target);        
+    if (smooth)
+      this._requestMoreIfNeeded(target);        
   }
 
   getSelectedItemIndex() {
@@ -308,10 +309,14 @@ export default class DragScroller
       // Prevent the upcoming click globally
       this._suppressNextClick();
       this.#isDragging = false;
-      if (this.#lastMoveDelta < this.#MOVE_THRESHOLD)
+      if (this.#lastMoveDelta < this.#MOVE_THRESHOLD) {
+        console.debug("Snapping to nearest...");
         this._snapToNearest();
-      else
+      }
+      else {
+        console.debug("Decelerating...");
         this.#isDecelerating = true;
+      }
     }
     this.#lastMoveDelta = 0;
   }
@@ -416,8 +421,12 @@ export default class DragScroller
 
   _snapToNearest() {
     const children = this.#itemsGroup.children;
-    if (children.length <= 2) // means empty with spacers
+    if (children.length <= 3) { // means empty with spacers and template
+      console.debug("Cannot snap to nearest: empty");
       return;
+    }
+
+    console.debug("Snap to nearest");
 
     const scrollPos = this.#isHorizontal
       ? this.#scroller.scrollLeft
@@ -460,6 +469,7 @@ export default class DragScroller
         behavior: 'smooth'
       });
       this._setSelectedIndex(closestChildIndex - 2); // skip start spacer+template
+      this._requestMoreIfNeeded(target);
   }
 
   _setSelectedIndex(index)
@@ -588,16 +598,19 @@ export default class DragScroller
     if (this.#completedRight)
       console.log("No more items available to the right");
   }
-  _requestMoreIfNeeded(targetScroll) {
-    this._requestMoreIfNeededLeft(targetScroll);
-    this._requestMoreIfNeededRight(targetScroll);    
+  _requestMoreIfNeeded(scrollPos) {
+    if (scrollPos === undefined)
+      scrollPos = this.#isHorizontal ? this.#scroller.scrollLeft : this.#scroller.scrollTop;
+
+    this._requestMoreIfNeededLeft(scrollPos);
+    this._requestMoreIfNeededRight(scrollPos);    
   }
 
-  _requestMoreIfNeededLeft(targetScroll) {
+  _requestMoreIfNeededLeft(scrollPos) {
     if (this.#requestLeftPromise || this.#completedLeft)
       return;
 
-    const numItemsNeeded = this._getStartSpacerNumItemsExposure(targetScroll);
+    const numItemsNeeded = this._getStartSpacerNumItemsExposure(scrollPos) * 2;
     if (numItemsNeeded > 0)
     {
       console.debug("Need " + numItemsNeeded + " more items to the left");
@@ -613,10 +626,10 @@ export default class DragScroller
     }
   }
 
-  _requestMoreIfNeededRight(targetScroll) {
+  _requestMoreIfNeededRight(scrollPos) {
     if (this.#requestRightPromise || this.#completedRight)
       return;
-    const numItemsNeeded = this._getEndSpacerNumItemsExposure(targetScroll);
+    const numItemsNeeded = this._getEndSpacerNumItemsExposure(scrollPos) * 2;
     if (numItemsNeeded > 0)
     {
       console.debug("Need " + numItemsNeeded + " more items to the right");
