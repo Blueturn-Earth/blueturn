@@ -190,8 +190,6 @@ export default class DragScroller
         ...(this.#isHorizontal ? { left: target } : { top: target }),
         behavior: 'instant'
       });
-
-      this._requestMoreIfNeeded(target);        
     }
   }
   
@@ -261,8 +259,6 @@ export default class DragScroller
       behavior: smooth ? 'smooth' : 'instant'
     });
     this._setSelectedIndex(index);
-    if (smooth)
-      this._requestMoreIfNeeded(target);        
   }
 
   getSelectedItemIndex() {
@@ -392,7 +388,7 @@ export default class DragScroller
   _onScroll = (e) =>
   {
     //console.debug(e.type);
-
+    this._requestMoreIfNeeded(target);
   }
 
   _onScrollEnd = async (e) =>
@@ -467,7 +463,6 @@ export default class DragScroller
         behavior: 'smooth'
       });
       this._setSelectedIndex(closestChildIndex - 2); // skip start spacer+template
-      this._requestMoreIfNeeded(target);
   }
 
   _setSelectedIndex(index)
@@ -611,16 +606,10 @@ export default class DragScroller
     const numItemsNeeded = this._getStartSpacerNumItemsExposure(scrollPos);
     if (numItemsNeeded > 0)
     {
-      console.debug("Need " + numItemsNeeded + " more items to the left");
       if (this.#onRequestMoreLeftCb)
         this.#requestLeftPromise = this.#onRequestMoreLeftCb(numItemsNeeded);
       else
-        this.#requestLeftPromise = new Promise(resolve => {
-            // by default, simulate a process that takes 1s
-            setTimeout(() => {
-                resolve(this.notifyRequestMoreLeftComplete());
-              }, 1000);
-          });
+        this.notifyRequestMoreLeftComplete(false);
     }
   }
 
@@ -630,16 +619,10 @@ export default class DragScroller
     const numItemsNeeded = this._getEndSpacerNumItemsExposure(scrollPos);
     if (numItemsNeeded > 0)
     {
-      console.debug("Need " + numItemsNeeded + " more items to the right");
       if (this.#onRequestMoreRightCb)
         this.#requestRightPromise = this.#onRequestMoreRightCb(numItemsNeeded);
       else
-        this.#requestRightPromise = new Promise(resolve => {
-            // by default, simulate a process that takes 1s
-            setTimeout(() => {
-                resolve(this.notifyRequestMoreRightComplete());
-              }, 1000);
-          });
+        this.notifyRequestMoreLeftComplete(false);
     }
   }
 }
