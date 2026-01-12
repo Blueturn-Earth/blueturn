@@ -100,8 +100,7 @@ export default class DragScroller
 
   show() {
     this.#scroller.style.display = this.#defaultDisplayMode;
-    const currentScrollPos = this.#isHorizontal ? this.#scroller.scrollLeft : this.#scroller.scrollTop;
-    this._requestMoreIfNeeded(currentScrollPos);
+    this._requestMoreIfNeeded();
   }
   
   hide() {
@@ -388,7 +387,7 @@ export default class DragScroller
   _onScroll = (e) =>
   {
     //console.debug(e.type);
-    this._requestMoreIfNeeded(target);
+    this._requestMoreIfNeeded();
   }
 
   _onScrollEnd = async (e) =>
