@@ -195,13 +195,12 @@ export default class DragScroller
     }
   }
   
-  
   _getStartSpacerNumItemsExposure(scrollPos)
   {
     const startSpacerSize = this.#isHorizontal ? this.#startSpacer.clientWidth : this.#startSpacer.clientHeight;
-    if (scrollPos - startSpacerSize < startSpacerSize) {
+    if (scrollPos < startSpacerSize) {
       const firstItemSize = this._getItemSize(this.#itemsGroup.children[2]);
-      return Math.ceil((2 * startSpacerSize - startSpacerSize) / firstItemSize);
+      return Math.ceil(startSpacerSize / firstItemSize);
     }
     else
       return 0;
@@ -215,7 +214,7 @@ export default class DragScroller
     const endSpacerSize = this.#isHorizontal ? this.#endSpacer.clientWidth : this.#endSpacer.clientHeight;
     if (scrollPos + endSpacerSize > limits.max) {
       const lastItemSize = this._getItemSize(this.#itemsGroup.children[this.#itemsGroup.children.length - 2]);
-      return Math.ceil((2 * endSpacerSize - endSpacerSize) / lastItemSize);
+      return Math.ceil(endSpacerSize / lastItemSize);
     }
     else
       return 0;
@@ -383,12 +382,11 @@ export default class DragScroller
         );
       }
     }
-/*
+
     if(this.#onScrollAlphaCb) {
       const alpha = this.getScrolledAlpha();
       this.#onScrollAlphaCb(alpha);
     }
-*/
   }
 
   _onScroll = (e) =>
@@ -569,7 +567,7 @@ export default class DragScroller
       return;
     }
 
-    this.scrollToIndex(itemIndex); // skip start spacer+template
+    this.scrollToIndex(itemIndex);
   };
 
   // Pagination mechanism
