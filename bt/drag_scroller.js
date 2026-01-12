@@ -610,7 +610,7 @@ export default class DragScroller
     if (this.#requestLeftPromise || this.#completedLeft)
       return;
 
-    const numItemsNeeded = this._getStartSpacerNumItemsExposure(scrollPos) * 2;
+    const numItemsNeeded = this._getStartSpacerNumItemsExposure(scrollPos);
     if (numItemsNeeded > 0)
     {
       console.debug("Need " + numItemsNeeded + " more items to the left");
@@ -629,7 +629,7 @@ export default class DragScroller
   _requestMoreIfNeededRight(scrollPos) {
     if (this.#requestRightPromise || this.#completedRight)
       return;
-    const numItemsNeeded = this._getEndSpacerNumItemsExposure(scrollPos) * 2;
+    const numItemsNeeded = this._getEndSpacerNumItemsExposure(scrollPos);
     if (numItemsNeeded > 0)
     {
       console.debug("Need " + numItemsNeeded + " more items to the right");
