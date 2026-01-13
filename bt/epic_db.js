@@ -410,7 +410,6 @@ export default class EpicDB {
             // Looping around default loop time range
             const loopBackRangeSec = gControlState.range ? gControlState.range : 3600 * 24; // default to 24 hours
             const newTimeSec = stopAtBoundary ? latestEpicTimeSec : latestEpicTimeSec - loopBackRangeSec;
-            deltaTime = newTimeSec - origTimeSec;
             timeSec = newTimeSec;
 
             //console.log("Past latest available EPIC image time, jumping back to loop period of " + loopBackRangeSec + "s");
@@ -435,7 +434,6 @@ export default class EpicDB {
                 if (!this.isDayAvailable(gGetDayFromTimeSec(timeSec)) || 
                     !this.isDayAvailable(gGetDayFromTimeSec(timeSec - 3600*24))) {
                     let jumpedDay = false;
-                    for (let k = 0; k < 2; k++) // do it twice to get a full day
                     do {
                         if (stopAtBoundary)
                         {
