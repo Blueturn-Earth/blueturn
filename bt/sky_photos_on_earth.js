@@ -2,8 +2,6 @@ import { gCalculateScreenCoordFromLatLon } from './utils.js';
 import { 
     gEpicImageData, 
     gEpicDB, 
-    gSetPlayState, 
-    gJumpToEpicTime, 
     addEpicTimeChangeCallback, 
     removeEpicTimeChangeCallback } from '././app.js';
 import { skyPhotosDB } from "./sky_photos_db.js";
@@ -170,10 +168,10 @@ function fetchSkyPhotosAroundTimeSec(epicTimeSec)
     const rangeEndEpicTimeDate = new Date(Math.min(rangeEndEpicTimeSec, latestEpicTimeSec) * 1000);
     rangeStartEpicTimeDate.setUTCHours(0,0,0,0);
     rangeEndEpicTimeDate.setUTCHours(23,59,59,999);
-    skyPhotosDB.fetchDateRange(rangeStartEpicTimeDate, rangeEndEpicTimeDate);
-    
-    if (rangeEndEpicTimeSec > latestEpicTimeSec)
-        skyPhotosDB.fetchDateRange(rangeEndEpicTimeDate, null);
+    if (rangeEndEpicTimeSec <= latestEpicTimeSec)
+        skyPhotosDB.fetchDateRange(rangeStartEpicTimeDate, rangeEndEpicTimeDate);
+    else
+        skyPhotosDB.fetchDateRange(rangeStartEpicTimeDate, null);
 }
 
 function updateEarthSkyPhotos(epicTimeSec)

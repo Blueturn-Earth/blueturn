@@ -192,21 +192,29 @@ html, body, canvas {
   display: none;
 }
 
-.show-db-btn {
+.debug-btn {
   position: absolute;
   top: 80px;
   right: 15px;
-  font-size: 14px;
-  border-radius: 20px;
+  background-color: #007bff; /* Blue background */
   border: none;
-  background: #1e88e5;
-  color: white;
-  cursor: pointer;
-  display: none;
+  color: white; /* White text */
+  padding: 15px 32px;
+  text-align: center;
+  text-decoration: none;
+  display: none; /* inline-block; */
+  font-size: 16px;
+  cursor: pointer; /* Changes mouse cursor to a hand */
+  border-radius: 8px; /* Rounded corners */
+  transition: background-color 0.3s; /* Smooth transition for color change */
 }
 
-.show-db-btn:active {
-  transform: scale(0.97);
+.debug-btn:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+}
+
+.debug-btn:active {
+  box-shadow: inset 2px 2px 3px rgba(0, 0, 0, 0.6); /* Inset shadow when clicked */
 }
 
 #skyPhotosBtn[data-state="off"] {

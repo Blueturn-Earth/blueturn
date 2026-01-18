@@ -11,10 +11,16 @@ export default class DragScroller
   #startX;
   #defaultDisplayMode;
   #isDragging = false;
+  #isDecelerating = false;
   #isSnapping = false;
+  #isProgrammaticScroll = false;
   #DRAG_THRESHOLD = 5; // pixels
+  #lastMoveDelta = 0;
+  #MOVE_THRESHOLD = 3; // pixels
   #startClientX;
   #startClientY;
+  #lastClientX;
+  #lastClientY;
   #isHorizontal;
   #selectedItemIndex;
   #onSelectItemCb;
@@ -45,17 +51,25 @@ export default class DragScroller
 
     this.#scroller.addEventListener('pointerdown', this._onPointerDown);
     this.#scroller.addEventListener('pointermove', this._onPointerMove);
-    this.#scroller.addEventListener('pointerup', this._endPointerInteraction);
+    this.#scroller.addEventListener('pointerup', (e) => {
+      this._endPointerInteraction(e);
+    });
     this.#scroller.addEventListener('mousedown', this._onPointerDown);
     this.#scroller.addEventListener('mousemove', this._onPointerMove);
-    this.#scroller.addEventListener('mouseup', this._endPointerInteraction);
+    this.#scroller.addEventListener('mouseup', (e) => {
+      this._endPointerInteraction(e);
+    });
     this.#scroller.addEventListener('touchstart', this._onPointerDown);
     this.#scroller.addEventListener('touchmove', this._onPointerMove);
-    this.#scroller.addEventListener('touchend', this._endPointerInteraction);
+    this.#scroller.addEventListener('touchend', (e) => {
+      this._endPointerInteraction(e);
+    });
     //this.#scroller.addEventListener('pointercancel', this._endPointerInteraction);
     //this.#scroller.addEventListener('lostpointercapture', this._endPointerInteraction);
     // Window-level safety net
-    window.addEventListener('blur', this._endPointerInteraction);
+    window.addEventListener('blur', (e) => {
+      this._endPointerInteraction(e);
+    });
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         this._endPointerInteraction();
@@ -63,7 +77,9 @@ export default class DragScroller
     });
 
     this.#scroller.addEventListener('scroll', this._onScroll);
-    this.#scroller.addEventListener('scrollend', this._onScrollEnd);
+    this.#scroller.addEventListener('scrollend', async (e) => {
+      await this._onScrollEnd(e);
+    });
   }
 
   setSelectItemCb(cb) {
@@ -84,6 +100,7 @@ export default class DragScroller
 
   show() {
     this.#scroller.style.display = this.#defaultDisplayMode;
+    this._requestMoreIfNeeded();
   }
   
   hide() {
@@ -121,11 +138,11 @@ export default class DragScroller
     
     if(this.#selectedItemIndex !== undefined &&
       this.#selectedItemIndex >= index) {
-        this._setSelectedIndex(this.#selectedItemIndex + 1);
+        this.scrollToIndex(this.#selectedItemIndex + 1, false);
     }
 
     node.onclick = (e) => {
-      //console.log(e.type);
+      //console.debug(e.type);
       this._onItemClick(node);
     };
 
@@ -150,10 +167,9 @@ export default class DragScroller
   }
 
   scrollToAlpha(alpha) {
-    if (this.#isDown || this.#isSnapping)
+    if (this.#isDown || this.#isSnapping || this.#isDragging || this.#isDecelerating)
       return;
 
-    //console.log("alpha: ", alpha);
     const limits = this._getScrollLimits();
     if (!limits) return;
 
@@ -167,36 +183,35 @@ export default class DragScroller
         Math.abs(this.#scroller.scrollLeft - target) > 1 : 
         Math.abs(this.#scroller.scrollTop - target) > 1;
     if (needScroll) {
+      console.debug("Scroll to alpha: ", alpha);
+      this.#isProgrammaticScroll = true;
       this.#scroller.scrollTo({
         ...(this.#isHorizontal ? { left: target } : { top: target }),
-        behavior: 'auto'
+        behavior: 'instant'
       });
-
-      this._requestMoreIfNeeded(target);        
     }
   }
   
-  
-  _getStartSpacerNumItemsExposure(targetScroll)
+  _getStartSpacerNumItemsExposure(scrollPos)
   {
     const startSpacerSize = this.#isHorizontal ? this.#startSpacer.clientWidth : this.#startSpacer.clientHeight;
-    if (targetScroll - startSpacerSize < startSpacerSize) {
+    if (scrollPos < startSpacerSize) {
       const firstItemSize = this._getItemSize(this.#itemsGroup.children[2]);
-      return Math.ceil((2 * startSpacerSize - startSpacerSize) / firstItemSize);
+      return Math.ceil(startSpacerSize / firstItemSize);
     }
     else
       return 0;
   }
 
-  _getEndSpacerNumItemsExposure(targetScroll)
+  _getEndSpacerNumItemsExposure(scrollPos)
   {
     const limits = this._getScrollLimits();
     if (!limits) 
       return false;
     const endSpacerSize = this.#isHorizontal ? this.#endSpacer.clientWidth : this.#endSpacer.clientHeight;
-    if (targetScroll + endSpacerSize > limits.max) {
+    if (scrollPos + endSpacerSize > limits.max) {
       const lastItemSize = this._getItemSize(this.#itemsGroup.children[this.#itemsGroup.children.length - 2]);
-      return Math.ceil((2 * endSpacerSize - endSpacerSize) / lastItemSize);
+      return Math.ceil(endSpacerSize / lastItemSize);
     }
     else
       return 0;
@@ -240,10 +255,9 @@ export default class DragScroller
     this.#scroller.scrollTo({
       left: this.#isHorizontal ? target : this.#scroller.scrollLeft,
       top:  this.#isHorizontal ? this.#scroller.scrollTop  : target,
-      behavior: 'smooth'
+      behavior: smooth ? 'smooth' : 'instant'
     });
     this._setSelectedIndex(index);
-    this._requestMoreIfNeeded(target);        
   }
 
   getSelectedItemIndex() {
@@ -261,14 +275,14 @@ export default class DragScroller
 
   _onPointerDown = (e) =>
   {
-    //console.log(e.type);
+    //console.debug(e.type);
     this.#isDown = true;
     this.#scroller.style.cursor = 'grabbing';
     this.#isDragging = false;
     if (e.clientX != undefined)
-      this.#startClientX = e.clientX;
+      this.#startClientX = this.#lastClientX = e.clientX;
     if (e.clientY != undefined)
-      this.#startClientY = e.clientY;
+      this.#startClientY = this.#lastClientY = e.clientY;
     if (e.pageX != undefined && e.pageY != undefined)
       this.#startX = this.#isHorizontal
         ? e.pageX - this.#scroller.offsetLeft
@@ -280,7 +294,7 @@ export default class DragScroller
 
   _endPointerInteraction = (e) =>
   {
-    //console.log(e.type);
+    console.debug("End of pointer interaction: " + e?.type);
     this.#isDown = false;
     this.#scroller.style.cursor = 'grab';
 
@@ -288,12 +302,17 @@ export default class DragScroller
       this.#scroller.releasePointerCapture(e.pointerId);
       // Prevent the upcoming click globally
       this._suppressNextClick();
-
       this.#isDragging = false;
-      this._snapToNearest();
+      if (this.#lastMoveDelta < this.#MOVE_THRESHOLD) {
+        console.debug("Snapping to nearest...");
+        this._snapToNearest();
+      }
+      else {
+        console.debug("Decelerating...");
+        this.#isDecelerating = true;
+      }
     }
-
-    this.#isDragging = false;
+    this.#lastMoveDelta = 0;
   }
 
   _suppressNextClick() {
@@ -309,14 +328,20 @@ export default class DragScroller
 
   _onPointerMove = (e) =>
   {
-    //console.log(e.type);
+    //console.debug(e.type);
     if (!this.#isDown) return;
 
-    const dx = Math.abs(e.clientX - this.#startClientX);
-    const dy = Math.abs(e.clientY - this.#startClientY);
+    const dx = Math.abs(e.clientX - this.#lastClientX);
+    const dy = Math.abs(e.clientY - this.#lastClientY);
+    this.#lastMoveDelta = this.#isHorizontal ? dx : dy;
+    this.#lastClientX = e.clientX;
+    this.#lastClientY = e.clientY;
 
-    const moveDelta = this.#isHorizontal ? dx : dy;
-    if (moveDelta > this.#DRAG_THRESHOLD) {
+    const dsx = Math.abs(e.clientX - this.#startClientX);
+    const dsy = Math.abs(e.clientY - this.#startClientY);
+
+    const moveFromStart = this.#isHorizontal ? dsx : dsy;
+    if (moveFromStart > this.#DRAG_THRESHOLD) {
       this.#isDragging = true;
     }
     else {
@@ -361,24 +386,40 @@ export default class DragScroller
 
   _onScroll = (e) =>
   {
-    //console.log(e.type);
-
+    //console.debug(e.type);
+    this._requestMoreIfNeeded();
   }
 
-  _onScrollEnd = () =>
+  _onScrollEnd = async (e) =>
   {
-    if (this.#isSnapping && 
-        this.#onSelectItemCb && 
-        this.#selectedItemIndex !== undefined) {
-      this.#onSelectItemCb(this.#itemsGroup.children[this.#selectedItemIndex + 2], this.#selectedItemIndex); // skip start spacer+template
+    console.debug("Scroll end: " + e?.type);
+    if (this.#isDown || this.#isProgrammaticScroll) {
+      this.#isProgrammaticScroll = false;
+      return;
     }
-    this.#isSnapping = false;
+
+    if (this.#isDecelerating) {      
+      console.debug("End of decelerating");
+      this.#isDecelerating = false;
+      this._snapToNearest();
+    }
+    else if (this.#isSnapping) {
+      console.debug("End of snapping");
+      if(this.#onSelectItemCb && this.#selectedItemIndex !== undefined) {
+        await this.#onSelectItemCb(this.#itemsGroup.children[this.#selectedItemIndex + 2], this.#selectedItemIndex); // skip start spacer+template
+      }
+      this.#isSnapping = false;
+    }
   };
 
   _snapToNearest() {
     const children = this.#itemsGroup.children;
-    if (children.length <= 2) // means empty with spacers
+    if (children.length <= 3) { // means empty with spacers and template
+      console.debug("Cannot snap to nearest: empty");
       return;
+    }
+
+    console.debug("Snap to nearest");
 
     const scrollPos = this.#isHorizontal
       ? this.#scroller.scrollLeft
@@ -504,7 +545,7 @@ export default class DragScroller
   }
 
   _onItemClick = (node) => {
-    if (this.#isDragging) return;
+    if (this.#isDragging || this.#isSnapping) return;
 
     const childIndex = Array.prototype.indexOf.call(
       this.#itemsGroup.children,
@@ -520,7 +561,7 @@ export default class DragScroller
       return;
     }
 
-    this.scrollToIndex(itemIndex); // skip start spacer+template
+    this.scrollToIndex(itemIndex);
   };
 
   // Pagination mechanism
@@ -549,47 +590,38 @@ export default class DragScroller
     if (this.#completedRight)
       console.log("No more items available to the right");
   }
-  _requestMoreIfNeeded(targetScroll) {
-    this._requestMoreIfNeededLeft(targetScroll);
-    this._requestMoreIfNeededRight(targetScroll);    
+  _requestMoreIfNeeded(scrollPos) {
+    if (scrollPos === undefined)
+      scrollPos = this.#isHorizontal ? this.#scroller.scrollLeft : this.#scroller.scrollTop;
+
+    this._requestMoreIfNeededLeft(scrollPos);
+    this._requestMoreIfNeededRight(scrollPos);    
   }
 
-  _requestMoreIfNeededLeft(targetScroll) {
+  _requestMoreIfNeededLeft(scrollPos) {
     if (this.#requestLeftPromise || this.#completedLeft)
       return;
 
-    const numItemsNeeded = this._getStartSpacerNumItemsExposure(targetScroll);
+    const numItemsNeeded = this._getStartSpacerNumItemsExposure(scrollPos);
     if (numItemsNeeded > 0)
     {
-      console.debug("Need " + numItemsNeeded + " more items to the left");
       if (this.#onRequestMoreLeftCb)
         this.#requestLeftPromise = this.#onRequestMoreLeftCb(numItemsNeeded);
       else
-        this.#requestLeftPromise = new Promise(resolve => {
-            // by default, simulate a process that takes 1s
-            setTimeout(() => {
-                resolve(this.notifyRequestMoreLeftComplete());
-              }, 1000);
-          });
+        this.notifyRequestMoreLeftComplete(false);
     }
   }
 
-  _requestMoreIfNeededRight(targetScroll) {
+  _requestMoreIfNeededRight(scrollPos) {
     if (this.#requestRightPromise || this.#completedRight)
       return;
-    const numItemsNeeded = this._getEndSpacerNumItemsExposure(targetScroll);
+    const numItemsNeeded = this._getEndSpacerNumItemsExposure(scrollPos);
     if (numItemsNeeded > 0)
     {
-      console.debug("Need " + numItemsNeeded + " more items to the right");
       if (this.#onRequestMoreRightCb)
         this.#requestRightPromise = this.#onRequestMoreRightCb(numItemsNeeded);
       else
-        this.#requestRightPromise = new Promise(resolve => {
-            // by default, simulate a process that takes 1s
-            setTimeout(() => {
-                resolve(this.notifyRequestMoreRightComplete());
-              }, 1000);
-          });
+        this.notifyRequestMoreLeftComplete(false);
     }
   }
 }
