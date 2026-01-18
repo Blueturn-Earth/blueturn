@@ -116,10 +116,6 @@ export default class DragScroller
     return node;
   }
   
-  getItemImg(node) {
-    return node.querySelector('img');
-  }
-
   appendItem(node)
   {
     insertItemAtIndex(node, -1);

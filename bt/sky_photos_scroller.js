@@ -15,11 +15,34 @@ skyPhotosScrollGallery.hide();
 
 setSkyPhotosScrollGalleryCallbacks();
 
+function getItemImg(node) {
+    return node.querySelector('img');
+}
+
+function getItemText(node) {
+    return node.querySelector('#scrollPhotoText');
+}
+
 function createScrollPicDiv(data)
 {
     const node = skyPhotosScrollGallery.createItem();
-    const img = skyPhotosScrollGallery.getItemImg(node);
+    const img = getItemImg(node);
     getStorageProvider().loadImageFromField(img, data.image);
+    const text = getItemText(node);
+    const formatter = new Intl.DateTimeFormat('en-US', {
+    month: 'short',     // "Jan"
+    day: 'numeric',     // "12"
+    hour: '2-digit',    // "15"
+    minute: '2-digit',  // "35"
+    hour12: false,      // Use 24-hour format
+    timeZone: 'UTC'     // Force UTC time
+    });
+    const parts = formatter.formatToParts(data.takenTime);
+    const p = Object.fromEntries(parts.map(p => [p.type, p.value]));
+
+    // Format and remove the comma if present (locale-dependent)
+    const shortcut = `${p.month}${p.day}\n${p.hour}:${p.minute}`;
+    text.innerHTML = shortcut;
     return node;
 }
 
@@ -79,19 +102,19 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
 function setSkyPhotosScrollGalleryCallbacks()
 {
     skyPhotosScrollGallery.setSelectItemCb(async (node, index) => {
-        const scrollDivImg = skyPhotosScrollGallery.getItemImg(node);
+        const scrollDivImg = getItemImg(node);
         scrollDivImg.style.border = `4px solid rgba(255, 255, 255, 1)`;
         await jumpToPicEpicTimeByIndex(index);
     });
 
     skyPhotosScrollGallery.setUnselectItemCb((node, index) => {
-        const scrollDivImg = skyPhotosScrollGallery.getItemImg(node);
+        const scrollDivImg = getItemImg(node);
         scrollDivImg.style.border = `0px solid`;
     });
 
     skyPhotosScrollGallery.setSelectedItemClickCb((node, index) => {
         const picItem = skyPhotosDB.getSkyPhotoAtEpicTimeIndex(index);
-        const picImg = skyPhotosScrollGallery.getItemImg(node);
+        const picImg = getItemImg(node);
         openPopupFromThumbnail(picImg, picItem);
     });
 

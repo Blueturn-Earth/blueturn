@@ -370,6 +370,17 @@ html, body, canvas {
   user-select: none;       /* prevents text/image selection */
 }
 
+.sky-scroll-photo-text {
+  position: absolute;
+  bottom: 10px;
+  width: 100%;
+  height: 20px;
+  text-align: center;
+  font-size: 14px;
+  color: gray;
+  white-space: pre-line;
+}
+
 @media (orientation: landscape) {
   #skyPhotosScrollBox {
     flex-direction: column;
