@@ -30,13 +30,17 @@ export default class CachedDB extends DB_Interface {
             return false;
 
         record.docId = docId;
-        this.#local.set(docId, record);
         for (const [cbId, cb] of this.#newRecordCallbacks) {
-            if (serialCb)
-                await cb(record);
-            else
-                cb(record);
+            if (serialCb) {
+                if (!await cb(record))
+                    return false;
+            }
+            else {
+                if (!cb(record))
+                    return false;
+            }
         };
+        this.#local.set(docId, record);
         return true;
     }
 }

@@ -50,10 +50,12 @@ function createPicElements(skyPhotoRecord)
 {
     if (!skyPhotoRecord) {
         console.error("Null skyPhotoRecord");
-        return;
+        return false;
     }
 
     skyPhotoRecord.scrollPicDiv = createScrollPicDiv(skyPhotoRecord);
+
+    return true;
 }
 
 async function jumpToPicEpicTimeByIndex(index)
@@ -92,11 +94,14 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
     const timestampDate = new Date(timestampTimeSec * 1000);
 
     console.debug("Placing new sky photo of time " + timestampDate + " in Scroller at index " + index);
-    createPicElements(picItem);
+    if (!createPicElements(picItem))
+        return false;
 
     const scrollPicDiv = picItem.scrollPicDiv;
     skyPhotosScrollGallery.insertItemAtIndex(scrollPicDiv, 
         skyPhotosScrollGallery.getNumItems() == 0 ? -1 : index); 
+
+    return true;
 });
 
 function setSkyPhotosScrollGalleryCallbacks()

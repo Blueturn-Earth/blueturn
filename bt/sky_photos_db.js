@@ -18,7 +18,7 @@ class SkyPhotosDB {
 
     constructor() {
         this.db = db;
-        this.db.addNewRecordCallback(async (record) => {await this._newSkyPhotoCallback(record);});
+        this.db.addNewRecordCallback(async (record) => {return await this._newSkyPhotoCallback(record);});
         //this.virtualize();
     }
 
@@ -358,10 +358,15 @@ class SkyPhotosDB {
     async _newSkyPhotoCallback(record)
     {
         record.takenTime = this._getRecordTimestampDate(record);
-        await this._adjustEpicTimeSec(record);
+        const success = await this._adjustEpicTimeSec(record);
+
+        if (!success)
+            return false;
 
         const index = this._addSkyPhotoToEpicSortedArray(record);
         record.epicTimeIndex = index;
+        
+        return index >= 0;
     }
 
     static _checkSkyPhotoRecord(record)
@@ -397,7 +402,7 @@ class SkyPhotosDB {
         if (!SkyPhotosDB._checkSkyPhotoRecord(record))
         {
             console.warn("Skipping pic due to missing data:", record.docId);
-            return;
+            return false;
         }
         const SECONDS_IN_DAY = 3600*24;
         if (timeSec > gEpicDB.getLatestEpicImageTimeSec())
@@ -410,30 +415,34 @@ class SkyPhotosDB {
             console.log("Adjusted pic from " + timestampDate + " to ", adjusted_timestampDate + " to fit in EPIC range");
         }
 
-        if (adjustTimeForMissingEpicData)
+        let boundPair;
+        try {
+            boundPair = 
+                await gEpicDB.fetchBoundKeyFrames(
+                    timeSec,
+                    false // don't request same day
+                );
+        }
+        catch(e) {
+            console.warn("Error fetching EPIC image at picture time " + timestampDate + ", " + e);
+            boundPair = null;
+            return false;
+        }
+        const [epicImageData0, epicImageData1] = boundPair ? boundPair : [null, null];
+        if (!boundPair) {
+            console.warn("Could not fetch EPIC data at picture time ", timestampDate);
+            return false;
+        }
+        else if (!epicImageData0 && !epicImageData1) {
+            console.warn("Could not fetch bound EPIC images at picture time ", timestampDate);
+            return false;
+        }
+
+        if (!epicImageData1 || !epicImageData0 || epicImageData1.timeSec - epicImageData0.timeSec > 12 * 3600)
         {
-            let boundPair;
-            try {
-                boundPair = 
-                    await gEpicDB.fetchBoundKeyFrames(
-                        timeSec,
-                        false // don't request same day
-                    );
-            }
-            catch(e) {
-                console.warn("Error fetching EPIC image at picture time " + timestampDate + ", " + e);
-                boundPair = null;
-            }
-            const [epicImageData0, epicImageData1] = boundPair ? boundPair : [null, null];
-            if (!boundPair) {
-                console.warn("Could not fetch EPIC data at picture time ", timestampDate);
-            }
-            else if (!epicImageData0 && !epicImageData1) {
-                console.warn("Could not fetch bound EPIC images at picture time ", timestampDate);
-            }
-            else if (!epicImageData1 || !epicImageData0 || epicImageData1.timeSec - epicImageData0.timeSec > 12 * 3600)
+            console.warn("EPIC data not available at picture time ", timestampDate);
+            if (adjustTimeForMissingEpicData)
             {
-                console.warn("EPIC data not available at picture time ", timestampDate);
                 if (!epicImageData1 || (epicImageData0 && (timeSec - epicImageData0.timeSec < epicImageData1.timeSec - timeSec)))
                 {
                     console.log("Closest EPIC data before picture time is previous at ", epicImageData0.date);
@@ -449,6 +458,8 @@ class SkyPhotosDB {
                 const adjusted_timestampDate = new Date(timeSec * 1000);
                 console.log("Adjusted pic from " + timestampDate + " to ", adjusted_timestampDate + " to fit in EPIC range");
             }
+            else
+                return false;
         }
 
         record.epicTimeSec = timeSec;
@@ -458,6 +469,8 @@ class SkyPhotosDB {
             console.debug(`Pic docId=${record.docId}: real date: \"${realDate}\", fake date:\"${fakeDate}\"`)
         else
             console.debug(`Pic docId=${record.docId}: date: \"${realDate}\"`);
+
+        return true;
     }    
 }
 

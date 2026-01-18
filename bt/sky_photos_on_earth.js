@@ -137,10 +137,12 @@ function createPicElements(skyPhotoRecord)
 {
     if (!skyPhotoRecord) {
         console.error("Null skyPhotoRecord");
-        return;
+        return false;
     }
 
     skyPhotoRecord.earthPicDiv = createEarthPicDiv(skyPhotoRecord);
+
+    return true;
 }
 
 skyPhotosDB.addNewSkyPhotoCallback(async (record) => {    
@@ -151,12 +153,15 @@ skyPhotosDB.addNewSkyPhotoCallback(async (record) => {
     const timestampDate = new Date(timestampTimeSec * 1000);
 
     console.debug("Placing new sky photo of time " + timestampDate + " on Earth at index " + index);
-    createPicElements(picItem);
+    if (!createPicElements(picItem))
+        return false;
 
     const earthPicDiv = picItem.earthPicDiv;
     skyPhotosEarthGallery.insertBefore(earthPicDiv, 
         skyPhotosEarthGallery.children.length == 0 ? null :
             skyPhotosEarthGallery.children[index]);
+
+    return true;
 });
 
 function fetchSkyPhotosAroundTimeSec(epicTimeSec)

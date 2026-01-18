@@ -187,18 +187,31 @@ export default class FirebaseDB extends CachedDB {
     async fetchRecords(query, serialCb = true) {
         await this._authenticate();
 
-        this.#fetchCount++;
-        const fetchCount = this.#fetchCount;
-        const snap = await this._fetchDocs(query, fetchCount);
-        let newRecordCount = 0;
-        const docs = snap.docs;
-        for (const doc of docs) {
-            if (await this.cacheRecord(doc.id, doc.data(), serialCb))
-                newRecordCount++;
-        }
+        const records = [];
 
-        if (newRecordCount > 0)
-            console.debug("Fetch request #" + fetchCount + " done with " + newRecordCount + " new records");
-        return docs.map(d => d.data());
+        while (true) {
+            this.#fetchCount++;
+            const fetchCount = this.#fetchCount;
+            const snap = await this._fetchDocs(query, fetchCount);
+            let newRecordCount = 0;
+            const docs = snap.docs;
+            for (const doc of docs) {
+                if (await this.cacheRecord(doc.id, doc.data(), serialCb))
+                    newRecordCount++;
+            }
+
+            if (newRecordCount > 0)
+                console.debug("Fetch request #" + fetchCount + " done with " + newRecordCount + " new records");
+
+            const newRecords = docs.map(d => d.data());
+            records.concat(records, newRecords);
+
+            continue;
+            if (newRecordCount == docs.length)
+                break;
+            else
+                console.log("Fetching again as some records where excluded");
+        }
+        return records
     }
 }
